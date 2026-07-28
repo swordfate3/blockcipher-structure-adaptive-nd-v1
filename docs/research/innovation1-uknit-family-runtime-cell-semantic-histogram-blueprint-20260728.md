@@ -407,6 +407,22 @@ maximum 32-cell relabeling error         = 1.6653345369377348e-16
 This establishes only algebraic collapsibility. If activated, readiness must
 repeat the check on every restored K1-U invariant checkpoint and require:
 
+The formula was also audited against both completed K1-T invariant checkpoints
+without training or optimizer steps. On a fixed 37-row legal 512-bit fixture,
+the complete restored-model logits agreed after folding the sixteen repeated
+cell-slot weights into the compact projection:
+
+```text
+seed3 maximum full-logit error = 5.960464477539063e-08
+seed4 maximum full-logit error = 1.1175870895385742e-07
+tolerance                         = 1e-6
+original / compact parameters     = 214316 / 137516
+```
+
+Both K1-T checkpoints pass. This is stronger than the random formula audit but
+remains pre-activation evidence only: it does not select the compact branch,
+replace the incomplete K1-U gate or waive the required K1-U checkpoint replay.
+
 1. compact and original invariant logits agree within `1e-6` on the exact
    cached cross-key validation rows;
 2. AUC and accuracy agree within the metric serialization tolerance;
