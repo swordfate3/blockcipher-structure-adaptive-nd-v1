@@ -5,23 +5,27 @@ Date: 2026-07-28
 ## Status And Activation Guard
 
 ```text
-status = method blueprint frozen; implementation and training not authorized yet
-authority = pending K1-U medium adjudication
+status = compact-invariant branch activated; K1-W plan required before training
+authority = K1-U medium signal_without_position_necessity decision
 source mechanism = K1-T deterministic stage/cell histogram residual
 primary cipher = uKNIT-BC r5
 cell-count stress target = Dialga-128 r4
 ```
 
-This blueprint defines the next architecture only if both K1-U seeds pass the
-preregistered medium gate. K1-U is still running remotely, so this document is
-not an experiment launch plan and does not authorize code changes, local
-training, remote training, or a transfer claim.
+K1-U completed remotely and was recovered through the raw-fallback path. Local
+re-adjudication verified all protocol checks and selected
+`medium_signal_without_position_necessity`: exact AUC was `0.974540/0.967867`,
+wrong-Sbox AUC was `0.503901/0.505827`, and the invariant branch was slightly
+better than the position-preserving branch on both seeds. This activates only
+the compact-invariant failure route defined below. A separate K1-W experiment
+plan is still required before optimization; the broader runtime-semantic
+candidate and any remote or transfer claim remain unauthorized.
 
-If K1-U does not pass, follow its existing decision tree instead of implementing
-this candidate. In particular, a wrong-S-box attribution failure requires a
-five-stage contribution audit, a position-erasure failure selects the simpler
-invariant branch, and a failed seed requires checkpoint/training-dynamics
-inspection with the protocol unchanged.
+K1-U did not pass the native-position necessity margin, so the fixed cell-slot
+projection must not be scaled. Before independent compact training, fold every
+retrieved K1-U invariant checkpoint into the compact projection and replay the
+exact retrieved validation cache. Any failure holds K1-W and authorizes only a
+folding/tensor-order correction.
 
 ## Evidence Boundary
 
@@ -34,8 +38,10 @@ neural and attributable at `2048/class`:
 | 4 | `0.748229` | `0.512875` | `0.594048` |
 
 This is a local mechanism diagnostic, not formal scale or family transfer.
-K1-U asks whether the same result survives at `65536/class`; no K1-U AUC is
-available locally yet.
+K1-U then tested the same mechanism remotely at `65536/class` training scale.
+The exact and invariant branches both reached approximately `0.97` AUC, while
+wrong-Sbox remained near chance. Native position was not necessary at that
+scale, so K1-U selected the compact invariant route rather than further scale.
 
 The next method question is therefore conditional and narrow:
 

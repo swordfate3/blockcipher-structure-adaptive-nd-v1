@@ -54,6 +54,11 @@ def model_metadata(model: Any) -> dict[str, Any]:
         "canonical_schedule_control",
         "topology_residual_mode",
         "topology_gate_initial",
+        "histogram_projection_lr_multiplier",
+        "histogram_projection_lr_parameter",
+        "virtual_projection_slots",
+        "virtual_projection_parameter",
+        "virtual_projection_effective_weight_shape",
     ):
         if hasattr(model, field):
             value = getattr(model, field)

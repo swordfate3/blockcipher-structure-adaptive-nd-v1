@@ -116,6 +116,7 @@ from blockcipher_nd.models.structure.spn.exact_operator_composition import (
     FixedExactOperatorCompositionSpnProtocolAdapter,
 )
 from blockcipher_nd.models.structure.spn.position_histogram_residual import (
+    FixedCompactInvariantHistogramResidualSpnProtocolAdapter,
     FixedPositionHistogramResidualSpnProtocolAdapter,
     PositionHistogramResidualSpnSpec,
 )
@@ -163,6 +164,12 @@ def build_spn_model(
         "runtime_spn_ct_k1t_position_histogram_true": "true",
         "runtime_spn_ct_k1t_position_histogram_wrong_sbox": "wrong_sbox",
         "runtime_spn_ct_k1t_position_histogram_invariant": "invariant",
+        "runtime_spn_ct_k1w_compact_histogram_true": "true",
+        "runtime_spn_ct_k1w_compact_histogram_wrong_sbox": "wrong_sbox",
+        "runtime_spn_ct_k1y_compact_histogram_true": "true",
+        "runtime_spn_ct_k1y_compact_histogram_wrong_sbox": "wrong_sbox",
+        "runtime_spn_ct_k1aa_virtual_slot_histogram_true": "true",
+        "runtime_spn_ct_k1aa_virtual_slot_histogram_wrong_sbox": "wrong_sbox",
     }
     if name in position_histogram_models:
         descriptor_path = options.get("runtime_structure_path")
@@ -206,13 +213,25 @@ def build_spn_model(
         histogram_value_dim = int_option(options, "histogram_value_dim", 8)
         assert pair_embedding_dim is not None
         assert histogram_value_dim is not None
-        return FixedPositionHistogramResidualSpnProtocolAdapter(
-            input_bits=input_bits,
-            pair_bits=(
+        compact_model = name.startswith(
+            (
+                "runtime_spn_ct_k1w_",
+                "runtime_spn_ct_k1y_",
+                "runtime_spn_ct_k1aa_",
+            )
+        )
+        adapter = (
+            FixedCompactInvariantHistogramResidualSpnProtocolAdapter
+            if compact_model
+            else FixedPositionHistogramResidualSpnProtocolAdapter
+        )
+        adapter_kwargs = {
+            "input_bits": input_bits,
+            "pair_bits": (
                 2 * runtime_structure.block_bits if pair_bits is None else pair_bits
             ),
-            structure=runtime_structure,
-            spec=PositionHistogramResidualSpnSpec(
+            "structure": runtime_structure,
+            "spec": PositionHistogramResidualSpnSpec(
                 hidden_dim=hidden_bits,
                 pair_embedding_dim=pair_embedding_dim,
                 histogram_value_dim=histogram_value_dim,
@@ -224,15 +243,35 @@ def build_spn_model(
                     options.get("histogram_gate_initial_effective", 0.05)
                 ),
             ),
-            descriptor_name=descriptor.name,
-            descriptor_path=str(descriptor.path),
-            descriptor_sha256=descriptor.sha256,
-            descriptor_round_start=descriptor.round_start,
-            descriptor_available_rounds=descriptor.available_rounds,
-            runtime_structure_mode=control,
-            apply_sboxes=True,
-            invariant_cells=control == "invariant",
+            "descriptor_name": descriptor.name,
+            "descriptor_path": str(descriptor.path),
+            "descriptor_sha256": descriptor.sha256,
+            "descriptor_round_start": descriptor.round_start,
+            "descriptor_available_rounds": descriptor.available_rounds,
+            "runtime_structure_mode": control,
+            "apply_sboxes": True,
+        }
+        if adapter is FixedPositionHistogramResidualSpnProtocolAdapter:
+            adapter_kwargs["invariant_cells"] = control == "invariant"
+        elif name.startswith("runtime_spn_ct_k1aa_"):
+            virtual_slots = int_option(options, "virtual_projection_slots", 16)
+            if virtual_slots != 16:
+                raise ValueError("K1-AA virtual_projection_slots must remain 16")
+            adapter_kwargs["virtual_projection_slots"] = virtual_slots
+        model = adapter(
+            **adapter_kwargs,
         )
+        if name.startswith("runtime_spn_ct_k1y_"):
+            multiplier = float(options.get("histogram_projection_lr_multiplier", 0.0))
+            if multiplier != 16.0:
+                raise ValueError(
+                    "K1-Y histogram_projection_lr_multiplier must remain 16.0"
+                )
+            parameter_name = "backbone.histogram_projection.0.weight"
+            model.optimizer_parameter_lr_multipliers = {parameter_name: multiplier}
+            model.histogram_projection_lr_multiplier = multiplier
+            model.histogram_projection_lr_parameter = parameter_name
+        return model
     exact_composition_models = {
         "runtime_spn_ct_k1n_exact_composition_true": "true",
         "runtime_spn_ct_k1n_exact_composition_wrong_sbox": "wrong_sbox",

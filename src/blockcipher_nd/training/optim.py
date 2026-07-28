@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 
 import torch
 from torch import nn
@@ -95,27 +96,79 @@ def make_optimizer(
     model: nn.Module,
     config: TrainingConfig,
 ) -> torch.optim.Optimizer:
+    parameters = optimizer_parameter_groups(model, config)
     if config.optimizer == "adam":
         return torch.optim.Adam(
-            model.parameters(),
+            parameters,
             lr=config.learning_rate,
             weight_decay=config.weight_decay,
             amsgrad=config.amsgrad,
         )
     if config.optimizer == "adamw":
         return torch.optim.AdamW(
-            model.parameters(),
+            parameters,
             lr=config.learning_rate,
             weight_decay=config.weight_decay,
             amsgrad=config.amsgrad,
         )
     if config.optimizer == "lion":
         return Lion(
-            model.parameters(),
+            parameters,
             lr=config.learning_rate,
             weight_decay=config.weight_decay,
         )
     raise ValueError(f"unsupported optimizer: {config.optimizer}")
+
+
+def optimizer_parameter_groups(
+    model: nn.Module,
+    config: TrainingConfig,
+):
+    multipliers = getattr(model, "optimizer_parameter_lr_multipliers", None)
+    if multipliers is None:
+        return model.parameters()
+    if not isinstance(multipliers, Mapping) or not multipliers:
+        raise ValueError("optimizer parameter LR multipliers must be a non-empty mapping")
+    if config.lr_scheduler != "none":
+        raise ValueError("parameter LR multipliers currently require lr_scheduler=none")
+    named = dict(model.named_parameters())
+    unknown = set(multipliers) - set(named)
+    if unknown:
+        raise ValueError(f"unknown optimizer LR multiplier parameters: {sorted(unknown)}")
+    scaled_ids: set[int] = set()
+    scaled_groups: list[dict[str, object]] = []
+    for name in sorted(multipliers):
+        multiplier = float(multipliers[name])
+        if not math.isfinite(multiplier) or multiplier <= 0.0:
+            raise ValueError("optimizer parameter LR multipliers must be finite and positive")
+        parameter = named[name]
+        if not parameter.requires_grad:
+            raise ValueError(f"optimizer LR multiplier parameter is frozen: {name}")
+        scaled_ids.add(id(parameter))
+        scaled_groups.append(
+            {
+                "params": [parameter],
+                "lr": config.learning_rate * multiplier,
+                "lr_multiplier": multiplier,
+                "parameter_group_name": name,
+            }
+        )
+    default_parameters = [
+        parameter
+        for parameter in model.parameters()
+        if parameter.requires_grad and id(parameter) not in scaled_ids
+    ]
+    if not default_parameters:
+        raise ValueError("optimizer LR multipliers left no default parameter group")
+    return [
+        {
+            "params": default_parameters,
+            "lr": config.learning_rate,
+            "lr_multiplier": 1.0,
+            "parameter_group_name": "default",
+        },
+        *scaled_groups,
+    ]
 
 
 def make_scheduler(

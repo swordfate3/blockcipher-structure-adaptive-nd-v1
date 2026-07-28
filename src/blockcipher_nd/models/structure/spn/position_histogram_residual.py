@@ -49,6 +49,46 @@ class PositionHistogramResidualSpnSpec:
             raise ValueError("position-histogram gate must be in (-1, 1)")
 
 
+class VirtualSlotSummedLinear(nn.Module):
+    """Linear projection with fixed optimizer slots and a summed forward weight."""
+
+    def __init__(
+        self,
+        in_features: int,
+        out_features: int,
+        virtual_slots: int,
+        *,
+        bias: bool = True,
+    ) -> None:
+        super().__init__()
+        if min(in_features, out_features, virtual_slots) <= 0:
+            raise ValueError("virtual-slot linear dimensions must be positive")
+        self.in_features = int(in_features)
+        self.out_features = int(out_features)
+        self.virtual_slots = int(virtual_slots)
+        self.virtual_slot_weights = nn.Parameter(
+            torch.empty(
+                self.virtual_slots,
+                self.out_features,
+                self.in_features,
+            )
+        )
+        self.bias = nn.Parameter(torch.empty(self.out_features)) if bias else None
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        bound = 1.0 / math.sqrt(self.virtual_slots * self.in_features)
+        nn.init.uniform_(self.virtual_slot_weights, -bound, bound)
+        if self.bias is not None:
+            nn.init.uniform_(self.bias, -bound, bound)
+
+    def effective_weight(self) -> torch.Tensor:
+        return self.virtual_slot_weights.sum(dim=0)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return F.linear(inputs, self.effective_weight(), self.bias)
+
+
 class PositionHistogramResidualSpnDistinguisher(
     ExactOperatorCompositionSpnDistinguisher
 ):
@@ -98,6 +138,70 @@ class PositionHistogramResidualSpnDistinguisher(
             apply_sboxes=apply_sboxes,
             invariant_cells=invariant_cells,
         )
+        encoded = self.histogram_value_encoder(histogram)
+        return self.histogram_projection(encoded.flatten(1))
+
+
+class CompactInvariantHistogramResidualSpnDistinguisher(
+    ExactOperatorCompositionSpnDistinguisher
+):
+    """K1-N plus a cell-count-invariant exact histogram residual."""
+
+    def __init__(
+        self,
+        spec: PositionHistogramResidualSpnSpec,
+        *,
+        virtual_projection_slots: int | None = None,
+    ) -> None:
+        super().__init__(
+            TopologyEdgeResidualSpnSpec(
+                hidden_dim=spec.hidden_dim,
+                pair_embedding_dim=spec.pair_embedding_dim,
+                dropout=spec.dropout,
+                initial_effective_gate=spec.initial_edge_gate,
+            )
+        )
+        self.histogram_spec = spec
+        self.histogram_value_encoder = nn.Sequential(
+            nn.Linear(16, spec.histogram_value_dim),
+            nn.ReLU(),
+        )
+        projection_input_dim = (
+            len(COMPOSITION_STAGE_NAMES) * spec.histogram_value_dim
+        )
+        projection = (
+            nn.Linear(projection_input_dim, spec.pair_embedding_dim)
+            if virtual_projection_slots is None
+            else VirtualSlotSummedLinear(
+                projection_input_dim,
+                spec.pair_embedding_dim,
+                virtual_projection_slots,
+            )
+        )
+        self.histogram_projection = nn.Sequential(
+            projection,
+            nn.ReLU(),
+            nn.LayerNorm(spec.pair_embedding_dim),
+        )
+        self.histogram_gate = nn.Parameter(
+            torch.tensor(
+                math.atanh(spec.initial_histogram_gate),
+                dtype=torch.float32,
+            )
+        )
+
+    def histogram_embedding(
+        self,
+        ciphertext_pairs: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        apply_sboxes: bool = True,
+    ) -> torch.Tensor:
+        histogram = deterministic_position_histogram(
+            ciphertext_pairs,
+            structure,
+            apply_sboxes=apply_sboxes,
+        ).mean(dim=2)
         encoded = self.histogram_value_encoder(histogram)
         return self.histogram_projection(encoded.flatten(1))
 
@@ -197,6 +301,117 @@ class FixedPositionHistogramResidualSpnProtocolAdapter(nn.Module):
         return self.backbone.base.classifier(combined)
 
 
+class FixedCompactInvariantHistogramResidualSpnProtocolAdapter(nn.Module):
+    """Bind K1-W to a variable-cell external two-transition descriptor."""
+
+    def __init__(
+        self,
+        *,
+        input_bits: int,
+        pair_bits: int,
+        structure: RuntimeSpnStructure,
+        spec: PositionHistogramResidualSpnSpec,
+        descriptor_name: str,
+        descriptor_path: str,
+        descriptor_sha256: str,
+        descriptor_round_start: int,
+        descriptor_available_rounds: int,
+        runtime_structure_mode: str,
+        apply_sboxes: bool,
+        virtual_projection_slots: int | None = None,
+    ) -> None:
+        super().__init__()
+        if pair_bits != 2 * structure.block_bits:
+            raise ValueError("K1-W pair_bits must encode two runtime blocks")
+        if input_bits <= 0 or input_bits % pair_bits:
+            raise ValueError("K1-W input_bits must contain complete pairs")
+        if structure.rounds != 2:
+            raise ValueError("K1-W requires exactly two transitions")
+        self.backbone = CompactInvariantHistogramResidualSpnDistinguisher(
+            spec,
+            virtual_projection_slots=virtual_projection_slots,
+        )
+        self.runtime_structure = structure
+        self.apply_sboxes = bool(apply_sboxes)
+        self.invariant_histogram_cells = True
+        self.input_bit_order = "project_msb_to_runtime_lsb"
+        self.runtime_structure_loaded_rounds = structure.rounds
+        self.runtime_round_window_mode = (
+            "deterministic_compact_invariant_histogram_residual"
+        )
+        self.runtime_structure_window_control = runtime_structure_mode
+        self.runtime_structure_descriptor_name = descriptor_name
+        self.runtime_structure_descriptor_path = descriptor_path
+        self.runtime_structure_descriptor_sha256 = descriptor_sha256
+        self.runtime_structure_round_start = descriptor_round_start
+        self.runtime_structure_available_rounds = descriptor_available_rounds
+        self.runtime_structure_mode = runtime_structure_mode
+        self.runtime_structure_transition_sha256s = structure.transition_sha256s()
+        self.runtime_structure_window_sha256 = structure.window_sha256()
+        self.runtime_structure_unique_transition_count = structure.unique_transition_count
+        self.runtime_structure_homogeneous = structure.is_homogeneous
+        self.operator_routing_sha256 = operator_routing_fingerprint(structure)
+        self.topology_edge_sha256 = topology_edge_fingerprint(structure)
+        self.composition_sha256 = composition_fingerprint(
+            structure,
+            apply_sboxes=self.apply_sboxes,
+        )
+        self.histogram_semantics_sha256 = histogram_semantics_fingerprint(
+            structure,
+            apply_sboxes=self.apply_sboxes,
+            invariant_cells=True,
+        )
+        self.composition_stage_names = COMPOSITION_STAGE_NAMES
+        self.histogram_shape = (len(COMPOSITION_STAGE_NAMES), structure.cells, 16)
+        self.histogram_value_dim = spec.histogram_value_dim
+        self.deterministic_exact_composition = True
+        self.deterministic_position_histogram = True
+        self.compact_invariant_histogram = True
+        self.uses_absolute_cell_or_bit_identity = False
+        self.uses_runtime_native_cell_slots = False
+        self.uses_sbox_semantics = self.apply_sboxes
+        self.uses_cipher_identity = False
+        self.histogram_gate_bounded = True
+        if virtual_projection_slots is not None:
+            self.virtual_projection_slots = int(virtual_projection_slots)
+            self.virtual_projection_parameter = (
+                "backbone.histogram_projection.0.virtual_slot_weights"
+            )
+            self.virtual_projection_effective_weight_shape = (
+                spec.pair_embedding_dim,
+                len(COMPOSITION_STAGE_NAMES) * spec.histogram_value_dim,
+            )
+            self.runtime_round_window_mode = (
+                "deterministic_virtual_slot_compact_invariant_histogram_residual"
+            )
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        runtime = features.reshape(
+            features.shape[0],
+            -1,
+            2,
+            self.runtime_structure.block_bits,
+        ).flip(-1)
+        base_embedding = self.backbone.base.encode(runtime, self.runtime_structure)
+        edge_residual = self.backbone.edge_residual_embedding(
+            runtime,
+            self.runtime_structure,
+            apply_sboxes=self.apply_sboxes,
+        )
+        combined = base_embedding + torch.tanh(
+            self.backbone.residual_gate
+        ) * torch.tanh(edge_residual)
+        histogram = self.backbone.histogram_embedding(
+            runtime,
+            self.runtime_structure,
+            apply_sboxes=self.apply_sboxes,
+        )
+        combined = combined + torch.tanh(
+            self.backbone.histogram_gate
+        ) * torch.tanh(histogram.repeat(1, 3))
+        return self.backbone.base.classifier(combined)
+
+
 def deterministic_position_histogram(
     ciphertext_pairs: torch.Tensor,
     structure: RuntimeSpnStructure,
@@ -211,8 +426,8 @@ def deterministic_position_histogram(
     )
     batch, pairs, bits, channels = views.shape
     stages_count = len(COMPOSITION_STAGE_NAMES)
-    if channels != stages_count * 3 or structure.cells != 16:
-        raise ValueError("K1-T exact composition geometry is invalid")
+    if channels != stages_count * 3:
+        raise ValueError("exact composition histogram geometry is invalid")
     stages = views.reshape(batch, pairs, bits, stages_count, 3)[
         ..., 2
     ].permute(0, 1, 3, 2)
@@ -245,9 +460,12 @@ def histogram_semantics_fingerprint(
 
 
 __all__ = [
+    "CompactInvariantHistogramResidualSpnDistinguisher",
+    "FixedCompactInvariantHistogramResidualSpnProtocolAdapter",
     "FixedPositionHistogramResidualSpnProtocolAdapter",
     "PositionHistogramResidualSpnDistinguisher",
     "PositionHistogramResidualSpnSpec",
+    "VirtualSlotSummedLinear",
     "deterministic_position_histogram",
     "histogram_semantics_fingerprint",
 ]
