@@ -226,3 +226,19 @@ archive or an explicitly marked raw fallback, verify `SHA256SUMS`, re-run plan
 validation and the K1-U gate, generate the Chinese SVG and refresh both result
 indexes. The result remains pending; no AUC or completed-run claim is made at
 this launch checkpoint.
+
+A post-launch evidence audit found that the pinned `ab8ec16d` packager checks
+all six checkpoint payloads and all four disk caches but copies only their
+manifests and cache metadata into the result branch. That is sufficient for the
+six-row K1-U gate, but it is not sufficient for the conditional blueprint's
+required invariant-checkpoint fold and exact `65536`-row validation replay.
+This omission does not change the running training process, datasets, metrics
+or source identity. The local monitor recovery path now performs exactly one
+post-completion supplemental retrieval from the existing `G:\lxy` run root:
+all six checkpoints plus the two validation caches. It verifies checkpoint
+SHA-256 values, cache-metadata SHA-256 values and payload sizes against the
+retrieved archive manifests, and writes
+`RAW_EVIDENCE_SUPPLEMENT_NOTICE.txt`. Core result-branch evidence and the raw
+supplement must remain separately described. Future K1-U packaging copies the
+six checkpoints and two validation caches directly into the checksummed result
+archive and records payload SHA-256 values; no training cache is added.

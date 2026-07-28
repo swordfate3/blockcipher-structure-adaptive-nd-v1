@@ -35,6 +35,29 @@ sync_logs() {
     >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || true
 }
 
+retrieve_raw_evidence_supplement() {
+  local destination="$1"
+  local supplement="${destination}/raw_evidence_supplement"
+  local staging="${MONITOR_ROOT}/supplement_${RUN_ID}_$(date +%s)"
+  mkdir -p "${staging}"
+  scp -r "${REMOTE}:${RUNS_ROOT}/${RUN_ID}/checkpoints" \
+    "${staging}/" >> "${MONITOR_ROOT}/scp.log" \
+    2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
+  mkdir -p "${staging}/cache/uknit64/r5"
+  scp -r "${REMOTE}:${RUNS_ROOT}/${RUN_ID}/cache/uknit64/r5/validation" \
+    "${staging}/cache/uknit64/r5/" >> "${MONITOR_ROOT}/scp.log" \
+    2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
+  UV_CACHE_DIR=/tmp/uv-cache uv run python -c \
+    "import hashlib,json,pathlib,sys; d=pathlib.Path(r'${destination}'); s=pathlib.Path(r'${staging}'); h=lambda p: hashlib.sha256(p.read_bytes()).hexdigest(); cm=json.loads((d/'checkpoint_manifest.json').read_text()); ca=json.loads((d/'cache_manifest.json').read_text()); cps=sorted((s/'checkpoints').glob('*.pt')); ok=len(cps)==6 and all(any(e['sha256']==h(p) and pathlib.PurePosixPath(e['path']).name==p.name for e in cm['checkpoints']) for p in cps); vals=[e for e in ca['caches'] if '/validation/' in e['cache_path'].replace('\\\\','/')]; payloads=sorted((s/'cache/uknit64/r5/validation').glob('*/metadata.json')); ok=ok and len(vals)==2 and len(payloads)==2; ok=ok and all(any(e['metadata_sha256']==h(p) and e['features_bytes']==p.with_name('features.npy').stat().st_size and e['labels_bytes']==p.with_name('labels.npy').stat().st_size for e in vals) for p in payloads); sys.exit(0 if ok else 1)" \
+    >> "${MONITOR_ROOT}/supplement.log" \
+    2>> "${MONITOR_ROOT}/supplement_stderr.log" || return 1
+  mv "${staging}" "${supplement}" || return 1
+  printf '%s\n' \
+    "RAW EVIDENCE SUPPLEMENT: checkpoints and validation caches were retrieved once from the completed G:\\lxy run root." \
+    "Checkpoint hashes, cache metadata hashes and payload sizes match the verified result archive manifests." \
+    > "${destination}/RAW_EVIDENCE_SUPPLEMENT_NOTICE.txt"
+}
+
 branch_exists() {
   git ls-remote --exit-code origin "refs/heads/results/${RUN_ID}" \
     >> "${MONITOR_ROOT}/branch.log" 2>> "${MONITOR_ROOT}/branch_stderr.log"
@@ -86,6 +109,7 @@ retrieve_archive() {
     2>> "${MONITOR_ROOT}/sha256_stderr.log" || return 1
   [[ "$(tr -d '\r\n' < "${staging}/${RUN_ID}/git_revision.txt")" == "${SOURCE_COMMIT}" ]] \
     || return 1
+  retrieve_raw_evidence_supplement "${staging}/${RUN_ID}" || return 1
   cp -a "${staging}/${RUN_ID}" "${destination}" || return 1
   touch "${destination}/${marker}"
   if [[ "${mode}" == "raw" ]]; then

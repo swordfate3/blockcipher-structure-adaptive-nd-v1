@@ -90,6 +90,10 @@ def package_k1u_archive(
     for index, metadata_path in enumerate(metadata_paths):
         features_path = metadata_path.with_name("features.npy")
         labels_path = metadata_path.with_name("labels.npy")
+        relative_cache_path = metadata_path.parent.relative_to(cache_root)
+        split = (
+            "validation" if "validation" in relative_cache_path.parts else "train"
+        )
         if not features_path.is_file() or not labels_path.is_file():
             raise ValueError(f"incomplete cache payload: {metadata_path.parent}")
         if features_path.stat().st_size == 0 or labels_path.stat().st_size == 0:
@@ -103,11 +107,19 @@ def package_k1u_archive(
             {
                 "index": index,
                 "cache_path": metadata_path.parent.relative_to(run_root).as_posix(),
+                "archive_path": (
+                    (Path("validation_cache") / relative_cache_path).as_posix()
+                    if split == "validation"
+                    else None
+                ),
                 "metadata_sha256": _sha256(metadata_path),
                 "features_bytes": features_path.stat().st_size,
+                "features_sha256": _sha256(features_path),
                 "labels_bytes": labels_path.stat().st_size,
+                "labels_sha256": _sha256(labels_path),
                 "total_rows": metadata.get("total_rows"),
                 "input_bits": metadata.get("input_bits"),
+                "split": split,
             }
         )
 
@@ -132,6 +144,23 @@ def package_k1u_archive(
             cache_metadata_root / f"cache_{index:02d}_metadata.json",
         )
 
+    archived_checkpoints = archive_root / "checkpoints"
+    archived_checkpoints.mkdir()
+    for path in checkpoints:
+        shutil.copy2(path, archived_checkpoints / path.name)
+
+    validation_entries = [
+        entry for entry in cache_entries if entry["split"] == "validation"
+    ]
+    if len(validation_entries) != 2:
+        raise ValueError("K1-U requires exactly two validation caches")
+    for entry in validation_entries:
+        source = run_root / entry["cache_path"]
+        destination = archive_root / entry["archive_path"]
+        destination.mkdir(parents=True)
+        for name in ("features.npy", "labels.npy", "metadata.json"):
+            shutil.copy2(source / name, destination / name)
+
     log_archive = archive_root / "logs"
     log_archive.mkdir()
     for path in sorted(logs_root.glob(f"{RUN_ID}_*")):
@@ -143,6 +172,7 @@ def package_k1u_archive(
         "checkpoints": [
             {
                 "path": path.relative_to(run_root).as_posix(),
+                "archive_path": (Path("checkpoints") / path.name).as_posix(),
                 "bytes": path.stat().st_size,
                 "sha256": _sha256(path),
             }
@@ -156,6 +186,8 @@ def package_k1u_archive(
         "result_rows": len(result_rows),
         "checkpoint_count": len(checkpoints),
         "cache_count": len(cache_entries),
+        "archived_checkpoint_count": len(checkpoints),
+        "archived_validation_cache_count": len(validation_entries),
         "result_sync": "verified_result_branch_with_local_raw_fallback",
         "claim_scope": (
             "remote 65536/class uKNIT r5 medium diagnostic; not formal, "

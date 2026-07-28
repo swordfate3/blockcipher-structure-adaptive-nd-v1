@@ -129,6 +129,9 @@ def test_k1u_generated_assets_are_fail_closed_and_remote_owned() -> None:
     assert 'git archive "${result_ref}" "results_archive/${RUN_ID}"' in monitor
     assert 'if [[ "${mode}" == "verified" ]]' in monitor
     assert "sed 's/\\r$//' SHA256SUMS | sha256sum -c -" in monitor
+    assert "raw_evidence_supplement" in monitor
+    assert "RAW_EVIDENCE_SUPPLEMENT_NOTICE.txt" in monitor
+    assert "/cache/uknit64/r5/validation" in monitor
     assert "plot-uknit-family-ctspn-k1u" in monitor
     assert config["physical_gpu"] == 1
     assert config["result_sync"] == "local_tmux_monitor_scp_fallback"
@@ -159,8 +162,9 @@ def test_k1u_archive_packager_requires_six_checkpoints_and_four_caches(
     for index in range(6):
         (checkpoint_root / f"row{index:04d}.pt").write_bytes(b"checkpoint")
     for index in range(4):
-        payload = cache_root / f"cache{index}"
-        payload.mkdir()
+        split = "train" if index < 2 else "validation"
+        payload = cache_root / "uknit64" / "r5" / split / f"cache{index}"
+        payload.mkdir(parents=True)
         (payload / "features.npy").write_bytes(b"features")
         (payload / "labels.npy").write_bytes(b"labels")
         (payload / "metadata.json").write_text(
@@ -196,5 +200,11 @@ def test_k1u_archive_packager_requires_six_checkpoints_and_four_caches(
     assert report["result_rows"] == 6
     assert report["checkpoint_count"] == 6
     assert report["cache_count"] == 4
+    assert report["archived_checkpoint_count"] == 6
+    assert report["archived_validation_cache_count"] == 2
     assert (archive_root / "SHA256SUMS").is_file()
     assert len(list((archive_root / "cache_metadata").glob("*.json"))) == 4
+    assert len(list((archive_root / "checkpoints").glob("*.pt"))) == 6
+    assert len(list((archive_root / "validation_cache").rglob("features.npy"))) == 2
+    assert len(list((archive_root / "validation_cache").rglob("labels.npy"))) == 2
+    assert not list((archive_root / "validation_cache").glob("**/train/**"))
