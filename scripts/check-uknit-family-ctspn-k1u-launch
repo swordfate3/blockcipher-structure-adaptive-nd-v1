@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.check_uknit_family_ctspn_k1u_launch import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
