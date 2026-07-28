@@ -71,17 +71,21 @@ control with identical parameter names and shapes:
 | Condition | S-box schedule | Linear schedule | Purpose |
 |---|---|---|---|
 | `exact_composition` | correct heterogeneous tables | correct ordered matrices | candidate |
-| `shuffled_sbox_assignment` | cell assignments shuffled within each slot | correct | tests cell-specific S-box use |
+| `wrong_sbox_semantics` | uKNIT cell assignments shuffled; homogeneous Dialga input domain permuted | correct | tests exact S-box use |
 | `reversed_linear_schedule` | correct, unchanged slots | linear slots reversed only | tests linear order |
 | `corrupted_linear_operators` | correct | deterministic source-column corruption | tests exact matrices |
 | `no_sbox_composition` | S-box stages replaced by identity | correct | tests nonlinear contribution |
 | `no_topology` | identity S-boxes | identity matrices | removes runtime operator semantics |
 | `k1m_anchor` | completed K1-M exact row | completed K1-M exact row | same-budget anchor |
 
-S-box shuffling must change each cipher's composition fingerprint. Reversing
-linear order must leave S-box slots unchanged. Corruption must leave S-boxes
-unchanged. Every control must consume the same dataset digest and strict-loaded
-candidate state.
+uKNIT has heterogeneous cell tables, so its wrong-S-box control shuffles cell
+assignments within each slot. Dialga's normalized native cells share one table,
+so assignment shuffling is an exact no-op; its wrong-S-box control instead
+applies a fixed nonidentity permutation to the four-bit S-box input domain for
+every cell and slot. Both variants change only S-box semantics and must change
+the composition fingerprint. Reversing linear order must leave S-box slots
+unchanged. Corruption must leave S-boxes unchanged. Every control must consume
+the same dataset digest and strict-loaded candidate state.
 
 ## 5. Readiness Gate
 
@@ -93,7 +97,7 @@ Before optimization require all of the following:
 4. vectorized inverse composition equals an independently stepped reference;
 5. forward replay of both transitions exactly reconstructs every fixed binary
    fixture after the inverse composition;
-6. candidate, shuffled-S-box, reversed-linear, corrupted-linear,
+6. candidate, wrong-S-box, reversed-linear, corrupted-linear,
    no-S-box and no-topology models have identical state geometry and strict-load
    the same state;
 7. each control changes only its declared descriptor component and has a
@@ -162,7 +166,7 @@ candidate AUC - every semantic control AUC >= +0.005
   changing the neural architecture again.
 - **Dialga signal collapses:** discard K1-N because the new bottleneck erased a
   known strong mechanism; return to K1-M.
-- **Candidate and shuffled S-box are indistinguishable:** do not add capacity or
+- **Candidate and wrong S-box are indistinguishable:** do not add capacity or
   MoE. Audit S-box assignment equivariance and cell grouping first.
 - **Protocol invalid:** repair only the failed implementation/binding and rerun
   readiness or training unchanged.
@@ -179,7 +183,7 @@ training_run_id  = i1_uknit_family_ctspn_exact_operator_composition_k1n_2048_see
 ```
 
 Readiness must produce preflight, results, validation, gate and progress files.
-Training must produce four checkpoints, `72` evaluation rows, checkpoint and
+Training must produce four checkpoints, `84` evaluation rows, checkpoint and
 dataset manifests, controls, split CSV, gate, validation, summary, history and
 progress. Generate a Chinese explanatory SVG, inspect its rendered pixels with
 `visual-qa-redraw`, then refresh `outputs/00_RECENT_RESULTS.md` and
