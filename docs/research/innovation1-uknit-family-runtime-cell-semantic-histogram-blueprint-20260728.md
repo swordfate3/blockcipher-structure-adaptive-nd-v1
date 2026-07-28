@@ -423,6 +423,22 @@ Both K1-T checkpoints pass. This is stronger than the random formula audit but
 remains pre-activation evidence only: it does not select the compact branch,
 replace the incomplete K1-U gate or waive the required K1-U checkpoint replay.
 
+The same restored models were then replayed at the frozen batch size of `64`
+on their manifest-bound 2048-row cross-key validation caches. The original and
+folded models produced exactly equal serialized AUC and fixed-threshold
+accuracy on both seeds:
+
+```text
+seed3 AUC / accuracy       = 0.565424442 / 0.546875000
+seed3 maximum logit error = 1.2665987014770508e-07
+seed4 AUC / accuracy       = 0.594047546 / 0.573730469
+seed4 maximum logit error = 1.7881393432617188e-07
+```
+
+This closes the K1-T metric-preservation precheck, but K1-U still requires the
+same replay against its larger restored invariant checkpoints and exact cached
+cross-key rows if the compact branch is selected.
+
 A second zero-training audit used the real `uknit64.json` and `dialga128.json`
 runtime descriptors. It found one concrete implementation interlock: the
 current `deterministic_position_histogram` helper rejects every structure whose
