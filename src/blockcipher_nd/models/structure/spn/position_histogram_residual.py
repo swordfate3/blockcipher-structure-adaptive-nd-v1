@@ -35,11 +35,14 @@ class PositionHistogramResidualSpnSpec:
     initial_histogram_gate: float = 0.05
 
     def __post_init__(self) -> None:
-        if min(
-            self.hidden_dim,
-            self.pair_embedding_dim,
-            self.histogram_value_dim,
-        ) <= 0:
+        if (
+            min(
+                self.hidden_dim,
+                self.pair_embedding_dim,
+                self.histogram_value_dim,
+            )
+            <= 0
+        ):
             raise ValueError("position-histogram dimensions must be positive")
         if not 0.0 <= self.dropout < 1.0:
             raise ValueError("position-histogram dropout must be in [0, 1)")
@@ -166,9 +169,7 @@ class CompactInvariantHistogramResidualSpnDistinguisher(
             nn.Linear(16, spec.histogram_value_dim),
             nn.ReLU(),
         )
-        projection_input_dim = (
-            len(COMPOSITION_STAGE_NAMES) * spec.histogram_value_dim
-        )
+        projection_input_dim = len(COMPOSITION_STAGE_NAMES) * spec.histogram_value_dim
         projection = (
             nn.Linear(projection_input_dim, spec.pair_embedding_dim)
             if virtual_projection_slots is None
@@ -204,6 +205,87 @@ class CompactInvariantHistogramResidualSpnDistinguisher(
         ).mean(dim=2)
         encoded = self.histogram_value_encoder(histogram)
         return self.histogram_projection(encoded.flatten(1))
+
+
+@dataclass(frozen=True)
+class SboxTransitionResidualSpnSpec:
+    hidden_dim: int = 32
+    pair_embedding_dim: int = 128
+    transition_value_dim: int = 20
+    dropout: float = 0.0
+    initial_edge_gate: float = 0.05
+    initial_transition_gate: float = 0.05
+    virtual_projection_slots: int = 16
+
+    def __post_init__(self) -> None:
+        if (
+            min(
+                self.hidden_dim,
+                self.pair_embedding_dim,
+                self.transition_value_dim,
+                self.virtual_projection_slots,
+            )
+            <= 0
+        ):
+            raise ValueError("S-box transition dimensions must be positive")
+        if not 0.0 <= self.dropout < 1.0:
+            raise ValueError("S-box transition dropout must be in [0, 1)")
+        if not -1.0 < self.initial_edge_gate < 1.0:
+            raise ValueError("S-box transition edge gate must be in (-1, 1)")
+        if not -1.0 < self.initial_transition_gate < 1.0:
+            raise ValueError("S-box transition gate must be in (-1, 1)")
+
+
+class CompactSboxTransitionResidualSpnDistinguisher(
+    ExactOperatorCompositionSpnDistinguisher
+):
+    """K1-AA trunk with a shared per-cell nonlinear-transition readout."""
+
+    def __init__(self, spec: SboxTransitionResidualSpnSpec) -> None:
+        super().__init__(
+            TopologyEdgeResidualSpnSpec(
+                hidden_dim=spec.hidden_dim,
+                pair_embedding_dim=spec.pair_embedding_dim,
+                dropout=spec.dropout,
+                initial_effective_gate=spec.initial_edge_gate,
+            )
+        )
+        self.transition_spec = spec
+        self.sbox_transition_encoder = nn.Sequential(
+            nn.Linear(16 * 16, spec.transition_value_dim),
+            nn.ReLU(),
+        )
+        self.transition_projection = nn.Sequential(
+            VirtualSlotSummedLinear(
+                2 * spec.transition_value_dim,
+                spec.pair_embedding_dim,
+                spec.virtual_projection_slots,
+            ),
+            nn.ReLU(),
+            nn.LayerNorm(spec.pair_embedding_dim),
+        )
+        self.transition_gate = nn.Parameter(
+            torch.tensor(
+                math.atanh(spec.initial_transition_gate),
+                dtype=torch.float32,
+            )
+        )
+
+    def transition_embedding(
+        self,
+        ciphertext_pairs: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        apply_sboxes: bool = True,
+    ) -> torch.Tensor:
+        histogram = deterministic_sbox_transition_histogram(
+            ciphertext_pairs,
+            structure,
+            apply_sboxes=apply_sboxes,
+        )
+        encoded_per_cell = self.sbox_transition_encoder(histogram)
+        invariant = encoded_per_cell.mean(dim=2)
+        return self.transition_projection(invariant.flatten(1))
 
 
 class FixedPositionHistogramResidualSpnProtocolAdapter(nn.Module):
@@ -248,7 +330,9 @@ class FixedPositionHistogramResidualSpnProtocolAdapter(nn.Module):
         self.runtime_structure_mode = runtime_structure_mode
         self.runtime_structure_transition_sha256s = structure.transition_sha256s()
         self.runtime_structure_window_sha256 = structure.window_sha256()
-        self.runtime_structure_unique_transition_count = structure.unique_transition_count
+        self.runtime_structure_unique_transition_count = (
+            structure.unique_transition_count
+        )
         self.runtime_structure_homogeneous = structure.is_homogeneous
         self.operator_routing_sha256 = operator_routing_fingerprint(structure)
         self.topology_edge_sha256 = topology_edge_fingerprint(structure)
@@ -295,9 +379,9 @@ class FixedPositionHistogramResidualSpnProtocolAdapter(nn.Module):
             invariant_cells=self.invariant_histogram_cells,
         )
         histogram_residual = histogram.repeat(1, 3)
-        combined = combined + torch.tanh(
-            self.backbone.histogram_gate
-        ) * torch.tanh(histogram_residual)
+        combined = combined + torch.tanh(self.backbone.histogram_gate) * torch.tanh(
+            histogram_residual
+        )
         return self.backbone.base.classifier(combined)
 
 
@@ -348,7 +432,9 @@ class FixedCompactInvariantHistogramResidualSpnProtocolAdapter(nn.Module):
         self.runtime_structure_mode = runtime_structure_mode
         self.runtime_structure_transition_sha256s = structure.transition_sha256s()
         self.runtime_structure_window_sha256 = structure.window_sha256()
-        self.runtime_structure_unique_transition_count = structure.unique_transition_count
+        self.runtime_structure_unique_transition_count = (
+            structure.unique_transition_count
+        )
         self.runtime_structure_homogeneous = structure.is_homogeneous
         self.operator_routing_sha256 = operator_routing_fingerprint(structure)
         self.topology_edge_sha256 = topology_edge_fingerprint(structure)
@@ -406,9 +492,114 @@ class FixedCompactInvariantHistogramResidualSpnProtocolAdapter(nn.Module):
             self.runtime_structure,
             apply_sboxes=self.apply_sboxes,
         )
-        combined = combined + torch.tanh(
-            self.backbone.histogram_gate
-        ) * torch.tanh(histogram.repeat(1, 3))
+        combined = combined + torch.tanh(self.backbone.histogram_gate) * torch.tanh(
+            histogram.repeat(1, 3)
+        )
+        return self.backbone.base.classifier(combined)
+
+
+class FixedCompactSboxTransitionResidualSpnProtocolAdapter(nn.Module):
+    """Bind the K1-AK cell-invariant S-box-transition readout."""
+
+    def __init__(
+        self,
+        *,
+        input_bits: int,
+        pair_bits: int,
+        structure: RuntimeSpnStructure,
+        spec: SboxTransitionResidualSpnSpec,
+        descriptor_name: str,
+        descriptor_path: str,
+        descriptor_sha256: str,
+        descriptor_round_start: int,
+        descriptor_available_rounds: int,
+        runtime_structure_mode: str,
+        apply_sboxes: bool,
+    ) -> None:
+        super().__init__()
+        if pair_bits != 2 * structure.block_bits:
+            raise ValueError("K1-AK pair_bits must encode two runtime blocks")
+        if input_bits <= 0 or input_bits % pair_bits:
+            raise ValueError("K1-AK input_bits must contain complete pairs")
+        if structure.rounds != 2:
+            raise ValueError("K1-AK requires exactly two transitions")
+        self.backbone = CompactSboxTransitionResidualSpnDistinguisher(spec)
+        self.runtime_structure = structure
+        self.apply_sboxes = bool(apply_sboxes)
+        self.input_bit_order = "project_msb_to_runtime_lsb"
+        self.runtime_structure_loaded_rounds = structure.rounds
+        self.runtime_round_window_mode = (
+            "deterministic_compact_sbox_transition_residual"
+        )
+        self.runtime_structure_window_control = runtime_structure_mode
+        self.runtime_structure_descriptor_name = descriptor_name
+        self.runtime_structure_descriptor_path = descriptor_path
+        self.runtime_structure_descriptor_sha256 = descriptor_sha256
+        self.runtime_structure_round_start = descriptor_round_start
+        self.runtime_structure_available_rounds = descriptor_available_rounds
+        self.runtime_structure_mode = runtime_structure_mode
+        self.runtime_structure_transition_sha256s = structure.transition_sha256s()
+        self.runtime_structure_window_sha256 = structure.window_sha256()
+        self.runtime_structure_unique_transition_count = (
+            structure.unique_transition_count
+        )
+        self.runtime_structure_homogeneous = structure.is_homogeneous
+        self.operator_routing_sha256 = operator_routing_fingerprint(structure)
+        self.topology_edge_sha256 = topology_edge_fingerprint(structure)
+        self.composition_sha256 = composition_fingerprint(
+            structure,
+            apply_sboxes=self.apply_sboxes,
+        )
+        self.sbox_transition_semantics_sha256 = sbox_transition_semantics_fingerprint(
+            structure,
+            apply_sboxes=self.apply_sboxes,
+        )
+        self.composition_stage_names = COMPOSITION_STAGE_NAMES
+        self.sbox_transition_stage_pairs = ((1, 2), (3, 4))
+        self.sbox_transition_histogram_shape = (2, structure.cells, 16, 16)
+        self.sbox_transition_value_dim = spec.transition_value_dim
+        self.virtual_projection_slots = spec.virtual_projection_slots
+        self.virtual_projection_parameter = (
+            "backbone.transition_projection.0.virtual_slot_weights"
+        )
+        self.virtual_projection_effective_weight_shape = (
+            spec.pair_embedding_dim,
+            2 * spec.transition_value_dim,
+        )
+        self.deterministic_exact_composition = True
+        self.deterministic_sbox_transition_histogram = True
+        self.compact_invariant_sbox_transition = True
+        self.uses_absolute_cell_or_bit_identity = False
+        self.uses_runtime_native_cell_slots = False
+        self.uses_sbox_semantics = self.apply_sboxes
+        self.uses_sbox_transition_semantics = self.apply_sboxes
+        self.uses_cipher_identity = False
+        self.transition_gate_bounded = True
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        runtime = features.reshape(
+            features.shape[0],
+            -1,
+            2,
+            self.runtime_structure.block_bits,
+        ).flip(-1)
+        base_embedding = self.backbone.base.encode(runtime, self.runtime_structure)
+        edge_residual = self.backbone.edge_residual_embedding(
+            runtime,
+            self.runtime_structure,
+            apply_sboxes=self.apply_sboxes,
+        )
+        combined = base_embedding + torch.tanh(
+            self.backbone.residual_gate
+        ) * torch.tanh(edge_residual)
+        transition = self.backbone.transition_embedding(
+            runtime,
+            self.runtime_structure,
+            apply_sboxes=self.apply_sboxes,
+        )
+        combined = combined + torch.tanh(self.backbone.transition_gate) * torch.tanh(
+            transition.repeat(1, 3)
+        )
         return self.backbone.base.classifier(combined)
 
 
@@ -428,9 +619,9 @@ def deterministic_position_histogram(
     stages_count = len(COMPOSITION_STAGE_NAMES)
     if channels != stages_count * 3:
         raise ValueError("exact composition histogram geometry is invalid")
-    stages = views.reshape(batch, pairs, bits, stages_count, 3)[
-        ..., 2
-    ].permute(0, 1, 3, 2)
+    stages = views.reshape(batch, pairs, bits, stages_count, 3)[..., 2].permute(
+        0, 1, 3, 2
+    )
     lookup = ordered_cell_role_lookup(structure).to(stages.device)
     cell_bits = stages[..., lookup].to(torch.long)
     weights = torch.tensor((8, 4, 2, 1), dtype=torch.long, device=stages.device)
@@ -441,6 +632,39 @@ def deterministic_position_histogram(
         raise ValueError("K1-T position histogram geometry is invalid")
     if invariant_cells:
         histogram = histogram.mean(dim=2, keepdim=True).expand_as(histogram)
+    return histogram
+
+
+def deterministic_sbox_transition_histogram(
+    ciphertext_pairs: torch.Tensor,
+    structure: RuntimeSpnStructure,
+    *,
+    apply_sboxes: bool = True,
+) -> torch.Tensor:
+    views = exact_operator_composition_views(
+        ciphertext_pairs,
+        structure,
+        apply_sboxes=apply_sboxes,
+    )
+    batch, pairs, bits, channels = views.shape
+    stages_count = len(COMPOSITION_STAGE_NAMES)
+    if channels != stages_count * 3:
+        raise ValueError("S-box transition composition geometry is invalid")
+    stages = views.reshape(batch, pairs, bits, stages_count, 3)[..., 2].permute(
+        0, 1, 3, 2
+    )
+    lookup = ordered_cell_role_lookup(structure).to(stages.device)
+    cell_bits = stages[..., lookup].to(torch.long)
+    weights = torch.tensor((8, 4, 2, 1), dtype=torch.long, device=stages.device)
+    cell_values = torch.sum(cell_bits * weights, dim=-1)
+    before = cell_values[:, :, (1, 3)]
+    after = cell_values[:, :, (2, 4)]
+    transitions = before * 16 + after
+    histogram = F.one_hot(transitions, num_classes=16 * 16).to(stages.dtype)
+    histogram = histogram.mean(dim=1)
+    expected = (batch, 2, structure.cells, 16 * 16)
+    if histogram.shape != expected:
+        raise ValueError("S-box transition histogram geometry is invalid")
     return histogram
 
 
@@ -459,13 +683,31 @@ def histogram_semantics_fingerprint(
     return digest.hexdigest()
 
 
+def sbox_transition_semantics_fingerprint(
+    structure: RuntimeSpnStructure,
+    *,
+    apply_sboxes: bool,
+) -> str:
+    digest = hashlib.sha256()
+    digest.update(
+        composition_fingerprint(structure, apply_sboxes=apply_sboxes).encode("ascii")
+    )
+    digest.update(b"cell-shared-sbox-delta-transition-histogram-v1")
+    return digest.hexdigest()
+
+
 __all__ = [
     "CompactInvariantHistogramResidualSpnDistinguisher",
+    "CompactSboxTransitionResidualSpnDistinguisher",
     "FixedCompactInvariantHistogramResidualSpnProtocolAdapter",
+    "FixedCompactSboxTransitionResidualSpnProtocolAdapter",
     "FixedPositionHistogramResidualSpnProtocolAdapter",
     "PositionHistogramResidualSpnDistinguisher",
     "PositionHistogramResidualSpnSpec",
+    "SboxTransitionResidualSpnSpec",
     "VirtualSlotSummedLinear",
     "deterministic_position_histogram",
+    "deterministic_sbox_transition_histogram",
     "histogram_semantics_fingerprint",
+    "sbox_transition_semantics_fingerprint",
 ]

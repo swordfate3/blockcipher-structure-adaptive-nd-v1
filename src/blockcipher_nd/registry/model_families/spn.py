@@ -117,8 +117,10 @@ from blockcipher_nd.models.structure.spn.exact_operator_composition import (
 )
 from blockcipher_nd.models.structure.spn.position_histogram_residual import (
     FixedCompactInvariantHistogramResidualSpnProtocolAdapter,
+    FixedCompactSboxTransitionResidualSpnProtocolAdapter,
     FixedPositionHistogramResidualSpnProtocolAdapter,
     PositionHistogramResidualSpnSpec,
+    SboxTransitionResidualSpnSpec,
 )
 from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     gift64_runtime_structure,
@@ -174,6 +176,10 @@ def build_spn_model(
             "corrupted_linear"
         ),
         "runtime_spn_ct_k1aa_virtual_slot_histogram_none": "none",
+        "runtime_spn_ct_k1ak_sbox_transition_true": "true",
+        "runtime_spn_ct_k1ak_sbox_transition_wrong_sbox": "wrong_sbox",
+        "runtime_spn_ct_k1ak_sbox_transition_corrupted_linear": "corrupted_linear",
+        "runtime_spn_ct_k1ak_sbox_transition_none": "none",
     }
     if name in position_histogram_models:
         descriptor_path = options.get("runtime_structure_path")
@@ -236,8 +242,43 @@ def build_spn_model(
                 "runtime_spn_ct_k1w_",
                 "runtime_spn_ct_k1y_",
                 "runtime_spn_ct_k1aa_",
+                "runtime_spn_ct_k1ak_",
             )
         )
+        if name.startswith("runtime_spn_ct_k1ak_"):
+            transition_value_dim = int_option(options, "transition_value_dim", 20)
+            virtual_slots = int_option(options, "virtual_projection_slots", 16)
+            assert transition_value_dim is not None
+            assert virtual_slots is not None
+            if virtual_slots != 16:
+                raise ValueError("K1-AK virtual_projection_slots must remain 16")
+            return FixedCompactSboxTransitionResidualSpnProtocolAdapter(
+                input_bits=input_bits,
+                pair_bits=(
+                    2 * runtime_structure.block_bits if pair_bits is None else pair_bits
+                ),
+                structure=runtime_structure,
+                spec=SboxTransitionResidualSpnSpec(
+                    hidden_dim=hidden_bits,
+                    pair_embedding_dim=pair_embedding_dim,
+                    transition_value_dim=transition_value_dim,
+                    dropout=float(options.get("dropout", 0.0)),
+                    initial_edge_gate=float(
+                        options.get("residual_gate_initial_effective", 0.05)
+                    ),
+                    initial_transition_gate=float(
+                        options.get("transition_gate_initial_effective", 0.05)
+                    ),
+                    virtual_projection_slots=virtual_slots,
+                ),
+                descriptor_name=descriptor.name,
+                descriptor_path=str(descriptor.path),
+                descriptor_sha256=descriptor.sha256,
+                descriptor_round_start=descriptor.round_start,
+                descriptor_available_rounds=descriptor.available_rounds,
+                runtime_structure_mode=control,
+                apply_sboxes=apply_sboxes,
+            )
         adapter = (
             FixedCompactInvariantHistogramResidualSpnProtocolAdapter
             if compact_model
