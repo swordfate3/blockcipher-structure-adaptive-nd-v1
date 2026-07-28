@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family Exact Partial-State Signal Audit K1-O
 
 **Date:** 2026-07-28
-**Status:** frozen / implementation pending
+**Status:** completed / current uKNIT r5 differential signal not supported
 **Execution:** local CPU, deterministic zero-neural-training audit
 
 ## 1. Question
@@ -208,3 +208,98 @@ establish formal scale, an attack, SOTA, a uKNIT ceiling, or arbitrary-SPN
 transfer. Before K1-O is adjudicated, do not launch remote scale, add epochs,
 samples, pairs, seeds, width, MoE, experts, DDT/trail inputs, cipher identity,
 or another neural architecture.
+
+## 10. Completed Result
+
+The audit completed from the exact six uKNIT cache rows without dataset
+regeneration or neural optimization:
+
+```text
+status = hold
+decision = innovation1_uknit_family_ctspn_k1o_current_differential_signal_not_supported
+feature rows = 36 / 36
+scorer rows = 12 / 12
+result rows = 36 / 36
+training rows = 0
+neural parameters = 0
+optimizer steps = 0
+epochs = 0
+validation status = pass
+errors = []
+```
+
+The exact position-preserving fresh AUC values were:
+
+| Seed | Same-key fresh | Cross-key | Both clear `0.550` |
+|---:|---:|---:|---:|
+| 0 | `0.527251` | `0.520643` | no |
+| 1 | `0.510181` | `0.526492` | no |
+
+All four fresh rows remained below the frozen `0.550` signal floor. The same
+closed-form scorer reached `0.782642/0.775246` on train-seen rows, so the
+`1280`-dimensional exact histogram can fit the discovery samples but does not
+carry stable fresh-split association at the current budget.
+
+The controls add two useful qualifications:
+
+1. exact-minus-raw and exact-minus-no-S-box were positive on every fresh row;
+2. exact-minus-wrong-S-box was `+0.012946` to `+0.048738` on every fresh row;
+3. same-key label-shuffle margins were only `+0.025707` for seed0 and
+   `-0.004998` for seed1, so those rows did not separate from a fitted noise
+   control;
+4. position-minus-invariant was `+0.023184/+0.012802` for seed0, but only
+   `+0.000054/+0.005048` for seed1, so position attribution was not stable.
+
+Therefore K1-O does not justify a position-preserving K1-P neural head. It also
+does not prove that uKNIT r5 or the family route is impossible. It establishes
+that the current `input_difference = 0x40` cannot support another architecture
+experiment at this evidence scale.
+
+The final Chinese chart passed rendered-pixel `visual-qa-redraw` at
+`1920x1296`: no text overlap, clipping, missing glyphs, ambiguous title,
+incomplete legend, or insufficient local separation remained after the AUC
+labels for the two seeds were offset separately.
+
+## 11. Recommended Next Action: K1-P Round Calibration
+
+Before discovering another difference, run a zero-neural-training calibration
+for the same `input_difference = 0x40` at uKNIT r3 and r4, using completed K1-O
+r5 as the fixed anchor. This answers one variable only:
+
+> Does the current difference carry reproducible exact partial-state signal at
+> lower rounds and then disappear by r5, or is the data/feature protocol already
+> uncalibrated at r3/r4?
+
+Freeze both seeds, `2048/class` train, `1024/class` same-key/cross-key fresh,
+four pairs, exact keys, encrypted-random-plaintext negatives, closed-form
+diagonal Fisher/LDA, and variance floor `1e-6`. Generate new disk-backed r3/r4
+caches locally; reuse K1-O r5 rows exactly. Evaluate only the lean per-round
+panel:
+
+```text
+exact_five_stage_position_histogram
+raw_position_histogram
+label_shuffled_exact_position_histogram
+```
+
+For r3/r4, align the two-transition inverse window to the final two available
+transitions. Require every seed and fresh split separately:
+
+```text
+exact AUC                  >= 0.550
+exact - raw                >= +0.010
+exact - label-shuffled     >= +0.030
+```
+
+Decisions:
+
+- if r4 passes while r5 remains below `0.550`, treat r5 as the current
+  difference's signal-loss boundary and preregister a separate r5 difference
+  discovery/confirmation experiment;
+- if r3 passes but r4 fails, the same boundary occurs before r4 and r5 network
+  work is premature;
+- if r3 and r4 also fail, audit the `0x40` data construction and cipher/difference
+  convention before any difference search;
+- if seeds or fresh splits disagree, stop and localize the key/split mismatch;
+- do not add a neural model, remote scale, MoE, DDT/trail feature input, more
+  pairs, or more epochs inside K1-P.

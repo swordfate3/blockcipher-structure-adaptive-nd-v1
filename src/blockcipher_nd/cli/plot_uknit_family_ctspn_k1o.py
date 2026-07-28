@@ -147,12 +147,13 @@ def _plot_auc_panel(
             label=f"seed{seed}",
         )
         for index, value in enumerate(values):
+            label_offset = (-9, 8) if seed == "0" else (9, -14)
             axis.annotate(
                 f"{value:.3f}",
                 (index, value),
-                xytext=(0, 7 if seed == "0" else -13),
+                xytext=label_offset,
                 textcoords="offset points",
-                ha="center",
+                ha="right" if seed == "0" else "left",
                 fontsize=7.4,
                 color=color,
             )
