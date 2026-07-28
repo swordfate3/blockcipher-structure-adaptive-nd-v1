@@ -575,32 +575,152 @@ class FixedCompactSboxTransitionResidualSpnProtocolAdapter(nn.Module):
         self.uses_sbox_transition_semantics = self.apply_sboxes
         self.uses_cipher_identity = False
         self.transition_gate_bounded = True
+        self.semantic_contrast_orientation: str | None = None
+        self.semantic_contrast_scale = 0.0
+        self.semantic_contrast_margin = 0.0
+        self.semantic_counterfactual_structure: RuntimeSpnStructure | None = None
+        self.semantic_counterfactual_apply_sboxes = True
+        self.last_auxiliary_loss: torch.Tensor | None = None
+        self.last_auxiliary_metrics: dict[str, torch.Tensor] = {}
+        self._last_semantic_counterfactual_logits: torch.Tensor | None = None
 
-    def forward(self, features: torch.Tensor) -> torch.Tensor:
+    def configure_semantic_contrast(
+        self,
+        *,
+        orientation: str,
+        counterfactual_structure: RuntimeSpnStructure,
+        counterfactual_apply_sboxes: bool,
+        scale: float,
+        margin: float,
+    ) -> None:
+        if orientation not in {"correct_vs_wrong", "wrong_vs_correct"}:
+            raise ValueError("unsupported K1-AM semantic contrast orientation")
+        if not math.isfinite(scale) or scale <= 0.0:
+            raise ValueError("semantic contrast scale must be finite and positive")
+        if not math.isfinite(margin) or not 0.0 <= margin <= 1.0:
+            raise ValueError("semantic contrast margin must be in [0, 1]")
+        if (
+            counterfactual_structure.block_bits != self.runtime_structure.block_bits
+            or counterfactual_structure.rounds != self.runtime_structure.rounds
+            or counterfactual_structure.cells != self.runtime_structure.cells
+        ):
+            raise ValueError("semantic counterfactual runtime geometry changed")
+        counterfactual_fingerprint = sbox_transition_semantics_fingerprint(
+            counterfactual_structure,
+            apply_sboxes=counterfactual_apply_sboxes,
+        )
+        if counterfactual_fingerprint == self.sbox_transition_semantics_sha256:
+            raise ValueError("semantic counterfactual must change S-box semantics")
+        self.semantic_contrast_orientation = orientation
+        self.semantic_contrast_scale = float(scale)
+        self.semantic_contrast_margin = float(margin)
+        self.semantic_counterfactual_structure = counterfactual_structure
+        self.semantic_counterfactual_apply_sboxes = bool(
+            counterfactual_apply_sboxes
+        )
+
+    def logits_with_runtime(
+        self,
+        features: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        apply_sboxes: bool,
+    ) -> torch.Tensor:
         runtime = features.reshape(
             features.shape[0],
             -1,
             2,
-            self.runtime_structure.block_bits,
+            structure.block_bits,
         ).flip(-1)
-        base_embedding = self.backbone.base.encode(runtime, self.runtime_structure)
+        base_embedding = self.backbone.base.encode(runtime, structure)
         edge_residual = self.backbone.edge_residual_embedding(
             runtime,
-            self.runtime_structure,
-            apply_sboxes=self.apply_sboxes,
+            structure,
+            apply_sboxes=apply_sboxes,
         )
         combined = base_embedding + torch.tanh(
             self.backbone.residual_gate
         ) * torch.tanh(edge_residual)
         transition = self.backbone.transition_embedding(
             runtime,
-            self.runtime_structure,
-            apply_sboxes=self.apply_sboxes,
+            structure,
+            apply_sboxes=apply_sboxes,
         )
         combined = combined + torch.tanh(self.backbone.transition_gate) * torch.tanh(
             transition.repeat(1, 3)
         )
         return self.backbone.base.classifier(combined)
+
+    def compute_auxiliary_loss(
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        loss_name: str,
+    ) -> torch.Tensor | None:
+        if self.semantic_contrast_orientation is None:
+            return self.last_auxiliary_loss
+        if self._last_semantic_counterfactual_logits is None:
+            raise RuntimeError("semantic counterfactual logits are unavailable")
+        primary_loss = self._per_sample_classification_loss(
+            logits,
+            labels,
+            loss_name,
+        )
+        counterfactual_loss = self._per_sample_classification_loss(
+            self._last_semantic_counterfactual_logits.squeeze(1),
+            labels,
+            loss_name,
+        )
+        margin_values = F.relu(
+            self.semantic_contrast_margin + primary_loss - counterfactual_loss
+        )
+        auxiliary_loss = self.semantic_contrast_scale * margin_values.mean()
+        self.last_auxiliary_loss = auxiliary_loss
+        self.last_auxiliary_metrics = {
+            "semantic_primary_loss": primary_loss.detach().mean(),
+            "semantic_counterfactual_loss": counterfactual_loss.detach().mean(),
+            "semantic_loss_gap": (
+                counterfactual_loss.detach().mean() - primary_loss.detach().mean()
+            ),
+            "semantic_margin_loss": margin_values.detach().mean(),
+            "semantic_violation_rate": (margin_values.detach() > 0.0).float().mean(),
+        }
+        return auxiliary_loss
+
+    @staticmethod
+    def _per_sample_classification_loss(
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        loss_name: str,
+    ) -> torch.Tensor:
+        if loss_name == "mse":
+            return F.mse_loss(torch.sigmoid(logits), labels, reduction="none")
+        if loss_name == "bce":
+            return F.binary_cross_entropy_with_logits(
+                logits,
+                labels,
+                reduction="none",
+            )
+        raise ValueError(f"unsupported loss: {loss_name}")
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        logits = self.logits_with_runtime(
+            features,
+            self.runtime_structure,
+            apply_sboxes=self.apply_sboxes,
+        )
+        self.last_auxiliary_loss = None
+        self.last_auxiliary_metrics = {}
+        self._last_semantic_counterfactual_logits = None
+        if self.training and self.semantic_contrast_orientation is not None:
+            if self.semantic_counterfactual_structure is None:
+                raise RuntimeError("semantic counterfactual runtime is unavailable")
+            self._last_semantic_counterfactual_logits = self.logits_with_runtime(
+                features,
+                self.semantic_counterfactual_structure,
+                apply_sboxes=self.semantic_counterfactual_apply_sboxes,
+            )
+        return logits
 
 
 def deterministic_position_histogram(

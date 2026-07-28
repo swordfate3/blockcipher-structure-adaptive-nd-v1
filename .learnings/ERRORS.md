@@ -1983,3 +1983,58 @@ primitive instead of weakening the observed gate after training.
 - **Notes**: Added target-control identifiability to readiness and formal validation, reclassified the completed run as protocol-invalid without retraining, preserved raw metrics, and required a heterogeneous-GF(2) holdout next.
 
 ---
+## [ERR-20260729-001] k1am_progress_callback_reserved_path_collision
+
+**Logged**: 2026-07-29T06:09:49+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+
+K1-AM completed its first ten-epoch model and wrote a valid checkpoint, but
+the process stopped when the progress callback forwarded a payload field named
+`path` into a helper whose first positional parameter is also named `path`.
+
+### Error
+
+```text
+TypeError: progress() got multiple values for argument 'path'
+```
+
+### Context
+
+- The trainer writes the checkpoint before emitting `checkpoint_written`.
+- The valid checkpoint contained the selected state, ten history rows, final
+  metrics and exact training metadata, but no K1-AM result row had yet been
+  written.
+- Blind restart would have repeated a completed model and weakened provenance.
+- The active `self-healing` skill was unavailable, so this verified recovery is
+  recorded through the self-improvement fallback.
+
+### Suggested Fix
+
+Rename reserved callback payload keys before forwarding them and provide a
+fail-closed partial-training recovery path that reconstructs rows only after
+verifying preflight/source bindings, dataset manifests, checkpoint geometry,
+history, optimizer steps and best-checkpoint metadata.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/cli/run_uknit_family_midori64_k1am.py, src/blockcipher_nd/training/trainer.py, tests/test_uknit_family_midori64_k1am.py
+- See Also: ERR-20260728-003, ERR-20260728-004
+- Pattern-Key: progress.callback_payload_reserved_path_collision
+- Recurrence-Count: 1
+- First-Seen: 2026-07-29
+- Last-Seen: 2026-07-29
+
+### Resolution
+
+- **Resolved**: 2026-07-29T06:27:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Renamed payload `path` to `checkpoint_path`, added strict
+  `--resume-training`, recovered the completed checkpoint without retraining,
+  and finished all four training rows plus 36 evaluation rows.
+
+---
