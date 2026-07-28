@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Topology Edge Residual K1-K
 
 **Date:** 2026-07-28
-**Status:** frozen before implementation
+**Status:** completed / held after valid local diagnostic
 **Execution:** local CPU readiness followed by a local fixed-budget diagnostic
 
 ## 1. Research Question
@@ -279,3 +279,121 @@ After each completed result-producing phase, refresh
 `outputs/00_RECENT_RESULTS.md` and JSON and verify the expected run ID is the
 newest indexed result. The completed training record must append exact metrics,
 claim scope and an evidence-backed next action to this document.
+
+## 11. Completed Readiness And Diagnostic
+
+The zero-training readiness gate completed before training:
+
+```text
+run_id   = i1_uknit_family_ctspn_topology_edge_residual_k1k_readiness_20260728
+status   = pass
+decision = innovation1_uknit_family_ctspn_k1k_execution_authorized
+protocol checks = all pass
+training rows   = 0
+optimizer steps = 0
+```
+
+The candidate had exactly `128707` learned parameters on both 64- and 128-bit
+states. A loaded K1-I base with a zero residual gate reproduced K1-I logits
+exactly on both widths. Nonzero-gate joint cell relabeling changed logits by at
+most `1.35e-7`; both transition slots and all three wrong-topology controls
+changed the residual output. Readiness therefore authorized the frozen local
+training protocol without weakening a gate.
+
+The training run then completed four candidate rows and sixty strict-loaded,
+zero-step evaluation rows:
+
+```text
+run_id   = i1_uknit_family_ctspn_topology_edge_residual_k1k_2048_seed0_seed1_20260728
+status   = hold
+decision = innovation1_uknit_family_ctspn_k1k_dialga_retained_operator_attribution_not_supported
+training rows   = 4 / 4
+evaluation rows = 60 / 60
+validation errors = []
+```
+
+All twelve frozen data caches were reused by exact digest. No training,
+validation or fresh-split cache was regenerated.
+
+## 12. Fresh-Split Results
+
+| Cipher | Seed | Split | K1-K AUC | K1-I AUC | Delta vs K1-I | Weakest correct-vs-control margin |
+|---|---:|---|---:|---:|---:|---:|
+| uKNIT-BC r5 | 0 | same-key fresh | `0.506373` | `0.508171` | `-0.001797` | `-0.019545` |
+| uKNIT-BC r5 | 0 | cross-key | `0.514879` | `0.513726` | `+0.001153` | `+0.008578` |
+| uKNIT-BC r5 | 1 | same-key fresh | `0.484057` | `0.495883` | `-0.011827` | `-0.028407` |
+| uKNIT-BC r5 | 1 | cross-key | `0.505805` | `0.504108` | `+0.001697` | `+0.009770` |
+| Dialga-128 r4 | 0 | same-key fresh | `0.965747` | `0.965361` | `+0.000386` | `+0.002356` |
+| Dialga-128 r4 | 0 | cross-key | `0.957891` | `0.958006` | `-0.000114` | `-0.002029` |
+| Dialga-128 r4 | 1 | same-key fresh | `0.958886` | `0.958613` | `+0.000273` | `+0.004170` |
+| Dialga-128 r4 | 1 | cross-key | `0.954312` | `0.954252` | `+0.000060` | `+0.002865` |
+
+The uKNIT training-split AUC increased from K1-I's `0.529811/0.545691` to
+`0.557716/0.584099`, and both cross-key rows beat the same-checkpoint controls.
+Neither cross-key row reached the frozen `0.520` floor or the required
+`+0.005` K1-I improvement. More importantly, both same-key-fresh rows remained
+near chance and failed at least one control. The apparent training improvement
+is therefore split-specific fitting, not uKNIT generalization.
+
+Every Dialga fresh row retained K1-I within `0.005`, and candidate AUC remained
+`0.954312-0.965747`. However, no fresh row achieved the required `+0.005`
+margin over every reversed, corrupted and no-topology control. The weakest
+margin ranged from `-0.002029` to `+0.004170`. K1-K therefore preserved the
+strong global Dialga signal without establishing correct-operator attribution.
+
+The rendered Chinese chart passed `visual-qa-redraw` at its native
+`1536x979` size and an enlarged `1920x1224` inspection size. It has no text
+overlap, clipping, missing glyph, ambiguous title or curve-separation failure.
+The completed run is entry `001` in both recent-result indexes.
+
+## 13. Claim Scope And Decision
+
+K1-K establishes only that a bounded position-preserving edge residual can be
+added without destroying K1-I's Dialga signal. It does not establish that the
+learned residual uses the correct runtime operators, and it provides no uKNIT
+generalization evidence.
+
+This remains a local two-seed `2048/class` mechanism diagnostic with
+`1024/class` fresh same-key and cross-key splits. It is not formal scale,
+paper-scale evidence, an attack, a SOTA result, arbitrary-SPN transfer evidence
+or an uKNIT architecture ceiling.
+
+The frozen decision tree selects:
+
+```text
+Dialga anchor retained + operator controls failed
+-> hold K1-K
+-> no remote scale
+-> audit learned residual-gate magnitude and exact edge attribution
+```
+
+## 14. Executable Next Action: K1-L Residual Attribution Audit
+
+K1-L must be a zero-training audit over the four frozen K1-K checkpoints. Its
+question is whether K1-K failed because the learned residual gate remained too
+small, because the edge branch carried no label-associated information, or
+because it carried information that was insensitive to the correct operator.
+
+- **Same-budget anchor:** the exact four K1-K candidate checkpoints and their
+  K1-I base embeddings on the existing train-seen, same-key-fresh and cross-key
+  caches.
+- **Required controls:** exact, reversed, corrupted and no-topology structures;
+  residual gate forced to zero; transition slot 0 masked; transition slot 1
+  masked; deterministic label-blind edge-message row permutation.
+- **One variable:** evaluation-time exposure and intervention of the trained
+  residual path. No parameter, data, label, key, metric or checkpoint changes.
+- **Scale:** zero new samples, zero epochs and zero optimizer steps; local CPU.
+- **Readiness gate:** exact checkpoint/cache digests, strict state equality,
+  deterministic interventions, finite outputs and exact replay of all K1-K
+  source AUCs within `1e-7`.
+- **Advance decision:** if the gate magnitude and residual norm are nontrivial
+  and exact edges uniquely carry fresh-split label association on Dialga,
+  repair only residual fusion/optimization before reconsidering architecture.
+  If the residual is active but wrong operators retain the same contribution,
+  stop pure linear-edge redesign and make the next single variable exact
+  heterogeneous S-box/operator composition for uKNIT. If the residual remains
+  effectively closed, test a bounded gate-opening schedule locally while
+  retaining all K1-K controls.
+- **Stop rules:** no remote scale, more samples, epochs, pairs, seeds, width,
+  MoE, cipher IDs, keys, DDTs, trails, partial decryption or raw bypass before
+  K1-L identifies which mechanism failed.
