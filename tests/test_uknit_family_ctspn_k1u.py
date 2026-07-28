@@ -119,6 +119,28 @@ def test_k1u_plot_explains_medium_candidate_and_controls(tmp_path: Path) -> None
     assert "对比位置抹除" in svg
 
 
+def test_k1u_plot_explains_compact_invariant_branch_in_chinese(tmp_path: Path) -> None:
+    rows = synthetic_result_rows()
+    invariant_model = CONTROL_MODELS["invariant_histogram_residual"]
+    for row in rows:
+        if row["model"] == invariant_model:
+            row["metrics"]["auc"] = 0.75
+            row["training"]["best_checkpoint_metric"] = 0.75
+    gate = adjudicate_k1u(
+        tasks=read_tasks(PLAN),
+        result_rows=rows,
+        progress_events=synthetic_progress_events(),
+        source_checks={"source": True},
+    )
+    output = tmp_path / "compact-invariant.svg"
+
+    render_k1u_svg(gate, output)
+    svg = output.read_text(encoding="utf-8")
+
+    assert "保留原生位置没有稳定优于位置抹除" in svg
+    assert "innovation1_uknit_family_ctspn" not in svg
+
+
 def synthetic_result_rows() -> list[dict[str, object]]:
     aucs = {
         "exact_position_histogram_residual": 0.74,
