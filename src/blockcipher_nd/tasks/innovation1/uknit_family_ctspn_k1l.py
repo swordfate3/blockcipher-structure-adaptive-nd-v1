@@ -226,11 +226,11 @@ def audit_gradient_path(
     state = {name: value.detach().clone() for name, value in model.state_dict().items()}
     initial_sha = tensor_mapping_sha256(state)
     features = torch.as_tensor(
-        np.asarray(dataset.features[:batch_size]),
+        np.asarray(dataset.features[:batch_size]).copy(),
         dtype=torch.float32,
     )
     labels = torch.as_tensor(
-        np.asarray(dataset.labels[:batch_size]),
+        np.asarray(dataset.labels[:batch_size]).copy(),
         dtype=torch.float32,
     )
     model.eval()

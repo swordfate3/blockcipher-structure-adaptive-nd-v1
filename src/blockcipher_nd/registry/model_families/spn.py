@@ -201,6 +201,9 @@ def build_spn_model(
                 hidden_dim=hidden_bits,
                 pair_embedding_dim=pair_embedding_dim,
                 dropout=float(options.get("dropout", 0.0)),
+                initial_effective_gate=float(
+                    options.get("residual_gate_initial_effective", 0.0)
+                ),
             ),
             descriptor_name=descriptor.name,
             descriptor_path=str(descriptor.path),

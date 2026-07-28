@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import math
 
 import torch
 from torch import nn
@@ -25,12 +26,15 @@ class TopologyEdgeResidualSpnSpec:
     hidden_dim: int = 32
     pair_embedding_dim: int = 128
     dropout: float = 0.0
+    initial_effective_gate: float = 0.0
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim) <= 0:
             raise ValueError("topology edge-residual dimensions must be positive")
         if not 0.0 <= self.dropout < 1.0:
             raise ValueError("topology edge-residual dropout must be in [0, 1)")
+        if not -1.0 < self.initial_effective_gate < 1.0:
+            raise ValueError("topology edge-residual effective gate must be in (-1, 1)")
 
 
 class TopologyEdgeResidualSpnDistinguisher(nn.Module):
@@ -71,7 +75,9 @@ class TopologyEdgeResidualSpnDistinguisher(nn.Module):
             nn.ReLU(),
             nn.Dropout(spec.dropout),
         )
-        self.residual_gate = nn.Parameter(torch.zeros(()))
+        self.residual_gate = nn.Parameter(
+            torch.tensor(math.atanh(spec.initial_effective_gate), dtype=torch.float32)
+        )
 
     def forward(
         self,

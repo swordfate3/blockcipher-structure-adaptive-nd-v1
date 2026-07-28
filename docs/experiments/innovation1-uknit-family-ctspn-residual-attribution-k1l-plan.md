@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Residual Attribution K1-L
 
 **Date:** 2026-07-28
-**Status:** frozen before implementation
+**Status:** completed / zero-gate gradient starvation supported
 **Execution:** local CPU, zero-training mechanism audit
 
 ## 1. Decision Context And Question
@@ -160,3 +160,72 @@ It cannot establish formal scale, an attack, a SOTA result, arbitrary-SPN
 transfer or an uKNIT ceiling. Do not launch remote scale, add data, epochs,
 pairs, seeds, width, MoE, S-box/DDT/trail inputs, keys, cipher IDs, partial
 decryption or a raw bypass before this mechanism audit is complete.
+
+## 8. Completed Audit
+
+The warning-free canonical rerun completed with artifacts byte-identical to the
+first run after changing only the read-only cache conversion to an explicit
+copy:
+
+```text
+status   = pass
+decision = innovation1_uknit_family_ctspn_k1l_uknit_zero_gate_gradient_starvation_supported
+result rows   = 96 / 96
+gradient rows = 8 / 8
+training rows = 0
+optimizer steps = 0
+failed protocol checks = []
+max source AUC replay delta = 0.0
+```
+
+Artifact digests:
+
+| Artifact | SHA-256 |
+|---|---|
+| `results.jsonl` | `3a2dbd01f05df321cbb8e69cfb60018171a7d6ac52eff5d593d6c8881f8f1da3` |
+| `gradient_attribution.jsonl` | `08d5e2dfd33ec6657d269ed23760e9e22dacd276a636a14e6b8e9b442c991e88` |
+| `gate.json` | `8be0ba47a207e4cf9af0c51b73c787e9d5c53c02c7ab9be47e4d57271fef6d70` |
+| `validation.json` | `87a2fdda0c8d6422878e4d96ec7cfadd57042f7976f7a552974ab60f529f808d` |
+
+## 9. Mechanism Evidence
+
+The learned effective gates were:
+
+| Cipher | Seed 0 | Seed 1 | Classification |
+|---|---:|---:|---|
+| uKNIT-BC r5 | `0.000230862` | `0.000305697` | both effectively closed |
+| Dialga-128 r4 | `0.029122019` | `0.022536222` | both active |
+
+At an exact zero gate, the cell encoder, edge encoder, cell update and residual
+projection gradient norms were exactly `0.0` on all four checkpoints. Only the
+scalar gate received a gradient. At an effective gate of `0.05`, every residual
+parameter group received a nonzero gradient. For uKNIT, the opened edge-encoder
+gradient norms were `0.002008` and `0.003840`; residual-projection norms were
+`0.010074` and `0.008213`.
+
+The uKNIT trained residual changed mean absolute logits by only
+`1.88e-6-4.79e-6` on fresh splits and changed full AUC versus a zero gate by at
+most `7.16e-6`. The K1-K uKNIT experiment therefore did not meaningfully train
+or exercise the intended edge residual.
+
+Dialga's residual was active and its fresh-split contribution AUC remained
+high, but its weakest exact-versus-wrong contribution margins on cross-key data
+were only `0.002413` and `0.003449`, below the frozen `0.005` attribution gate.
+Explicit linear edges alone still did not establish correct-operator semantics.
+
+## 10. Claim Scope And Executable Next Action
+
+K1-L supports a specific optimization-path diagnosis, not uKNIT success:
+
+```text
+exact-zero residual-gate initialization starved the uKNIT edge branch of
+gradients, so K1-K was not a fair test of a trainable uKNIT edge residual
+```
+
+The next experiment is K1-M. It changes only the initial effective gate from
+`0.0` to `0.05`; the gate remains trainable and bounded. K1-K is the same-budget
+anchor. The architecture, datasets, negative definition, pairs, epochs, seeds,
+optimizer, loss and all wrong-topology controls remain frozen. If K1-M opens
+the branch but uKNIT still fails fresh splits, stop gate scheduling and move to
+exact heterogeneous S-box/operator composition. The completed K1-L audit is
+entry `001` in both recent-result indexes.
