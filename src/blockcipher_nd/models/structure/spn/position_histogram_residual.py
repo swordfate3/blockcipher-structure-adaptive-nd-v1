@@ -726,7 +726,13 @@ class FixedCompactSboxTransitionResidualSpnProtocolAdapter(nn.Module):
         structure: RuntimeSpnStructure,
         *,
         apply_sboxes: bool,
+        transition_branch_enabled: bool | None = None,
     ) -> torch.Tensor:
+        use_transition_branch = (
+            self.transition_branch_enabled
+            if transition_branch_enabled is None
+            else bool(transition_branch_enabled)
+        )
         runtime = features.reshape(
             features.shape[0],
             -1,
@@ -742,7 +748,7 @@ class FixedCompactSboxTransitionResidualSpnProtocolAdapter(nn.Module):
         combined = base_embedding + torch.tanh(
             self.backbone.residual_gate
         ) * torch.tanh(edge_residual)
-        if self.transition_branch_enabled:
+        if use_transition_branch:
             transition = self.backbone.transition_embedding(
                 runtime,
                 structure,

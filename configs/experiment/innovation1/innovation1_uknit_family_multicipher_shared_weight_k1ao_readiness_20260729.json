@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_multicipher_shared_weight_k1ao_readiness",
+  "run_id": "i1_uknit_family_multicipher_shared_weight_k1ao_readiness_20260729",
+  "question": "Can one K1-AK backbone switch runtime SPN descriptors across uKNIT-BC, Midori64, and Dialga-128 without cipher-specific parameters or metadata?",
+  "audit": {
+    "training_rows": 0,
+    "validation_rows": 0,
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "remote": false,
+    "pairs_per_sample": 4
+  },
+  "model": {
+    "model_key": "runtime_spn_ct_k1ak_sbox_transition_true",
+    "initialization_seed": 29,
+    "hidden_bits": 32,
+    "pair_embedding_dim": 128,
+    "transition_value_dim": 20,
+    "virtual_projection_slots": 16,
+    "dropout": 0.0,
+    "residual_gate_initial_effective": 0.05,
+    "transition_gate_initial_effective": 0.05,
+    "expected_trainable_parameters": 219320,
+    "expected_state_dict_entries": 52
+  },
+  "ciphers": [
+    {
+      "cipher_key": "uknit64",
+      "cipher": "uKNIT-BC",
+      "rounds": 5,
+      "block_bits": 64,
+      "cells": 16,
+      "input_bits": 512,
+      "pair_bits": 128,
+      "seeds": [3, 4],
+      "difference_profile": "uknit64_k1q_cell11_r5",
+      "input_difference_hex": "0x0000400000000000",
+      "runtime_structure_path": "configs/runtime/spn/uknit64.json",
+      "runtime_round_start": 3,
+      "runtime_rounds": 2,
+      "source_root": "outputs/local_diagnostic/i1_uknit_family_ctspn_deterministic_position_residual_k1t_2048_seed3_seed4_20260728",
+      "source_digests": {
+        "gate.json": "f122f43f4d895a1b68fb696bd81df4e1d362880a3a12d9883933c932dd7f0dbf",
+        "validation.json": "57601722e4a1f14fd2cf1081886213fbc43c7958ada3406e92070b430a3f884e",
+        "dataset_manifest.jsonl": "64f181e23903e92ac1f07e67bc82495f360f4807795e66602b29e278dfb8b21d"
+      }
+    },
+    {
+      "cipher_key": "midori64",
+      "cipher": "Midori64",
+      "rounds": 4,
+      "block_bits": 64,
+      "cells": 16,
+      "input_bits": 512,
+      "pair_bits": 128,
+      "seeds": [6, 7],
+      "difference_profile": "midori64_k1ah_cell8_r4",
+      "input_difference_hex": "0x0000000400000000",
+      "runtime_structure_path": "configs/runtime/spn/midori64.json",
+      "runtime_round_start": 0,
+      "runtime_rounds": 2,
+      "source_root": "outputs/local_diagnostic/i1_uknit_family_midori64_sbox_transition_k1ak_2048_seed6_seed7_20260729",
+      "source_digests": {
+        "gate.json": "a8cd9de68a7b4e43a4c8f0793e31cbf8ce87f090c35be6f6821cab282e927f8f",
+        "validation.json": "2d64a4e27b39a65fda5b44b217226fabb78a954d843573b47abbe34e0070e419",
+        "dataset_manifest.jsonl": "5525a28f099a21bcca09aafbe05498f0f7951e22e171eaac6db055c174ff35bc"
+      }
+    },
+    {
+      "cipher_key": "dialga128",
+      "cipher": "Dialga-128",
+      "rounds": 4,
+      "block_bits": 128,
+      "cells": 32,
+      "input_bits": 1024,
+      "pair_bits": 256,
+      "seeds": [0, 1],
+      "difference_profile": "dialga128_k1n_r4_difference_0x40",
+      "input_difference_hex": "0x40",
+      "runtime_structure_path": "configs/runtime/spn/dialga128.json",
+      "runtime_round_start": 2,
+      "runtime_rounds": 2,
+      "source_root": "outputs/local_diagnostic/i1_uknit_family_ctspn_exact_operator_composition_k1n_2048_seed0_seed1_20260728",
+      "source_digests": {
+        "gate.json": "e2aed925c5d285f2856be791e1f6450b5e338f10e470572844539d86c1134a4f",
+        "validation.json": "8743497b33f78c6e1bda7f49ca0900f78c7b669396d1b604c25d0a97a087634d",
+        "dataset_manifest.jsonl": "ecc990e4d724ec35fdce8bd52d947c78280db2140853feddee07189ade4341f0"
+      }
+    }
+  ],
+  "controls": {
+    "wrong_sbox_seed": 20260728,
+    "conditions": [
+      "correct_runtime",
+      "wrong_sbox_same_state",
+      "transition_branch_off_same_state"
+    ]
+  },
+  "gate": {
+    "require_exact_configuration": true,
+    "require_all_source_digests": true,
+    "require_eighteen_cache_payloads": true,
+    "require_all_cache_payload_hashes": true,
+    "require_identical_parameter_geometry": true,
+    "require_identical_seeded_state_hash": true,
+    "require_strict_load_all_runtimes": true,
+    "require_all_forward_shapes": true,
+    "require_runtime_interventions_observable": true,
+    "require_state_immutable_under_intervention": true,
+    "forbid_cipher_or_absolute_identity": true,
+    "forbid_key_label_or_difference_inputs": true
+  },
+  "next_training": {
+    "replicas": {
+      "0": {"uknit64": 3, "midori64": 6, "dialga128": 0},
+      "1": {"uknit64": 4, "midori64": 7, "dialga128": 1}
+    },
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  }
+}
