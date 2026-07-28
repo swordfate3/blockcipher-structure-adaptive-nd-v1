@@ -1,3 +1,56 @@
+## [LRN-20260728-003] best_practice
+
+**Logged**: 2026-07-28T16:30:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Exact operator support with real-valued mean aggregation can erase GF(2)
+cancellation semantics and must be calibrated on a cipher with known signal
+before any sample or capacity scale-up.
+
+### Details
+
+K1-H removed learned path identity and routed every bit latent through the exact
+nonzero support of two runtime inverse-GF(2) matrices. Its aggregation still
+computed an ordinary real-valued source mean, not the XOR defined by the binary
+operator. uKNIT fresh-same-key AUC stayed at `0.502423/0.500109`, correct
+operators failed the frozen control margins, and Dialga's frozen `0.96-0.97`
+anchor collapsed to `0.52-0.57`. The Dialga calibration rules out treating this
+only as weak uKNIT signal or data scarcity: the selected bottleneck discarded
+useful operator-dependent information before the learned head could use it.
+
+### Suggested Action
+
+When a runtime cipher descriptor contains a GF(2) matrix, distinguish exact
+routing support from exact Boolean computation. Before adding data, width,
+epochs or experts, compare the candidate against a frozen strong-signal cipher
+and same-checkpoint wrong-operator controls. If real-valued aggregation destroys
+the anchor, first compute deterministic XOR/operator views and learn only after
+that transformation.
+
+### Metadata
+
+- Source: verified local experiment
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-operator-tied-latent-k1h-plan.md, src/blockcipher_nd/models/structure/spn/operator_tied_latent.py, outputs/local_diagnostic/i1_uknit_family_ctspn_operator_tied_latent_k1h_2048_seed0_seed1_20260728/gate.json
+- Tags: innovation1, uknit, dialga, gf2, operator-routing, aggregation, calibration
+- See Also: LRN-20260728-002, LRN-20260725-001
+- Pattern-Key: research.spn_operator_routing_preserve_gf2_semantics
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T16:30:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Closed K1-H as a local mechanism hold and selected deterministic
+  GF(2) Boolean operator views as the single-variable K1-I hypothesis.
+
+---
+
 ## [LRN-20260725-002] correction
 
 **Logged**: 2026-07-25T02:30:00+08:00

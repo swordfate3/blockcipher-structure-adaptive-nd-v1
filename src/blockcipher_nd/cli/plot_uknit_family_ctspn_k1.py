@@ -57,7 +57,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--report", type=Path)
     parser.add_argument(
         "--variant",
-        choices=("k1", "k1b", "k1c", "k1d", "k1e", "k1f", "k1g"),
+        choices=("k1", "k1b", "k1c", "k1d", "k1e", "k1f", "k1g", "k1h"),
         default="k1",
     )
     return parser.parse_args(argv)
@@ -66,7 +66,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     gate = _read_json(args.gate)
-    if args.variant == "k1g":
+    if args.variant == "k1h":
+        render_ctspn_k1h_svg(gate, args.output)
+    elif args.variant == "k1g":
         render_ctspn_k1g_svg(gate, args.output)
     elif args.variant == "k1f":
         render_ctspn_k1f_svg(gate, args.output)
@@ -352,6 +354,234 @@ def render_ctspn_k1g_svg(gate: Mapping[str, Any], output: Path) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         figure.savefig(output, format="svg")
         plt.close(figure)
+
+
+def render_ctspn_k1h_svg(gate: Mapping[str, Any], output: Path) -> None:
+    seed_results = _validated_k1h_seed_results(gate)
+    with plt.rc_context(
+        {
+            "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
+            "font.size": 10.0,
+            "axes.facecolor": "#FFFFFF",
+            "axes.edgecolor": "#CBD5E1",
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "text.color": "#111827",
+            "axes.labelcolor": "#374151",
+            "xtick.color": "#4B5563",
+            "ytick.color": "#374151",
+            "savefig.facecolor": "#FFFFFF",
+            "svg.fonttype": "none",
+        }
+    ):
+        figure, axes = plt.subplots(2, 2, figsize=(16, 10.2))
+        figure.subplots_adjust(
+            left=0.09,
+            right=0.97,
+            top=0.76,
+            bottom=0.11,
+            hspace=0.52,
+            wspace=0.25,
+        )
+        figure.suptitle(
+            "创新1 K1-H：固定真实扩散算子能否让 uKNIT 类模型泛化",
+            x=0.06,
+            y=0.96,
+            ha="left",
+            fontsize=17,
+            fontweight="bold",
+        )
+        figure.text(
+            0.06,
+            0.905,
+            "矩阵只规定潜变量的传递路线；网络不接收 bit/cell 编号、密码编号、S 盒、DDT 或路径 token。",
+            ha="left",
+            fontsize=10.5,
+            color="#4B5563",
+        )
+        figure.text(
+            0.06,
+            0.85,
+            "裁决：低容量精确算子模型未通过；同密钥新明文仍接近随机，Dialga 的强信号也被明显削弱。",
+            ha="left",
+            fontsize=11,
+            fontweight="bold",
+            color=_decision_color(str(gate.get("status", ""))),
+        )
+        for column, cipher in enumerate(("uknit64", "dialga128")):
+            _plot_k1h_auc_panel(axes[0, column], cipher, seed_results[cipher])
+            _plot_k1h_margin_panel(axes[1, column], cipher, seed_results[cipher])
+        handles = [
+            plt.Line2D(
+                [0],
+                [0],
+                color=color,
+                marker=marker,
+                linestyle=linestyle,
+                linewidth=1.5,
+                markersize=6,
+                label=label,
+            )
+            for color, marker, linestyle, label in (
+                ("#0F766E", "o", "-", "精确算子 seed0"),
+                ("#0F766E", "s", "-", "精确算子 seed1"),
+                ("#2563EB", "o", "--", "旧 Runtime-E4 锚点 seed0"),
+                ("#2563EB", "s", "--", "旧 Runtime-E4 锚点 seed1"),
+            )
+        ]
+        figure.legend(
+            handles=handles,
+            loc="upper right",
+            bbox_to_anchor=(0.965, 0.965),
+            frameon=False,
+            ncol=2,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        figure.savefig(output, format="svg")
+        plt.close(figure)
+
+
+def _plot_k1h_auc_panel(
+    axis: plt.Axes,
+    cipher: str,
+    seeds: Mapping[str, Mapping[str, Mapping[str, float]]],
+) -> None:
+    splits = ("train_seen", "same_key_fresh", "cross_key_validation")
+    x = list(range(3))
+    all_values: list[float] = []
+    for seed, marker, shift in (("0", "o", -0.04), ("1", "s", 0.04)):
+        candidate = [float(seeds[seed][split]["candidate_auc"]) for split in splits]
+        anchor = [float(seeds[seed][split]["anchor_auc"]) for split in splits]
+        positions = [value + shift for value in x]
+        axis.plot(
+            positions,
+            candidate,
+            color="#0F766E",
+            marker=marker,
+            linewidth=1.5,
+            markersize=6,
+        )
+        axis.plot(
+            positions,
+            anchor,
+            color="#2563EB",
+            marker=marker,
+            linestyle="--",
+            linewidth=1.3,
+            markersize=5,
+        )
+        all_values.extend(candidate)
+        all_values.extend(anchor)
+        x_offset, y_offset, alignment = (
+            (-8, 10, "right") if seed == "0" else (8, -16, "left")
+        )
+        for position, value in zip(positions, candidate, strict=True):
+            axis.annotate(
+                f"{value:.4f}",
+                (position, value),
+                xytext=(x_offset, y_offset),
+                textcoords="offset points",
+                ha=alignment,
+                fontsize=8.0,
+                color="#0F766E",
+                bbox={
+                    "boxstyle": "square,pad=0.12",
+                    "facecolor": "white",
+                    "edgecolor": "none",
+                    "alpha": 0.84,
+                },
+            )
+    span = max(0.04, max(all_values) - min(all_values))
+    axis.set_ylim(
+        max(0.0, min(all_values) - 0.12 * span),
+        min(1.0, max(all_values) + 0.16 * span),
+    )
+    axis.set_xticks(
+        x,
+        ("原训练样本\n训练 key", "新明文\n同一训练 key", "原验证集\n不同固定 key"),
+    )
+    axis.set_title(
+        f"{CIPHER_LABELS[cipher]}：精确算子模型与旧锚点 AUC",
+        loc="left",
+        fontweight="bold",
+    )
+    axis.set_ylabel("AUC（纵轴按本面板数据缩放）")
+    axis.axhline(0.5, color="#9CA3AF", linestyle=(0, (3, 3)), linewidth=1)
+    axis.grid(axis="y", color="#E5E7EB", linewidth=0.8)
+
+
+def _plot_k1h_margin_panel(
+    axis: plt.Axes,
+    cipher: str,
+    seeds: Mapping[str, Mapping[str, Mapping[str, float]]],
+) -> None:
+    splits = ("train_seen", "same_key_fresh", "cross_key_validation")
+    labels = (
+        "训练 s0",
+        "训练 s1",
+        "同 key 新样本 s0",
+        "同 key 新样本 s1",
+        "跨 key s0",
+        "跨 key s1",
+    )
+    values = [
+        (seed, split, seeds[seed][split]) for split in splits for seed in ("0", "1")
+    ]
+    controls = (
+        ("candidate_minus_operator_reversed", "算子反序", "#7C3AED", "o"),
+        ("candidate_minus_operator_corrupted", "算子破坏", "#DC2626", "s"),
+        ("candidate_minus_no_topology", "无拓扑", "#64748B", "^"),
+    )
+    flat: list[float] = []
+    for key, label, color, marker in controls:
+        margins = [float(row[key]) for _, _, row in values]
+        flat.extend(margins)
+        axis.plot(
+            range(len(values)),
+            margins,
+            color=color,
+            marker=marker,
+            linewidth=1.2,
+            markersize=5,
+            label=label,
+        )
+    span = max(0.02, max(flat) - min(flat))
+    axis.set_ylim(
+        min(-0.01, min(flat) - 0.15 * span),
+        max(0.015, max(flat) + 0.2 * span),
+    )
+    axis.set_xticks(range(len(values)), labels, rotation=18, ha="right")
+    axis.set_title(
+        f"{CIPHER_LABELS[cipher]}：正确算子相对控制的净优势",
+        loc="left",
+        fontweight="bold",
+    )
+    axis.set_ylabel("精确算子 AUC - 控制 AUC（局部放大）")
+    axis.axhline(0.0, color="#9CA3AF", linewidth=1)
+    axis.axhline(0.005, color="#047857", linestyle=(0, (4, 3)), linewidth=1.3)
+    axis.grid(axis="y", color="#E5E7EB", linewidth=0.8)
+    axis.legend(frameon=False, ncol=3, fontsize=8.5, loc="upper left")
+
+
+def _validated_k1h_seed_results(
+    gate: Mapping[str, Any],
+) -> Mapping[str, Mapping[str, Mapping[str, Mapping[str, float]]]]:
+    results = gate.get("seed_results")
+    if not isinstance(results, Mapping) or set(results) != {"uknit64", "dialga128"}:
+        raise ValueError("K1-H gate must contain both cipher seed panels")
+    required_splits = {"train_seen", "same_key_fresh", "cross_key_validation"}
+    for cipher in ("uknit64", "dialga128"):
+        seeds = results[cipher]
+        if not isinstance(seeds, Mapping) or set(seeds) != {"0", "1"}:
+            raise ValueError("K1-H gate must contain both seeds")
+        for seed in ("0", "1"):
+            split_rows = seeds[seed]
+            if (
+                not isinstance(split_rows, Mapping)
+                or set(split_rows) != required_splits
+            ):
+                raise ValueError("K1-H gate must contain all three data splits")
+    return results  # type: ignore[return-value]
 
 
 def _plot_k1g_auc_panel(

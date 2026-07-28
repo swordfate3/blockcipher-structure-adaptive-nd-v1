@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Exact Operator-Tied Latent K1-H
 
 **Date:** 2026-07-28
-**Status:** planned / zero-training readiness required
+**Status:** completed / hold / operator-tied real-latent mean not supported
 **Execution:** local CPU diagnostic only
 
 ## 1. Evidence And Question
@@ -208,3 +208,113 @@ visual_qa_passed.marker
 Every completed result must refresh `outputs/00_RECENT_RESULTS.md` and its JSON
 companion. The result record must state the next evidence-backed action even when
 the research gate holds.
+
+## 10. Completed Readiness And Execution
+
+The zero-training readiness gate completed locally on 2026-07-28:
+
+```text
+run_id   = i1_uknit_family_ctspn_operator_tied_latent_k1h_readiness_20260728
+status   = pass
+decision = innovation1_uknit_family_ctspn_k1h_execution_authorized
+```
+
+All four candidate rows, four frozen Runtime-E4 anchors, twelve K1-F/K1-G data
+caches and both runtime transitions were digest-bound before training. The
+64-/128-bit instances had identical learned parameter geometry, the candidate
+stayed below the `150000`-parameter cap, relabeling invariance passed within
+`1e-6`, and every control strict-loaded the same learned state with a distinct
+operator fingerprint. Readiness consumed zero training rows and optimizer
+steps.
+
+The authorized diagnostic then completed with the frozen protocol:
+
+```text
+run_id = i1_uknit_family_ctspn_operator_tied_latent_k1h_2048_seed0_seed1_20260728
+training rows = 4
+evaluation rows = 60
+failed protocol checks = []
+eight training/validation caches reused = true
+training/validation cache regeneration = false
+```
+
+## 11. Results
+
+### uKNIT-BC r5
+
+| Seed | Split | Candidate AUC | Runtime-E4 anchor | Weakest control margin |
+|---:|---|---:|---:|---:|
+| 0 | original train rows | `0.519238` | `0.624762` | `-0.000270` |
+| 0 | fresh plaintexts / train key | `0.502423` | `0.503880` | `-0.001659` |
+| 0 | original cross-key validation | `0.509368` | `0.526651` | `-0.003747` |
+| 1 | original train rows | `0.540934` | `0.556674` | `+0.002676` |
+| 1 | fresh plaintexts / train key | `0.500109` | `0.514069` | `-0.005531` |
+| 1 | original cross-key validation | `0.528292` | `0.528809` | `+0.002344` |
+
+Neither seed passes the frozen `+0.005` margin against every same-checkpoint
+operator control. Both fresh-same-key panels remain at chance, and neither seed
+beats the frozen Runtime-E4 anchor on both holdouts. Seed1's cross-key AUC is a
+weak residual signal, but it is not correct-operator attribution.
+
+### Dialga-128 r4 calibration
+
+| Seed | Split | Candidate AUC | Runtime-E4 anchor | Weakest control margin |
+|---:|---|---:|---:|---:|
+| 0 | original train rows | `0.566904` | `0.971672` | `+0.002893` |
+| 0 | fresh plaintexts / train key | `0.546438` | `0.969792` | `-0.001080` |
+| 0 | original cross-key validation | `0.531590` | `0.961386` | `-0.002370` |
+| 1 | original train rows | `0.548439` | `0.970026` | `+0.002285` |
+| 1 | fresh plaintexts / train key | `0.517300` | `0.962512` | `-0.003134` |
+| 1 | original cross-key validation | `0.527280` | `0.960392` | `+0.000610` |
+
+The candidate collapses Dialga's known same-protocol signal from approximately
+`0.96-0.97` to `0.52-0.57`. Reversed or corrupted operators are often equal or
+better. This calibration failure shows that K1-H's transport bottleneck loses
+useful information even where the frozen benchmark has abundant signal; it does
+not support a uKNIT-specific ceiling claim.
+
+## 12. Decision And Claim Scope
+
+```text
+status   = hold
+decision = innovation1_uknit_family_ctspn_k1h_operator_tied_latent_not_supported
+```
+
+K1-H removes much of K1-F's sample-specific path capacity, but its transport is
+only exact in operator support. It computes a real-valued mean over source
+latents rather than the GF(2) XOR/cancellation operation represented by the
+runtime matrix. The Dialga collapse makes information loss in this aggregation
+the strongest next mechanism to test.
+
+This is a two-seed local `2048/class` training and `1024/class` holdout mechanism
+diagnostic. It is not formal scale, an attack, SOTA evidence, arbitrary-SPN
+transfer evidence, or proof that uKNIT has reached a ceiling.
+
+## 13. Evidence-Backed Next Action: K1-I
+
+The next question is whether deterministic Boolean features computed by the
+exact runtime GF(2) operators can preserve both Dialga's calibrated signal and
+uKNIT correct-operator attribution without reintroducing learned path identity.
+
+Keep the same K1-H data caches, two ciphers, rounds, seeds, four pairs, ten
+epochs, MSE/Adam settings, strict negatives, fixed keys, split definitions and
+Runtime-E4 anchors. Change exactly one mechanism:
+
+```text
+K1-H: exact operator support -> real-valued latent source mean
+K1-I: exact operator matrix  -> deterministic GF(2) XOR Boolean views
+```
+
+For each ciphertext pair, form `[C, C', C xor C']`, apply each loaded inverse
+operator and its exact two-transition composition over GF(2), and only then pass
+the resulting Boolean channels to a shared bit encoder and the unchanged
+invariant pair-pooling/classifier protocol. Retain operator-reversed,
+operator-corrupted and no-topology same-checkpoint controls. Do not add inverse
+S-box, DDT, trail, key, cipher ID, raw bypass, MoE, extra width, epochs or data.
+
+Run K1-I locally at `2048/class` first. Advance to a separate disk-cached remote
+`65536/class` diagnostic only if both uKNIT seeds pass the AUC floor, anchor and
+all-control margins on both holdouts while both Dialga seeds retain their frozen
+anchors. A failed local gate closes this Boolean-view parameterization and
+requires auditing nonlinear S-box/operator composition; it does not authorize a
+mechanical scale-up.
