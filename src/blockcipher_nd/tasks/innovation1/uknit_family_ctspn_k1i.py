@@ -634,6 +634,11 @@ def adjudicate_k1i(
         for seed in EXPECTED_SEEDS
         for split in ("same_key_fresh", "cross_key_validation")
     )
+    dialga_signal_recovered = all(
+        seed_results["dialga128"][str(seed)][split]["candidate_auc"] >= 0.90
+        for seed in EXPECTED_SEEDS
+        for split in ("same_key_fresh", "cross_key_validation")
+    )
     if not protocol_valid:
         status = "invalid"
         decision = "innovation1_uknit_family_ctspn_k1i_protocol_invalid"
@@ -657,6 +662,17 @@ def adjudicate_k1i(
             "keep exact GF(2) views as a calibrated primitive, hold scale, and "
             "audit one exact heterogeneous S-box/operator composition locally"
         )
+    elif dialga_signal_recovered:
+        status = "hold"
+        decision = (
+            "innovation1_uknit_family_ctspn_k1i_dialga_signal_recovered_"
+            "operator_attribution_not_supported"
+        )
+        next_action = (
+            "keep exact GF(2) views as a signal-preserving primitive, hold scale, "
+            "and run a zero-training position/cell interaction attribution audit "
+            "against the frozen Runtime-E4 Dialga checkpoints"
+        )
     else:
         status = "hold"
         decision = (
@@ -674,6 +690,11 @@ def adjudicate_k1i(
         "thresholds": {
             "uknit_auc_floor": UKNIT_AUC_FLOOR,
             "anchor_and_control_margin": MARGIN,
+        },
+        "descriptive_diagnostics": {
+            "dialga_signal_recovered_auc_floor": 0.90,
+            "dialga_signal_recovered": dialga_signal_recovered,
+            "note": "post-result descriptive classification only; does not alter the frozen research gate",
         },
         "protocol_checks": protocol_checks,
         "failed_protocol_checks": sorted(

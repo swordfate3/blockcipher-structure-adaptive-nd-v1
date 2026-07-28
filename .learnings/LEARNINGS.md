@@ -1,3 +1,58 @@
+## [LRN-20260728-004] best_practice
+
+**Logged**: 2026-07-28T08:50:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Exact GF(2) Boolean views can restore a strong cipher signal while invariant
+bit/cell pooling still prevents the correct runtime operator from being
+semantically identifiable.
+
+### Details
+
+K1-I replaced K1-H's real-valued source means with deterministic XOR views for
+the two runtime matrices and their frozen composition. Dialga fresh and
+cross-key AUC recovered from approximately `0.52-0.57` to `0.954-0.965`, while
+no-topology controls remained near `0.52`. Reversed or corrupted matrices also
+reached approximately `0.948-0.960`, however, and five of six Dialga rows missed
+the `+0.005` correct-operator margin. uKNIT fresh-same-key remained at
+`0.508171/0.495883`. The representation therefore preserves Boolean signal but
+the shared bit encoder followed by invariant bit/cell pooling does not retain
+enough position/cell interaction identity to attribute it to the correct
+matrix.
+
+### Suggested Action
+
+Treat signal preservation and operator identifiability as separate gates. After
+an exact Boolean representation restores a calibrated anchor, freeze the
+checkpoint and data and audit position/cell masks, within-cell permutations,
+across-cell permutations and joint relabeling before adding samples or learned
+capacity. Redesign the network only around interactions that explain the
+candidate-minus-no-topology gap consistently across seeds and fresh splits.
+
+### Metadata
+
+- Source: verified_local_experiment, mechanism_audit
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-gf2-boolean-view-k1i-plan.md, src/blockcipher_nd/models/structure/spn/gf2_boolean_view.py, outputs/local_diagnostic/i1_uknit_family_ctspn_gf2_boolean_view_k1i_2048_seed0_seed1_20260728/gate.json
+- Tags: innovation1, uknit, dialga, gf2, invariant-pooling, position, operator-identifiability
+- See Also: LRN-20260728-001, LRN-20260728-003, LRN-20260726-001
+- Pattern-Key: research.runtime_spn.exact_boolean_signal_requires_position_attribution
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T08:50:00+08:00
+- **Commit/PR**: pending
+- **Notes**: K1-I was held before scale and selected a zero-training
+  position/cell interaction attribution audit as K1-J.
+
+---
+
 ## [LRN-20260728-003] best_practice
 
 **Logged**: 2026-07-28T16:30:00+08:00

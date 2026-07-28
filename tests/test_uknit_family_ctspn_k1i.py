@@ -5,6 +5,7 @@ from pathlib import Path
 
 import torch
 
+from blockcipher_nd.cli.plot_uknit_family_ctspn_k1 import render_ctspn_k1i_svg
 from blockcipher_nd.engine.modeling import model_metadata
 from blockcipher_nd.models.structure.spn.gf2_boolean_view import (
     VIEW_NAMES,
@@ -210,6 +211,54 @@ def test_k1i_readiness_fails_closed_without_cache_and_anchor_sources() -> None:
     assert gate["status"] == "fail"
     assert gate["optimizer_step_authorized"] is False
     assert gate["protocol_checks"]["twelve_caches_reused"] is False
+
+
+def test_k1i_gate_distinguishes_signal_recovery_from_operator_attribution() -> None:
+    training_rows, evaluation_rows = passing_evidence()
+    for row in evaluation_rows:
+        if row["cipher_key"] != "dialga128":
+            continue
+        if row["condition"] in CONTROL_CONDITIONS[1:]:
+            row["auc"] = 0.958
+        elif (
+            row["condition"] == ANCHOR_CONDITION
+            and row["seed"] == 1
+            and row["split"] == "cross_key_validation"
+        ):
+            row["auc"] = 0.967
+    gate = adjudicate_k1i(
+        tasks=tasks(),
+        training_rows=training_rows,
+        evaluation_rows=evaluation_rows,
+        readiness_gate=readiness_gate(),
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["descriptive_diagnostics"]["dialga_signal_recovered"] is True
+    assert gate["decision"].endswith(
+        "dialga_signal_recovered_operator_attribution_not_supported"
+    )
+
+
+def test_k1i_plot_explains_exact_xor_and_local_scale(tmp_path: Path) -> None:
+    training_rows, evaluation_rows = passing_evidence()
+    gate = adjudicate_k1i(
+        tasks=tasks(),
+        training_rows=training_rows,
+        evaluation_rows=evaluation_rows,
+        readiness_gate=readiness_gate(),
+    )
+    output = tmp_path / "curves.svg"
+
+    render_ctspn_k1i_svg(gate, output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "精确 GF(2) 异或视图能否适配 uKNIT 类 SPN" in svg
+    assert "12 个布尔通道" in svg
+    assert "纵轴按本面板数据缩放" in svg
+    assert "正确矩阵是否优于错误矩阵" in svg
+    assert "相对错误矩阵的 AUC 差（左轴，局部放大）" in svg
+    assert "相对无拓扑的 AUC 差（右轴）" in svg
 
 
 def k1h_gate() -> dict[str, object]:

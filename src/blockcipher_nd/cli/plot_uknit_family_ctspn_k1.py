@@ -57,7 +57,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--report", type=Path)
     parser.add_argument(
         "--variant",
-        choices=("k1", "k1b", "k1c", "k1d", "k1e", "k1f", "k1g", "k1h"),
+        choices=(
+            "k1",
+            "k1b",
+            "k1c",
+            "k1d",
+            "k1e",
+            "k1f",
+            "k1g",
+            "k1h",
+            "k1i",
+        ),
         default="k1",
     )
     return parser.parse_args(argv)
@@ -66,7 +76,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     gate = _read_json(args.gate)
-    if args.variant == "k1h":
+    if args.variant == "k1i":
+        render_ctspn_k1i_svg(gate, args.output)
+    elif args.variant == "k1h":
         render_ctspn_k1h_svg(gate, args.output)
     elif args.variant == "k1g":
         render_ctspn_k1g_svg(gate, args.output)
@@ -441,6 +453,94 @@ def render_ctspn_k1h_svg(gate: Mapping[str, Any], output: Path) -> None:
         plt.close(figure)
 
 
+def render_ctspn_k1i_svg(gate: Mapping[str, Any], output: Path) -> None:
+    seed_results = _validated_k1h_seed_results(gate)
+    with plt.rc_context(
+        {
+            "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
+            "font.size": 10.0,
+            "axes.facecolor": "#FFFFFF",
+            "axes.edgecolor": "#CBD5E1",
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "text.color": "#111827",
+            "axes.labelcolor": "#374151",
+            "xtick.color": "#4B5563",
+            "ytick.color": "#374151",
+            "savefig.facecolor": "#FFFFFF",
+            "svg.fonttype": "none",
+        }
+    ):
+        figure, axes = plt.subplots(2, 2, figsize=(16, 10.2))
+        figure.subplots_adjust(
+            left=0.09,
+            right=0.97,
+            top=0.76,
+            bottom=0.11,
+            hspace=0.52,
+            wspace=0.25,
+        )
+        figure.suptitle(
+            "创新1 K1-I：精确 GF(2) 异或视图能否适配 uKNIT 类 SPN",
+            x=0.06,
+            y=0.96,
+            ha="left",
+            fontsize=17,
+            fontweight="bold",
+        )
+        figure.text(
+            0.06,
+            0.905,
+            "每个密文对先生成原始、两段单算子和两段复合共 12 个布尔通道；所有模型使用同一共享网络。",
+            ha="left",
+            fontsize=10.5,
+            color="#4B5563",
+        )
+        figure.text(
+            0.06,
+            0.85,
+            "裁决：精确 XOR 恢复 Dialga 强信号，但正确算子未稳定领先错误算子；uKNIT 新明文仍接近随机。",
+            ha="left",
+            fontsize=11,
+            fontweight="bold",
+            color=_decision_color(str(gate.get("status", ""))),
+        )
+        for column, cipher in enumerate(("uknit64", "dialga128")):
+            _plot_k1h_auc_panel(axes[0, column], cipher, seed_results[cipher])
+            if cipher == "dialga128":
+                _plot_k1i_dialga_margin_panel(axes[1, column], seed_results[cipher])
+            else:
+                _plot_k1h_margin_panel(axes[1, column], cipher, seed_results[cipher])
+        handles = [
+            plt.Line2D(
+                [0],
+                [0],
+                color=color,
+                marker=marker,
+                linestyle=linestyle,
+                linewidth=1.5,
+                markersize=6,
+                label=label,
+            )
+            for color, marker, linestyle, label in (
+                ("#0F766E", "o", "-", "精确 GF(2) 视图 seed0"),
+                ("#0F766E", "s", "-", "精确 GF(2) 视图 seed1"),
+                ("#2563EB", "o", "--", "旧 Runtime-E4 锚点 seed0"),
+                ("#2563EB", "s", "--", "旧 Runtime-E4 锚点 seed1"),
+            )
+        ]
+        figure.legend(
+            handles=handles,
+            loc="upper right",
+            bbox_to_anchor=(0.965, 0.965),
+            frameon=False,
+            ncol=2,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        figure.savefig(output, format="svg")
+        plt.close(figure)
+
+
 def _plot_k1h_auc_panel(
     axis: plt.Axes,
     cipher: str,
@@ -476,12 +576,14 @@ def _plot_k1h_auc_panel(
             (-8, 10, "right") if seed == "0" else (8, -16, "left")
         )
         for position, value in zip(positions, candidate, strict=True):
+            label_x_offset = 8 if position < 0.1 else x_offset
+            label_alignment = "left" if position < 0.1 else alignment
             axis.annotate(
                 f"{value:.4f}",
                 (position, value),
-                xytext=(x_offset, y_offset),
+                xytext=(label_x_offset, y_offset),
                 textcoords="offset points",
-                ha=alignment,
+                ha=label_alignment,
                 fontsize=8.0,
                 color="#0F766E",
                 bbox={
@@ -561,6 +663,89 @@ def _plot_k1h_margin_panel(
     axis.axhline(0.005, color="#047857", linestyle=(0, (4, 3)), linewidth=1.3)
     axis.grid(axis="y", color="#E5E7EB", linewidth=0.8)
     axis.legend(frameon=False, ncol=3, fontsize=8.5, loc="upper left")
+
+
+def _plot_k1i_dialga_margin_panel(
+    axis: plt.Axes,
+    seeds: Mapping[str, Mapping[str, Mapping[str, float]]],
+) -> None:
+    splits = ("train_seen", "same_key_fresh", "cross_key_validation")
+    labels = (
+        "训练 s0",
+        "训练 s1",
+        "同 key 新样本 s0",
+        "同 key 新样本 s1",
+        "跨 key s0",
+        "跨 key s1",
+    )
+    values = [seeds[seed][split] for split in splits for seed in ("0", "1")]
+    x = list(range(len(values)))
+    local_series = (
+        ("candidate_minus_operator_reversed", "相对算子反序", "#7C3AED", "o"),
+        ("candidate_minus_operator_corrupted", "相对算子破坏", "#DC2626", "s"),
+    )
+    local_values: list[float] = []
+    local_handles: list[plt.Line2D] = []
+    for key, label, color, marker in local_series:
+        margins = [float(row[key]) for row in values]
+        local_values.extend(margins)
+        (handle,) = axis.plot(
+            x,
+            margins,
+            color=color,
+            marker=marker,
+            linewidth=1.3,
+            markersize=5,
+            label=label,
+        )
+        local_handles.append(handle)
+
+    local_span = max(0.01, max(local_values) - min(local_values))
+    axis.set_ylim(
+        min(-0.005, min(local_values) - 0.18 * local_span),
+        max(0.015, max(local_values) + 0.22 * local_span),
+    )
+    axis.set_xticks(x, labels, rotation=18, ha="right")
+    axis.set_title(
+        "Dialga-128：正确矩阵是否优于错误矩阵",
+        loc="left",
+        fontweight="bold",
+    )
+    axis.set_ylabel("相对错误矩阵的 AUC 差（左轴，局部放大）")
+    axis.axhline(0.0, color="#9CA3AF", linewidth=1)
+    axis.axhline(0.005, color="#047857", linestyle=(0, (4, 3)), linewidth=1.3)
+    axis.grid(axis="y", color="#E5E7EB", linewidth=0.8)
+
+    no_topology_axis = axis.twinx()
+    no_topology_axis.spines["right"].set_visible(True)
+    no_topology = [float(row["candidate_minus_no_topology"]) for row in values]
+    (no_topology_handle,) = no_topology_axis.plot(
+        x,
+        no_topology,
+        color="#475569",
+        marker="^",
+        linestyle=(0, (5, 3)),
+        linewidth=1.25,
+        markersize=5,
+        label="相对无拓扑（右轴）",
+    )
+    no_topology_span = max(0.02, max(no_topology) - min(no_topology))
+    no_topology_axis.set_ylim(
+        min(no_topology) - 0.35 * no_topology_span,
+        max(no_topology) + 0.35 * no_topology_span,
+    )
+    no_topology_axis.set_ylabel(
+        "相对无拓扑的 AUC 差（右轴）",
+        color="#475569",
+    )
+    no_topology_axis.tick_params(axis="y", colors="#475569")
+    no_topology_axis.legend(
+        handles=[*local_handles, no_topology_handle],
+        frameon=False,
+        ncol=3,
+        fontsize=8.2,
+        loc="upper left",
+    )
 
 
 def _validated_k1h_seed_results(

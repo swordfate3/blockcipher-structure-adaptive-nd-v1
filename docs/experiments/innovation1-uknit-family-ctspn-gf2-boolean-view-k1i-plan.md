@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Exact GF(2) Boolean View K1-I
 
 **Date:** 2026-07-28
-**Status:** readiness passed / local diagnostic authorized
+**Status:** completed / held before scale
 **Execution:** local CPU mechanism diagnostic only
 
 ## 1. Evidence And Research Question
@@ -243,3 +243,115 @@ Every reversed, corrupted and identity control strict-loaded the same state,
 retained a distinct Boolean-view fingerprint and changed fixed-weight logits.
 The exact four-row local diagnostic is therefore authorized without changing
 the preregistered protocol.
+
+## 11. Completed Diagnostic Result
+
+The frozen diagnostic completed locally on 2026-07-28. It produced four
+training rows and sixty zero-step evaluation rows while reusing all twelve
+parameter-matched caches without regeneration:
+
+```text
+run_id   = i1_uknit_family_ctspn_gf2_boolean_view_k1i_2048_seed0_seed1_20260728
+status   = hold
+decision = innovation1_uknit_family_ctspn_k1i_dialga_signal_recovered_operator_attribution_not_supported
+failed protocol checks = []
+```
+
+The uKNIT rows were:
+
+| Seed | Split | Candidate | Runtime-E4 anchor | Reversed | Corrupted | No topology | Weakest control margin |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 0 | train seen | `0.529811` | `0.624762` | `0.505612` | `0.502591` | `0.518929` | `+0.010882` |
+| 0 | same-key fresh | `0.508171` | `0.503880` | `0.514278` | `0.506203` | `0.502133` | `-0.006107` |
+| 0 | cross-key | `0.513726` | `0.526651` | `0.494117` | `0.495021` | `0.476428` | `+0.018704` |
+| 1 | train seen | `0.545691` | `0.556674` | `0.500835` | `0.499526` | `0.501297` | `+0.044394` |
+| 1 | same-key fresh | `0.495883` | `0.514069` | `0.492994` | `0.477796` | `0.514840` | `-0.018957` |
+| 1 | cross-key | `0.504108` | `0.528809` | `0.475343` | `0.481297` | `0.484936` | `+0.019172` |
+
+Both cross-key rows exceeded every same-checkpoint control, but neither reached
+the preregistered `0.520` floor or retained the Runtime-E4 anchor. Both
+same-key-fresh rows remained near chance and failed at least one control. The
+experiment therefore provides no uKNIT generalization evidence.
+
+The Dialga calibration rows were:
+
+| Seed | Split | Candidate | Runtime-E4 anchor | Reversed | Corrupted | No topology | Weakest control margin |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 0 | train seen | `0.962183` | `0.971672` | `0.958871` | `0.956340` | `0.527543` | `+0.003312` |
+| 0 | same-key fresh | `0.965361` | `0.969792` | `0.963014` | `0.963330` | `0.530279` | `+0.002030` |
+| 0 | cross-key | `0.958006` | `0.961386` | `0.959939` | `0.958119` | `0.522653` | `-0.001933` |
+| 1 | train seen | `0.961957` | `0.970026` | `0.954565` | `0.948838` | `0.520128` | `+0.007391` |
+| 1 | same-key fresh | `0.958613` | `0.962512` | `0.954698` | `0.952209` | `0.531655` | `+0.003916` |
+| 1 | cross-key | `0.954252` | `0.960392` | `0.951816` | `0.947887` | `0.518332` | `+0.002437` |
+
+Exact GF(2) views restored Dialga from K1-H's roughly `0.52-0.57` to
+`0.954-0.965`. Relative to no topology, the recovered advantage was
+`+0.426958` to `+0.441828`. This is strong evidence that deterministic XOR
+execution preserves the signal discarded by real-valued source means.
+
+It is not evidence that the model attributed that signal to the correct
+operator. Reversed or corrupted operators also reached approximately
+`0.948-0.960`; five of six Dialga rows missed the frozen `+0.005` control
+margin, and the seed-0 cross-key candidate was below the reversed control.
+Absolute Dialga quality therefore cannot override the failed attribution gate.
+
+The rendered chart passed `visual-qa-redraw` after separating Dialga's small
+wrong-operator margins onto the left axis and its approximately `+0.43`
+no-topology advantage onto an explicit right axis. No text overlap, clipping,
+missing glyph, ambiguous title or unreadable curve compression remained.
+
+## 12. Claim Scope And Decision
+
+K1-I establishes one reusable primitive:
+
+```text
+exact runtime GF(2) Boolean views preserve a strong Dialga signal
+```
+
+It does not establish any of the following:
+
+- uKNIT generalization;
+- stable preference for the correct runtime matrices;
+- arbitrary-SPN transfer;
+- a formal-scale result, cryptanalytic attack or SOTA comparison;
+- an uKNIT architecture ceiling.
+
+This is only a two-seed local `2048/class` mechanism diagnostic with
+`1024/class` fresh-same-key and cross-key evaluation splits.
+
+## 13. Evidence-Backed Next Action: K1-J
+
+The next question is whether K1-I's invariant bit/cell pooling erased the
+position and cell interactions that make Runtime-E4's Dialga checkpoint
+operator-sensitive. K1-J will change only the evaluation-time position/cell
+interaction mask while keeping the trained checkpoints, Boolean views, data,
+labels and metrics frozen.
+
+Executable protocol:
+
+- same-budget anchor: the four frozen Runtime-E4 Dialga checkpoints and the two
+  trained K1-I Dialga checkpoints;
+- required controls: exact matrices, reversed matrices, corrupted matrices and
+  identity/no-topology, all strict-loaded with no optimizer step;
+- one variable: deterministic bit/cell position masking, within-cell
+  permutation, across-cell permutation and interaction-preserving joint
+  relabeling;
+- data: the existing Dialga seed-0/1 `2048/class` train,
+  `1024/class` same-key-fresh and `1024/class` cross-key caches;
+- scale: zero new rows, zero epochs and zero optimizer steps, local CPU only;
+- readiness: checkpoint hashes, cache hashes, exact row counts and zero-step
+  state equality must pass before the audit;
+- advance gate: the same position/cell interaction family must explain at least
+  `80%` of the candidate-minus-no-topology gap on both fresh splits and both
+  seeds, while joint input/operator relabeling remains invariant within
+  `1e-6`;
+- stop gate: inconsistent interactions across seeds/splits, less than `80%`
+  explained gap, changed model state or any hidden retraining closes this
+  attribution route.
+
+Do not remotely scale K1-I, add data, epochs, width, pairs, seeds or experts,
+or mix in an S-box, DDT, trail, key, cipher ID or raw bypass before K1-J
+identifies a reproducible missing interaction. A passing K1-J result will
+authorize one position-preserving GF(2) network redesign; a failed result will
+redirect the next local mechanism experiment to exact heterogeneous
+S-box/operator composition rather than mechanical scaling.
