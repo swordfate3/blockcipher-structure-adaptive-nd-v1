@@ -8,6 +8,10 @@ from blockcipher_nd.ciphers.spn.dialga import (
     dialga_linear_layer,
 )
 from blockcipher_nd.ciphers.spn.gift import GIFT64_SBOX, Gift64
+from blockcipher_nd.ciphers.spn.midori import (
+    MIDORI64_SBOX,
+    midori64_round_linear_layer,
+)
 from blockcipher_nd.ciphers.spn.present import PRESENT_SBOX, Present80
 from blockcipher_nd.ciphers.spn.rectangle import (
     RECTANGLE_SBOX,
@@ -56,6 +60,15 @@ def gift64_runtime_structure(rounds: int = 1) -> RuntimeSpnStructure:
         rounds=rounds,
         sbox=GIFT64_SBOX,
         linear=linear_matrix_from_callable(64, Gift64.permutation_layer),
+    )
+
+
+def midori64_runtime_structure(rounds: int = 1) -> RuntimeSpnStructure:
+    return _repeated_structure(
+        block_bits=64,
+        rounds=rounds,
+        sbox=MIDORI64_SBOX,
+        linear=linear_matrix_from_callable(64, midori64_round_linear_layer),
     )
 
 
@@ -172,6 +185,7 @@ def _repeated_structure(
 __all__ = [
     "dialga128_runtime_structure",
     "gift64_runtime_structure",
+    "midori64_runtime_structure",
     "present_runtime_structure",
     "rectangle80_runtime_structure",
     "skinny64_runtime_structure",

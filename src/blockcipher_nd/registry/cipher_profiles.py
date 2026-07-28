@@ -62,6 +62,23 @@ class CipherProfile:
         )
 
     @staticmethod
+    def midori64() -> "CipherProfile":
+        return CipherProfile(
+            name="Midori64",
+            structure="SPN",
+            block_bits=64,
+            key_bits=128,
+            traits=(
+                "sbox_layer",
+                "involutory_sbox",
+                "cell_permutation",
+                "general_gf2_diffusion",
+                "homogeneous_round_schedule",
+                "lightweight_spn",
+            ),
+        )
+
+    @staticmethod
     def rectangle80() -> "CipherProfile":
         return CipherProfile(
             name="RECTANGLE-80",

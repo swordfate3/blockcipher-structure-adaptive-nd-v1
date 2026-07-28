@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_midori64_qualification_k1ag",
+  "run_id": "i1_uknit_family_midori64_qualification_k1ag_20260729",
+  "cipher": {
+    "name": "Midori64",
+    "block_bits": 64,
+    "key_bits": 128,
+    "full_rounds": 16,
+    "runtime_descriptor": "configs/runtime/spn/midori64.json"
+  },
+  "public_vectors": [
+    {
+      "plaintext": "0000000000000000",
+      "key": "00000000000000000000000000000000",
+      "ciphertext": "3c9cceda2bbd449a"
+    },
+    {
+      "plaintext": "42c20fd3b586879e",
+      "key": "687ded3b3c85b3f35b1009863e2a8cbf",
+      "ciphertext": "66bcdc6270d901cd"
+    }
+  ],
+  "intermediate_trace": {
+    "plaintext": "42c20fd3b586879e",
+    "key": "687ded3b3c85b3f35b1009863e2a8cbf",
+    "whitening_key": "336de4bd02af3f4c",
+    "after_initial_whitening": "71afeb6eb729b8d2",
+    "round0_after_sub_cells": "7a1645f457d9582d",
+    "round0_after_shuffle_cells": "7d5d249a765f4815",
+    "round0_after_mix_columns": "5f7f71cfcde4c09d",
+    "round0_after_add_round_key": "37039df5e170737f",
+    "round1_after_sub_cells": "37c3926b4a7c7376",
+    "round1_after_shuffle_cells": "372679c7a376b3c4",
+    "round1_after_mix_columns": "37262c922bfeb3c4",
+    "round1_after_add_round_key": "6d27351404d43f7b"
+  },
+  "model_geometry": {
+    "model": "runtime_spn_ct_k1aa_virtual_slot_histogram_true",
+    "hidden_bits": 32,
+    "virtual_projection_slots": 16,
+    "pairs_per_sample": [4, 16],
+    "expected_trainable_parameters": 214316
+  },
+  "audit": {
+    "training_rows": 0,
+    "validation_rows": 0,
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "remote": false
+  },
+  "gate": {
+    "require_all_public_vectors": true,
+    "require_all_intermediate_states": true,
+    "require_all_16_round_prefixes": true,
+    "require_involutory_sbox": true,
+    "require_shuffle_inverse": true,
+    "require_mix_columns_involution": true,
+    "require_64_basis_canonical_mix_equivalence": true,
+    "require_64_basis_descriptor_linear_equivalence": true,
+    "require_descriptor_sbox_equivalence": true,
+    "require_fixed_parameter_geometry": true
+  }
+}
