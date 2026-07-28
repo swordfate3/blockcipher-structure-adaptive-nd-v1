@@ -69,6 +69,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "k1i",
             "k1k",
             "k1m",
+            "k1n",
         ),
         default="k1",
     )
@@ -78,7 +79,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     gate = _read_json(args.gate)
-    if args.variant == "k1m":
+    if args.variant == "k1n":
+        render_ctspn_k1n_svg(gate, args.output)
+    elif args.variant == "k1m":
         render_ctspn_k1m_svg(gate, args.output)
     elif args.variant == "k1k":
         render_ctspn_k1k_svg(gate, args.output)
@@ -733,6 +736,111 @@ def render_ctspn_k1m_svg(gate: Mapping[str, Any], output: Path) -> None:
         plt.close(figure)
 
 
+def render_ctspn_k1n_svg(gate: Mapping[str, Any], output: Path) -> None:
+    seed_results = _validated_k1h_seed_results(gate)
+    with plt.rc_context(
+        {
+            "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
+            "font.size": 10.0,
+            "axes.facecolor": "#FFFFFF",
+            "axes.edgecolor": "#CBD5E1",
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "text.color": "#111827",
+            "axes.labelcolor": "#374151",
+            "xtick.color": "#4B5563",
+            "ytick.color": "#374151",
+            "savefig.facecolor": "#FFFFFF",
+            "svg.fonttype": "none",
+        }
+    ):
+        figure, axes = plt.subplots(2, 2, figsize=(16, 10.8))
+        figure.subplots_adjust(
+            left=0.085,
+            right=0.925,
+            top=0.76,
+            bottom=0.12,
+            hspace=0.56,
+            wspace=0.32,
+        )
+        figure.suptitle(
+            "创新1：精确还原 S 盒与线性层顺序后，uKNIT 五轮能否稳定区分",
+            x=0.055,
+            y=0.96,
+            ha="left",
+            fontsize=17,
+            fontweight="bold",
+        )
+        figure.text(
+            0.055,
+            0.905,
+            "每条密文对依次生成：原密文 → 逆线性层1 → 逆S盒1 → 逆线性层0 → 逆S盒0；其余数据和训练预算保持不变。",
+            ha="left",
+            fontsize=10.5,
+            color="#4B5563",
+        )
+        figure.text(
+            0.055,
+            0.85,
+            _k1n_decision_text(gate),
+            ha="left",
+            fontsize=11,
+            fontweight="bold",
+            color=_decision_color(str(gate.get("status", ""))),
+        )
+        for column, cipher in enumerate(("uknit64", "dialga128")):
+            _plot_k1h_auc_panel(axes[0, column], cipher, seed_results[cipher])
+            axes[0, column].set_title(
+                f"{CIPHER_LABELS[cipher]}：精确组合模型与 K1-M 锚点 AUC",
+                loc="left",
+                fontweight="bold",
+            )
+            _plot_k1n_margin_panel(axes[1, column], cipher, seed_results[cipher])
+        handles = [
+            plt.Line2D(
+                [0],
+                [0],
+                color=color,
+                marker=marker,
+                linestyle=linestyle,
+                linewidth=1.5,
+                markersize=6,
+                label=label,
+            )
+            for color, marker, linestyle, label in (
+                ("#0F766E", "o", "-", "精确组合 seed0"),
+                ("#0F766E", "s", "-", "精确组合 seed1"),
+                ("#2563EB", "o", "--", "K1-M 锚点 seed0"),
+                ("#2563EB", "s", "--", "K1-M 锚点 seed1"),
+            )
+        ]
+        figure.legend(
+            handles=handles,
+            loc="upper right",
+            bbox_to_anchor=(0.955, 0.965),
+            frameon=False,
+            ncol=2,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        figure.savefig(output, format="svg")
+        plt.close(figure)
+
+
+def _k1n_decision_text(gate: Mapping[str, Any]) -> str:
+    decision = str(gate.get("decision", ""))
+    if decision.endswith("exact_composition_supported"):
+        return "裁决：uKNIT 新鲜数据和正确语义控制全部通过，可进入独立中等规模诊断。"
+    if decision.endswith("dialga_retained_uknit_signal_not_supported"):
+        return (
+            "裁决：Dialga 强信号保留，但 uKNIT 新鲜数据仍接近随机；停止扩展网络视图，先审计五轮差分本身。"
+        )
+    if decision.endswith("dialga_anchor_lost"):
+        return "裁决：精确组合破坏了 Dialga 校准锚点；丢弃本分支，返回 K1-M。"
+    if decision.endswith("semantic_attribution_not_supported"):
+        return "裁决：候选未稳定领先错误 S 盒或错误线性层；只允许做失败控制的零训练贡献审计。"
+    return "裁决：协议或来源绑定无效；修复失败项后按原计划重跑，不扩大样本。"
+
+
 def _k1m_decision_text(gate: Mapping[str, Any]) -> str:
     decision = str(gate.get("decision", ""))
     if decision.endswith("gate_opening_supported"):
@@ -968,6 +1076,108 @@ def _plot_k1i_dialga_margin_panel(
         frameon=False,
         ncol=3,
         fontsize=8.2,
+        loc="upper left",
+    )
+
+
+def _plot_k1n_margin_panel(
+    axis: plt.Axes,
+    cipher: str,
+    seeds: Mapping[str, Mapping[str, Mapping[str, float]]],
+) -> None:
+    splits = ("train_seen", "same_key_fresh", "cross_key_validation")
+    labels = (
+        "训练 s0",
+        "训练 s1",
+        "同 key 新样本 s0",
+        "同 key 新样本 s1",
+        "跨 key s0",
+        "跨 key s1",
+    )
+    values = [seeds[seed][split] for split in splits for seed in ("0", "1")]
+    x = list(range(len(values)))
+    local_series = (
+        (
+            "candidate_minus_wrong_sbox_semantics",
+            "错误 S 盒语义",
+            "#C2410C",
+            "o",
+        ),
+        (
+            "candidate_minus_reversed_linear_schedule",
+            "反转线性层顺序",
+            "#7C3AED",
+            "s",
+        ),
+        (
+            "candidate_minus_corrupted_linear_operators",
+            "破坏线性矩阵",
+            "#DC2626",
+            "^",
+        ),
+        (
+            "candidate_minus_no_sbox_composition",
+            "不执行逆 S 盒",
+            "#0891B2",
+            "D",
+        ),
+    )
+    local_values: list[float] = []
+    local_handles: list[plt.Line2D] = []
+    for key, label, color, marker in local_series:
+        margins = [float(row[key]) for row in values]
+        local_values.extend(margins)
+        (handle,) = axis.plot(
+            x,
+            margins,
+            color=color,
+            marker=marker,
+            linewidth=1.2,
+            markersize=4.8,
+            label=label,
+        )
+        local_handles.append(handle)
+    local_span = max(0.01, max(local_values) - min(local_values))
+    axis.set_ylim(
+        min(-0.01, min(local_values) - 0.16 * local_span),
+        max(0.012, max(local_values) + 0.2 * local_span),
+    )
+    axis.set_xticks(x, labels, rotation=18, ha="right")
+    axis.set_title(
+        f"{CIPHER_LABELS[cipher]}：正确语义相对错误语义的净优势",
+        loc="left",
+        fontweight="bold",
+    )
+    axis.set_ylabel("AUC 差（左轴，局部放大）")
+    axis.axhline(0.0, color="#9CA3AF", linewidth=1)
+    axis.axhline(0.005, color="#047857", linestyle=(0, (4, 3)), linewidth=1.3)
+    axis.grid(axis="y", color="#E5E7EB", linewidth=0.8)
+
+    no_topology_axis = axis.twinx()
+    no_topology_axis.spines["right"].set_visible(True)
+    no_topology = [float(row["candidate_minus_no_topology"]) for row in values]
+    (no_topology_handle,) = no_topology_axis.plot(
+        x,
+        no_topology,
+        color="#475569",
+        marker="v",
+        linestyle=(0, (5, 3)),
+        linewidth=1.15,
+        markersize=4.8,
+        label="相对无拓扑（右轴）",
+    )
+    no_topology_span = max(0.02, max(no_topology) - min(no_topology))
+    no_topology_axis.set_ylim(
+        min(no_topology) - 0.22 * no_topology_span,
+        max(no_topology) + 0.22 * no_topology_span,
+    )
+    no_topology_axis.set_ylabel("相对无拓扑 AUC 差（右轴）", color="#475569")
+    no_topology_axis.tick_params(axis="y", colors="#475569")
+    no_topology_axis.legend(
+        handles=[*local_handles, no_topology_handle],
+        frameon=False,
+        ncol=3,
+        fontsize=7.8,
         loc="upper left",
     )
 

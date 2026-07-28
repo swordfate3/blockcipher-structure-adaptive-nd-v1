@@ -51,7 +51,7 @@ completed training.
 ### Resolution
 
 - **Resolved**: 2026-07-28T12:25:00+08:00
-- **Commit/PR**: pending scoped commit
+- **Commit/PR**: 9fa66e53
 - **Notes**: Added explicit `candidate_model` and `run_id` parameters with K1-K
   defaults, updated K1-N call sites, and passed 18 focused K1-K/K1-M/K1-N tests.
 

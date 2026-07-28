@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from blockcipher_nd.cli.plot_uknit_family_ctspn_k1 import render_ctspn_k1n_svg
 from blockcipher_nd.data.differential import DifferentialDataset
 from blockcipher_nd.cli.run_uknit_family_ctspn_k1k import checkpoint_manifest
 from blockcipher_nd.models.structure.spn.exact_operator_composition import (
@@ -214,6 +215,26 @@ def test_k1n_checkpoint_manifest_accepts_explicit_candidate_model(
     assert manifest["status"] == "pass"
     assert len(manifest["entries"]) == 4
     assert {row["model"] for row in manifest["entries"]} == {CANDIDATE_MODEL}
+
+
+def test_k1n_plot_explains_exact_composition_result_in_chinese(
+    tmp_path: Path,
+) -> None:
+    gate = adjudicate_k1n(
+        tasks=tasks(),
+        training_rows=synthetic_training_rows(),
+        evaluation_rows=synthetic_evaluation_rows(),
+        readiness_gate=readiness_gate(),
+    )
+    output = tmp_path / "curves.svg"
+
+    render_ctspn_k1n_svg(gate, output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "精确还原 S 盒与线性层顺序后" in svg
+    assert "逆线性层1" in svg
+    assert "正确语义相对错误语义的净优势" in svg
+    assert "相对无拓扑（右轴）" in svg
 
 
 def assert_triplet_matches_inverse_sbox(

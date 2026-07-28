@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Exact Operator Composition K1-N
 
 **Date:** 2026-07-28
-**Status:** frozen before implementation
+**Status:** completed / Dialga retained, uKNIT signal not supported
 **Execution:** local CPU readiness followed by a fixed-budget local diagnostic
 
 ## 1. Research Question
@@ -188,3 +188,113 @@ dataset manifests, controls, split CSV, gate, validation, summary, history and
 progress. Generate a Chinese explanatory SVG, inspect its rendered pixels with
 `visual-qa-redraw`, then refresh `outputs/00_RECENT_RESULTS.md` and
 `outputs/00_RECENT_RESULTS.json` before reporting the result.
+
+## 10. Completed Result
+
+The zero-training readiness gate passed before optimization:
+
+```text
+decision = innovation1_uknit_family_ctspn_k1n_execution_authorized
+parameter count = 131875
+composition channels per bit = 15
+independent inverse-stage reference exact = true
+two-transition forward round trip exact = true
+all six semantic controls strict-load identical state = true
+all composition and residual parameter groups receive gradient = true
+training rows = 0
+optimizer steps = 0
+```
+
+The frozen diagnostic completed all training and control rows while reusing all
+training and validation caches:
+
+```text
+training rows = 4 / 4
+evaluation rows = 84 / 84
+validation status = pass
+errors = []
+cache regeneration = none
+```
+
+Fresh-split candidate AUC, K1-M delta, weakest semantic-control margin and
+final effective gate were:
+
+| Cipher | Seed | Split | K1-N AUC | K1-N - K1-M | Weakest control margin | Gate |
+|---|---:|---|---:|---:|---:|---:|
+| uKNIT-BC r5 | 0 | same-key fresh | `0.511873` | `+0.003478` | `-0.008980` | `0.048728` |
+| uKNIT-BC r5 | 0 | cross-key | `0.516853` | `-0.001710` | `+0.000357` | `0.048728` |
+| uKNIT-BC r5 | 1 | same-key fresh | `0.484239` | `-0.006262` | `-0.027189` | `0.051413` |
+| uKNIT-BC r5 | 1 | cross-key | `0.506254` | `-0.002858` | `-0.000157` | `0.051413` |
+| Dialga-128 r4 | 0 | same-key fresh | `0.967677` | `+0.000720` | `-0.000334` | `0.065301` |
+| Dialga-128 r4 | 0 | cross-key | `0.959750` | `+0.000311` | `-0.000776` | `0.065301` |
+| Dialga-128 r4 | 1 | same-key fresh | `0.959320` | `-0.001055` | `-0.000010` | `0.073340` |
+| Dialga-128 r4 | 1 | cross-key | `0.954737` | `-0.001454` | `+0.000014` | `0.073340` |
+
+Every uKNIT fresh AUC stayed below `0.520`. K1-N did not improve every K1-M
+row by `+0.005`, and it did not beat every semantic control by `+0.005`.
+Dialga retained the K1-M anchor within the allowed `-0.005`, but also failed
+semantic attribution. In particular, exact composition versus no-S-box or
+wrong-S-box composition differed by less than `0.001` AUC on every fresh
+Dialga row and every fresh uKNIT row except for other linear controls. The
+branch stayed open, so this is not another gradient-starvation result.
+
+```text
+status = hold
+decision = innovation1_uknit_family_ctspn_k1n_dialga_retained_uknit_signal_not_supported
+remote_scale = no
+```
+
+The claim is limited to this two-seed local `2048/class` mechanism diagnostic.
+It does not prove that uKNIT r5 is impossible, that the family route has reached
+a ceiling, or that more appropriate data and representations cannot work.
+
+The first post-training manifest attempt failed only after all four checkpoints
+were complete because a reused helper hardcoded the K1-K candidate model key.
+The helper was parameterized and regression-tested, then the same four
+checkpoints resumed at the evaluation stage. No model was retrained and no
+cache was regenerated.
+
+## 11. Recommended Next Action: K1-O Signal Audit
+
+Before another neural redesign, freeze a local deterministic audit over only
+the two uKNIT-BC r5 seeds and their existing three splits. The research question
+is whether the frozen differential has any fresh-split association in exact
+partial-state cell-difference statistics.
+
+Use the same `2048/class` training rows and `1024/class` same-key/cross-key
+holdouts, four pairs per sample, exact keys, strict negative definition and
+digest-bound K1-M/K1-N caches. Fit the same closed-form diagonal Fisher/LDA
+scorer separately to these feature views:
+
+```text
+raw_position_histogram
+exact_five_stage_position_histogram
+no_sbox_five_stage_position_histogram
+wrong_sbox_five_stage_position_histogram
+exact_five_stage_invariant_histogram
+label_shuffled_exact_position_histogram
+```
+
+Each position-preserving view is the per-sample frequency of all 16 nibble XOR
+values for every native cell and stage, averaged only over the four pairs. The
+invariant control additionally pools cells. The scorer uses training-class
+means and diagonal pooled variance only; no gradient optimizer, neural network,
+extra sample, epoch or hyperparameter search is allowed.
+
+Advance toward a new neural cell-stage architecture only if, for both seeds and
+both fresh splits:
+
+```text
+exact position AUC                         >= 0.550
+exact position - raw position AUC          >= +0.010
+exact position - no-S-box AUC              >= +0.005
+exact position - wrong-S-box AUC           >= +0.005
+exact position - label-shuffled AUC        >= +0.030
+```
+
+If exact position signal exists but invariant pooling loses at least `0.010`,
+the next neural variable is a position-preserving cell-stage head. If signal is
+present but exact and wrong/no-S-box controls tie, S-box semantics are not the
+priority. If every exact fresh row remains below `0.550`, stop modifying this
+network on the current uKNIT r5 differential and audit the differential/data
+protocol itself before more architecture or remote scale.
