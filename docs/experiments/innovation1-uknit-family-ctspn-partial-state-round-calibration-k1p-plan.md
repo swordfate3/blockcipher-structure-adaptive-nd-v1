@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family Partial-State Round Calibration K1-P
 
-**Date:** 2026-07-28  
-**Status:** planned / protocol frozen  
+**Date:** 2026-07-28
+**Status:** planned / protocol frozen
 **Execution:** local CPU, disk-backed data, deterministic zero-neural-training audit
 
 ## 1. Question
