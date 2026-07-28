@@ -328,6 +328,107 @@ does not prove that the future neural aggregation will learn, retain K1-T AUC,
 or transfer weights. The implemented model must repeat this audit end to end on
 its logits before training.
 
+## Conditional Compact-Invariant Failure Route
+
+This route activates only if a completed K1-U seed fails the frozen
+`exact - position erased >= +0.030` gate while retaining the exact absolute AUC
+and wrong-S-box margin. It is not authorized by partial epoch history and no
+implementation or optimizer step may start before the six-row K1-U result is
+retrieved and adjudicated.
+
+The K1-T/K1-U invariant control does not remove histogram cell slots. It first
+averages the exact histogram over native cells, repeats that mean into sixteen
+identical slots, and then applies the same fixed `640 -> 128` projection as the
+position-preserving candidate. The sixteen repeated slots make most of that
+projection algebraically redundant.
+
+For the shared encoded stage histogram
+
+```text
+Z[b,s,d] = value_encoder(mean_c H[b,s,c,:])
+```
+
+the current invariant branch computes
+
+```text
+y[o] = bias[o] + sum_(s,c,d) W_old[o,s,c,d] * Z[s,d]
+```
+
+because every repeated cell slot receives the same `Z[s,d]`. Define
+
+```text
+W_compact[o,s,d] = sum_c W_old[o,s,c,d]
+```
+
+and the branch is exactly the same function with a `5 x 8 = 40` input:
+
+```text
+y[o] = bias[o] + sum_(s,d) W_compact[o,s,d] * Z[s,d]
+```
+
+This collapse retains the complete K1-N exact inverse-S-box, inverse-GF(2) and
+topology-edge backbone. It removes only the redundant repeated histogram slots;
+it does not turn the whole network into a structure-free histogram classifier.
+The resulting histogram branch is naturally independent of runtime cell count:
+
+```text
+H: [B, 5, C, 16]
+  -> mean over C
+  -> shared Linear(16, 8) + ReLU
+  -> flatten [B, 40]
+  -> Linear(40, 128) + ReLU + LayerNorm(128)
+  -> existing bounded histogram gate
+```
+
+The exact parameter geometry is:
+
+| Component | Current repeated invariant | Compact invariant |
+| --- | ---: | ---: |
+| Shared value encoder | `136` | `136` |
+| Histogram projection including bias | `82176` | `5248` |
+| LayerNorm | `256` | `256` |
+| Bounded gate | `1` | `1` |
+| Histogram branch | `82441` | `5641` |
+| Whole model | `214316` | `137516` |
+
+The compact route removes `76800` trainable parameters. This is intentional
+simplification after a failed position-necessity gate, not a capacity-matched
+candidate for the position-preserving hypothesis.
+
+A zero-training float64 formula audit on 2026-07-28 used random
+`[7,5,32,16]` histograms and a random current-geometry projection. Summing the
+sixteen cell-slot weights produced:
+
+```text
+maximum old-versus-compact output error = 3.3306690738754696e-16
+maximum 32-cell relabeling error         = 1.6653345369377348e-16
+```
+
+This establishes only algebraic collapsibility. If activated, readiness must
+repeat the check on every restored K1-U invariant checkpoint and require:
+
+1. compact and original invariant logits agree within `1e-6` on the exact
+   cached cross-key validation rows;
+2. AUC and accuracy agree within the metric serialization tolerance;
+3. uKNIT and Dialga compact models have identical state-dict names, shapes and
+   exactly `137516` trainable parameters;
+4. `[B,5,16,16]` and `[B,5,32,16]` histograms produce finite `[B,1]` logits
+   without a cell-count branch;
+5. joint cell relabeling leaves logits unchanged within the frozen tolerance;
+6. wrong S-box semantics change the deterministic pooled tensor and logits
+   under a shared learned state;
+7. all compact histogram gradients are finite and nonzero;
+8. no cipher identity, numeric cell embedding, key, label or active-difference
+   metadata is introduced.
+
+If the checkpoint collapse passes, evaluate it before any retraining. Only then
+may a separate plan compare independently optimized compact models on the
+existing uKNIT r5 K1-T caches and Dialga r4 D1 caches. Do not compensate for the
+smaller branch by adding width, depth, epochs, samples, pairs or an auxiliary
+loss. A collapse failure authorizes only correction of tensor ordering or
+checkpoint conversion; it does not reopen the larger runtime-descriptor
+aggregator.
+
 ## Conditional First Training Gate
 
 Only after K1-U and zero-training readiness pass, create a formal experiment
