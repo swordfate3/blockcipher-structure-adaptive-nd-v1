@@ -46,7 +46,15 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def render_k1q_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
+def render_k1q_svg(
+    gate: Mapping[str, Any],
+    output: Path,
+    *,
+    cipher_label: str = "uKNIT",
+    rounds: int = 5,
+    confirmation_seeds: tuple[int, ...] = CONFIRMATION_SEEDS,
+    anchor_cell: int = ANCHOR_CELL,
+) -> dict[str, Any]:
     selection = gate.get("selection", {})
     ranking = selection.get("ranking", [])
     if len(ranking) != 16:
@@ -80,7 +88,7 @@ def render_k1q_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
             wspace=0.24,
         )
         figure.suptitle(
-            "创新1：移动 uKNIT 输入差分的位置，能否恢复第 5 轮信号",
+            f"创新1：移动 {cipher_label} 输入差分的位置，能否恢复第 {rounds} 轮信号",
             x=0.05,
             y=0.965,
             ha="left",
@@ -98,17 +106,29 @@ def render_k1q_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         figure.text(
             0.05,
             0.855,
-            _decision_text(gate),
+            _decision_text(gate, confirmation_seeds),
             ha="left",
             fontsize=11,
             fontweight="bold",
             color=_decision_color(str(gate.get("status", ""))),
         )
 
-        _plot_discovery_exact(axes[0, 0], ranking, selected)
-        _plot_discovery_margin(axes[0, 1], ranking, selected)
-        _plot_confirmation_auc(axes[1, 0], confirmation, selected)
-        _plot_confirmation_margins(axes[1, 1], confirmation, selected)
+        _plot_discovery_exact(axes[0, 0], ranking, selected, anchor_cell)
+        _plot_discovery_margin(axes[0, 1], ranking, selected, anchor_cell)
+        _plot_confirmation_auc(
+            axes[1, 0],
+            confirmation,
+            selected,
+            confirmation_seeds,
+            anchor_cell,
+        )
+        _plot_confirmation_margins(
+            axes[1, 1],
+            confirmation,
+            selected,
+            confirmation_seeds,
+            anchor_cell,
+        )
 
         output.parent.mkdir(parents=True, exist_ok=True)
         figure.savefig(output, format="svg")
@@ -131,6 +151,7 @@ def _plot_discovery_exact(
     axis: plt.Axes,
     ranking: list[Mapping[str, Any]],
     selected: list[int],
+    anchor_cell: int,
 ) -> None:
     ordered = sorted(ranking, key=lambda row: int(row["cell"]))
     cells = [int(row["cell"]) for row in ordered]
@@ -148,21 +169,25 @@ def _plot_discovery_exact(
             markersize=5.5,
             label=SPLIT_LABELS[split],
         )
-    _mark_positions(axis, selected)
-    axis.axhline(
-        AUC_FLOOR,
-        color="#2563EB",
-        linestyle=(0, (4, 3)),
-        linewidth=1.2,
-        label=f"发现门槛 {AUC_FLOOR:.3f}",
-    )
-    axis.axhline(0.5, color="#9CA3AF", linestyle=(0, (2, 3)), linewidth=1)
+    _mark_positions(axis, selected, anchor_cell)
     values = [
         float(row["fresh_splits"][split]["exact_auc"])
         for row in ordered
         for split in FRESH_SPLITS
     ]
-    axis.set_ylim(min(0.47, min(values) - 0.02), max(0.58, max(values) + 0.025))
+    if min(values) > AUC_FLOOR + 0.05:
+        axis.set_ylim(min(values) - 0.02, max(values) + 0.02)
+        _offscale_threshold(axis, f"发现门槛 {AUC_FLOOR:.3f}（低于放大范围）")
+    else:
+        axis.axhline(
+            AUC_FLOOR,
+            color="#2563EB",
+            linestyle=(0, (4, 3)),
+            linewidth=1.2,
+            label=f"发现门槛 {AUC_FLOOR:.3f}",
+        )
+        axis.axhline(0.5, color="#9CA3AF", linestyle=(0, (2, 3)), linewidth=1)
+        axis.set_ylim(min(0.47, min(values) - 0.02), max(0.58, max(values) + 0.025))
     axis.set_xticks(cells)
     axis.set_xlabel("native cell 编号（黄色是原 0x40；绿色是入选候选）")
     axis.set_ylabel("精确五阶段特征 AUC")
@@ -175,6 +200,7 @@ def _plot_discovery_margin(
     axis: plt.Axes,
     ranking: list[Mapping[str, Any]],
     selected: list[int],
+    anchor_cell: int,
 ) -> None:
     ordered = sorted(ranking, key=lambda row: int(row["cell"]))
     cells = [int(row["cell"]) for row in ordered]
@@ -183,8 +209,7 @@ def _plot_discovery_margin(
         ("cross_key_validation", "#C2410C", "s"),
     ):
         values = [
-            float(row["fresh_splits"][split]["exact_minus_raw"])
-            for row in ordered
+            float(row["fresh_splits"][split]["exact_minus_raw"]) for row in ordered
         ]
         axis.plot(
             cells,
@@ -195,21 +220,25 @@ def _plot_discovery_margin(
             markersize=5.5,
             label=SPLIT_LABELS[split],
         )
-    _mark_positions(axis, selected)
-    axis.axhline(
-        RAW_MARGIN,
-        color="#2563EB",
-        linestyle=(0, (4, 3)),
-        linewidth=1.2,
-        label=f"归因门槛 +{RAW_MARGIN:.3f}",
-    )
-    axis.axhline(0.0, color="#9CA3AF", linewidth=1)
+    _mark_positions(axis, selected, anchor_cell)
     values = [
         float(row["fresh_splits"][split]["exact_minus_raw"])
         for row in ordered
         for split in FRESH_SPLITS
     ]
-    axis.set_ylim(min(-0.03, min(values) - 0.015), max(0.04, max(values) + 0.02))
+    if min(values) > RAW_MARGIN + 0.05:
+        axis.set_ylim(min(values) - 0.015, max(values) + 0.02)
+        _offscale_threshold(axis, f"归因门槛 +{RAW_MARGIN:.3f}（低于放大范围）")
+    else:
+        axis.axhline(
+            RAW_MARGIN,
+            color="#2563EB",
+            linestyle=(0, (4, 3)),
+            linewidth=1.2,
+            label=f"归因门槛 +{RAW_MARGIN:.3f}",
+        )
+        axis.axhline(0.0, color="#9CA3AF", linewidth=1)
+        axis.set_ylim(min(-0.03, min(values) - 0.015), max(0.04, max(values) + 0.02))
     axis.set_xticks(cells)
     axis.set_xlabel("native cell 编号")
     axis.set_ylabel("精确特征 AUC - 原始密文 AUC")
@@ -222,15 +251,15 @@ def _plot_confirmation_auc(
     axis: plt.Axes,
     confirmation: Mapping[str, Any],
     selected: list[int],
+    confirmation_seeds: tuple[int, ...],
+    anchor_cell: int,
 ) -> None:
-    cells = [ANCHOR_CELL, *selected] if selected else []
+    cells = [anchor_cell, *selected] if selected else []
     if not cells:
         _empty_confirmation(axis, "发现阶段没有位置同时通过两个 fresh 门槛")
         return
     columns = [
-        (str(seed), split)
-        for seed in CONFIRMATION_SEEDS
-        for split in FRESH_SPLITS
+        (str(seed), split) for seed in confirmation_seeds for split in FRESH_SPLITS
     ]
     values = np.asarray(
         [
@@ -245,7 +274,10 @@ def _plot_confirmation_auc(
     _heatmap(
         axis,
         values,
-        row_labels=[f"cell {cell}" + ("（0x40）" if cell == ANCHOR_CELL else "") for cell in cells],
+        row_labels=[
+            f"cell {cell}" + ("（0x40）" if cell == anchor_cell else "")
+            for cell in cells
+        ],
         column_labels=[f"seed{seed}\n{SPLIT_LABELS[split]}" for seed, split in columns],
         title="未见 seed 确认：绝对 AUC（必须全部 ≥ 0.550）",
         vmin=min(0.48, float(values.min())),
@@ -258,16 +290,22 @@ def _plot_confirmation_margins(
     axis: plt.Axes,
     confirmation: Mapping[str, Any],
     selected: list[int],
+    confirmation_seeds: tuple[int, ...],
+    anchor_cell: int,
 ) -> None:
-    cells = [ANCHOR_CELL, *selected] if selected else []
+    cells = [anchor_cell, *selected] if selected else []
     if not cells:
-        _empty_confirmation(axis, "没有启动 seed3/4 确认，避免对空候选继续加样本")
+        seeds = "/".join(str(seed) for seed in confirmation_seeds)
+        _empty_confirmation(
+            axis,
+            f"没有启动 seed{seeds} 确认，避免对空候选继续加样本",
+        )
         return
     values = []
     for cell in cells:
         summaries = [
             confirmation[str(cell)][str(seed)][split]
-            for seed in CONFIRMATION_SEEDS
+            for seed in confirmation_seeds
             for split in FRESH_SPLITS
         ]
         values.append(
@@ -280,7 +318,10 @@ def _plot_confirmation_margins(
     _heatmap(
         axis,
         matrix,
-        row_labels=[f"cell {cell}" + ("（0x40）" if cell == ANCHOR_CELL else "") for cell in cells],
+        row_labels=[
+            f"cell {cell}" + ("（0x40）" if cell == anchor_cell else "")
+            for cell in cells
+        ],
         column_labels=["最小\n超过原始密文", "最小\n超过标签打乱"],
         title="未见 seed 确认：四个 fresh 组合中的最差净优势",
         vmin=min(-0.04, float(matrix.min())),
@@ -289,10 +330,14 @@ def _plot_confirmation_margins(
     )
 
 
-def _mark_positions(axis: plt.Axes, selected: list[int]) -> None:
+def _mark_positions(
+    axis: plt.Axes,
+    selected: list[int],
+    anchor_cell: int,
+) -> None:
     axis.axvspan(
-        ANCHOR_CELL - 0.35,
-        ANCHOR_CELL + 0.35,
+        anchor_cell - 0.35,
+        anchor_cell + 0.35,
         color="#FBBF24",
         alpha=0.18,
         linewidth=0,
@@ -365,16 +410,36 @@ def _empty_confirmation(axis: plt.Axes, text: str) -> None:
     )
 
 
-def _decision_text(gate: Mapping[str, Any]) -> str:
+def _offscale_threshold(axis: plt.Axes, text: str) -> None:
+    axis.text(
+        0.99,
+        0.04,
+        text,
+        transform=axis.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=8.5,
+        color="#2563EB",
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.88, "pad": 2},
+    )
+
+
+def _decision_text(
+    gate: Mapping[str, Any],
+    confirmation_seeds: tuple[int, ...],
+) -> str:
     selected = gate.get("selection", {}).get("selected_cells", [])
     confirmed = gate.get("confirmed_cells", [])
     status = str(gate.get("status", ""))
     if status == "invalid":
         return "协议无效：先修复数据、缓存或裁决不变量，当前指标不能解释。"
     if confirmed:
-        return f"结论：cell {confirmed} 在 seed3/4 上确认通过，可进入同预算神经结构归因。"
+        seeds = "/".join(str(seed) for seed in confirmation_seeds)
+        return f"结论：cell {confirmed} 在 seed{seeds} 上确认通过，可进入同预算神经结构归因。"
     if selected:
-        return f"结论：发现阶段选中 cell {selected}，但未在全部未见 seed/密钥组合上确认。"
+        return (
+            f"结论：发现阶段选中 cell {selected}，但未在全部未见 seed/密钥组合上确认。"
+        )
     return "结论：16 个相同 bit 角色的位置都未通过发现门槛；停止机械位置扫描。"
 
 

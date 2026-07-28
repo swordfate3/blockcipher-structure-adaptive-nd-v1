@@ -23,6 +23,7 @@ from blockcipher_nd.models.structure.spn.canonical_components import (
 from blockcipher_nd.models.structure.spn.runtime_structure import (
     load_runtime_spn_descriptor,
 )
+from blockcipher_nd.planning.matrix import cipher_key_from_name
 from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     midori64_runtime_structure,
 )
@@ -57,6 +58,7 @@ def test_midori64_matches_two_public_vectors_and_all_round_prefixes() -> None:
             for rounds in range(1, MIDORI64_ROUNDS + 1)
         )
     assert isinstance(build_cipher("midori64", 16), Midori64)
+    assert cipher_key_from_name("Midori64") == "midori64"
 
 
 def test_midori64_primitives_have_exact_inverse_and_canonical_properties() -> None:
