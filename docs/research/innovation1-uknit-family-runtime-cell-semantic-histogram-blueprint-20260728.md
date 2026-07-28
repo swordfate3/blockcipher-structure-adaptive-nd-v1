@@ -423,6 +423,26 @@ Both K1-T checkpoints pass. This is stronger than the random formula audit but
 remains pre-activation evidence only: it does not select the compact branch,
 replace the incomplete K1-U gate or waive the required K1-U checkpoint replay.
 
+A second zero-training audit used the real `uknit64.json` and `dialga128.json`
+runtime descriptors. It found one concrete implementation interlock: the
+current `deterministic_position_histogram` helper rejects every structure whose
+cell count is not sixteen even though its tensor formula is otherwise dynamic.
+Removing only that K1-T-specific guard in the temporary audit produced:
+
+```text
+uKNIT histogram / parameters = [7,5,16,16] / 137516
+Dialga histogram / parameters = [7,5,32,16] / 137516
+uKNIT joint-relabel error      = 1.4901161193847656e-07
+Dialga joint-relabel error     = 8.940696716308594e-08
+```
+
+The two real-runtime prototypes had identical state-dict names and shapes,
+strictly loaded one another's state, emitted finite `[7,1]` logits and had
+finite nonzero gradients for every trainable histogram parameter. All errors
+were below `1e-6`. If this branch activates, implementation must therefore
+generalize that single geometry guard and add a 32-cell regression test; it
+must not fork a separate Dialga histogram implementation.
+
 1. compact and original invariant logits agree within `1e-6` on the exact
    cached cross-key validation rows;
 2. AUC and accuracy agree within the metric serialization tolerance;
