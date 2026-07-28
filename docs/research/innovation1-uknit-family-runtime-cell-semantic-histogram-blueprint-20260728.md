@@ -484,7 +484,81 @@ loss. A collapse failure authorizes only correction of tensor ordering or
 checkpoint conversion; it does not reopen the larger runtime-descriptor
 aggregator.
 
-## Conditional First Training Gate
+## Conditional Compact-Invariant First Training Gate
+
+This gate exists only for the compact failure route. It activates after the
+completed K1-U decision selects `medium_signal_without_position_necessity` and
+the restored K1-U checkpoint conversion passes. The research question is not
+whether absolute position helps; K1-U has already rejected that hypothesis.
+The question is whether the algebraically equivalent compact parameterization
+can be optimized independently without losing the existing invariant uKNIT
+signal or the adjacent Dialga signal.
+
+Use the same local data protocols and change only the redundant histogram
+projection:
+
+```text
+primary task = uKNIT-BC r5 cell11 role1
+stress task  = Dialga-128 r4 difference 0x40
+train        = 2048/class/cipher
+validation   = 1024/class/cipher
+pairs        = 4
+epochs       = 10
+device       = local sub-medium diagnostic
+uKNIT seeds  = 3,4 using exact K1-T caches
+Dialga seeds = 0,1 using exact D1 caches
+roles        = compact exact, compact wrong S-box
+negative     = encrypted random plaintexts
+checkpoint   = restored best validation AUC
+```
+
+This is eight rows and two model roles. Both roles must have exactly `137516`
+trainable parameters and identical state-dict geometry for uKNIT and Dialga.
+There is no separate position-erased row: compact exact is already invariant
+over runtime cells, so such a row would be an identical duplicate rather than
+a control.
+
+Use completed rows as same-budget anchors:
+
+```text
+uKNIT anchor = K1-T invariant histogram residual
+Dialga anchor = K1-N exact composition candidate on the D1 data protocol
+```
+
+For each uKNIT seed independently require:
+
+```text
+compact exact cross-key AUC >= max(0.550, K1-T invariant AUC - 0.020)
+compact exact - compact wrong-Sbox AUC >= +0.010
+```
+
+The `0.550` floor recognizes that the completed K1-T invariant local anchors
+are `0.565424/0.594048`; imposing the rejected position branch's `0.600` floor
+would contradict the frozen same-budget evidence. The medium K1-U result, not
+this local optimization check, remains the scale evidence.
+
+For each Dialga seed independently require:
+
+```text
+compact exact cross-key AUC >= K1-N exact anchor - 0.005
+wrong-Sbox pooled histogram and shared-state logits are non-degenerate
+```
+
+Dialga wrong-Sbox AUC separation remains descriptive because all native cells
+share one S-box table. Across both ciphers also require strict cache reuse,
+identical parameter geometry, finite nonzero histogram gradients and joint-cell
+relabeling error within `1e-6`. A failed uKNIT seed or Dialga retention seed
+holds this architecture; do not add width, data, epochs, pairs or cipher IDs.
+
+Passing this gate proves only that one compact fixed-shape architecture can be
+optimized independently on the two tasks. It does not prove shared weights,
+zero-shot transfer, a formal-scale result or a universal SPN model.
+
+## Conditional Runtime-Semantic First Training Gate
+
+This gate exists only if both K1-U seeds pass the position-necessity margin and
+therefore activate the runtime cell-semantic aggregator described above. It
+must not be used after the compact-invariant branch is selected.
 
 Only after K1-U and zero-training readiness pass, create a formal experiment
 plan under `docs/experiments/`. The one changed variable is the histogram cell
