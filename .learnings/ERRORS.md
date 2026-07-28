@@ -446,8 +446,9 @@ Escalated npx installation: rejected because escalation is disallowed
 
 ### Context
 
-- Affected open PDFs include ePrint 2026/340, 2021/1502, 2026/961, and
-  2026/735; additional adjacent ePrint PDFs were affected in the same way.
+- Affected open PDFs include ePrint 2026/340, 2021/1502, 2026/961,
+  2026/735, 2015/1142 (MIDORI), and 2016/660 (SKINNY/MANTIS); additional
+  adjacent ePrint PDFs were affected in the same way.
 - `curl`, browser-like user agents, short IACR URLs, and direct publisher PDF
   endpoints were checked without bypassing access controls.
 - The Playwright skill was selected as the documented real-browser fallback,
@@ -467,9 +468,9 @@ Until then, retain the landing-page HTML, exact PDF URL, DOI, abstract, and
 - Related Files: docs/research/innovation2-high-round-literature-corpus-20260716.md, sources/research_innovation2_paper_manifest_20260716.csv
 - See Also: ERR-20260716-007
 - Pattern-Key: research.iacr_pdf_cloudflare_requires_approved_browser
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-16
-- Last-Seen: 2026-07-16
+- Last-Seen: 2026-07-28
 
 ---
 

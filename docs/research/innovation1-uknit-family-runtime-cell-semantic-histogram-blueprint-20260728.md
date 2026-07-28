@@ -381,6 +381,107 @@ Do not require Dialga wrong-S-box separation because its 32 cells use one
 homogeneous S-box table. Do not average a failed uKNIT seed away with Dialga's
 high absolute AUC.
 
+## Future Third-Cipher Structural Audit
+
+This section ranks a future holdout only. It does not add a row to the first
+uKNIT/Dialga gate, authorize implementation, or relax the K1-U interlock.
+
+The preferred third cipher is `Midori64`, used as a homogeneous
+component-equivalent holdout after the first variable-cell gate passes. `MANTIS`
+is deferred to a later tweakable/reflection-protocol phase.
+
+### Evidence For Midori64
+
+The local uKNIT paper gives two exact identities relevant to the network
+boundary:
+
+```text
+uKNIT cell S-box = D_(r,c) o S_MANTIS o B_(r,c)
+uKNIT linear     = output permutation o L_MIDORI o input permutation
+```
+
+Its Appendix C therefore rewrites the complete uKNIT data path as shared
+MANTIS substitutions and shared MIDORI linear layers separated by 24 runtime
+bit permutations. This is stronger than a visual or family-name similarity: it
+is the exact component factorization already checked by the K0 probes.
+
+The local Dialga paper independently defines a Midori-type round as a cell
+S-box, a cell permutation, the fixed Midori matrix and key addition. It also
+records that the `Sb0` used by Midori64 is the same low-latency involutory
+4-bit table used as the MANTIS/uKNIT canonical substitution. Dialga changes the
+permutation schedule and, for its 128-bit construction, the cell width; it does
+not weaken the reason to use native Midori64 as the direct 64-bit primitive
+anchor.
+
+The repository already contains the exact reusable primitives needed for a
+zero-training compatibility audit:
+
+```text
+MANTIS_SBOX = DIALGA_SBOX
+canonical 64-bit linear primitive = midori_linear_layer
+runtime cell width = derived from cell_membership, not a model constant
+shared S-box descriptor = accepted and expanded over runtime cells
+repeated linear descriptors = accepted by RuntimeSpnStructure
+```
+
+Consequently, Midori64 changes the schedule regularity while keeping the
+canonical primitive vocabulary fixed:
+
+| Property | uKNIT-BC | Midori64 holdout |
+| --- | --- | --- |
+| State | 64 bits, 16 four-bit cells | 64 bits, 16 four-bit cells |
+| S-box vocabulary | per-cell permutations of MANTIS/Midori `Sb0` | shared `Sb0` |
+| Linear vocabulary | per-round bit-permutation equivalents of MIDORI | native MIDORI layer |
+| Schedule | heterogeneous and non-round-aligned | homogeneous/repeated |
+| Intended role | primary attribution task | unseen component-equivalent retention task |
+
+This makes Midori64 a cleaner third-cipher question than adding another
+heterogeneous design: can the same fixed-shape network reduce runtime
+permutations to the native primitive without cipher identity or a new expert?
+
+### Why MANTIS Is Deferred
+
+MANTIS is highly relevant at the primitive level but is not the next controlled
+whole-cipher experiment. Its tweakable reflection structure, middle layer and
+tweak/key schedule add protocol variables that the current ordinary prefix-SPN
+pair generator does not model explicitly. Adding it together with the new cell
+aggregator would mix architecture, cipher protocol and data generation changes.
+It remains the preferred later reflection/tweak stress target after native
+Midori64 qualification.
+
+`QARMA/QARMAv2` and `CRAFT` remain farther boundary candidates. Their use would
+require a separate proof that every loaded transition factors into the frozen
+primitive vocabulary; a shared four-bit-cell layout alone is insufficient.
+
+### Missing Qualification Evidence
+
+Midori64 is selected only as the next structural candidate. It is not yet a
+loaded or trained project cipher. The repository currently has no Midori64
+encryption adapter, runtime JSON descriptor, public-vector regression test,
+prefix trace, or calibrated strict-negative differential task. Therefore no
+Midori64 AUC, transfer or family-generalization claim is authorized.
+
+After the first uKNIT/Dialga variable-cell gate passes, the required sequence is:
+
+1. Implement a specification-faithful Midori64 adapter and verify public full
+   vectors plus at least one intermediate-state trace.
+2. Generate a native `midori64.json` descriptor from the verified adapter and
+   prove exact forward/inverse S-box and GF(2) reconstruction.
+3. Prove that the variable-cell model loads the unchanged uKNIT/Dialga state
+   dictionary and remains logit-equivariant under joint Midori cell relabeling.
+4. Run a separate, preregistered difference-position calibration at the chosen
+   Midori prefix and strict encrypted-random-plaintext negative protocol.
+5. Only after that signal gate, preregister one frozen-checkpoint holdout test
+   with zero Midori training rows and correct-versus-wrong factorization
+   controls.
+
+The official MIDORI and SKINNY/MANTIS bibliographic identities are available in
+the local uKNIT and Dialga references. Direct ePrint PDF retrieval for
+`2015/1142` and `2016/660` was rechecked on 2026-07-28 but returned Cloudflare
+challenge HTML, so this audit does not pretend those challenge files are
+papers. The selection above relies only on the two locally stored full texts,
+the exact K0 implementation, and the current runtime-structure source.
+
 ## Claim Ladder And Stop Routes
 
 If the first gate passes, the supported claim is only:
