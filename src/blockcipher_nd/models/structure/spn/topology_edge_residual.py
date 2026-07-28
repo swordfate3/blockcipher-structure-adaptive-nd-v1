@@ -107,6 +107,23 @@ class TopologyEdgeResidualSpnDistinguisher(nn.Module):
             bit_count,
             self.spec.hidden_dim,
         )
+        return self._edge_residual_from_bit_hidden(
+            bit_hidden,
+            batch=batch,
+            pair_count=pair_count,
+            structure=structure,
+            slot_mask=slot_mask,
+        )
+
+    def _edge_residual_from_bit_hidden(
+        self,
+        bit_hidden: torch.Tensor,
+        *,
+        batch: int,
+        pair_count: int,
+        structure: RuntimeSpnStructure,
+        slot_mask: tuple[bool, bool],
+    ) -> torch.Tensor:
         lookup = ordered_cell_role_lookup(structure).to(bit_hidden.device)
         cell_input = bit_hidden[:, lookup].flatten(-2)
         initial_cells = self.cell_encoder(cell_input)

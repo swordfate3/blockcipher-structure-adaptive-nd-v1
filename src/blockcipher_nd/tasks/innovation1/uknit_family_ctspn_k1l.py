@@ -251,6 +251,8 @@ def audit_gradient_path(
         ),
         "residual_projection": ("backbone.residual_pair_projection.",),
     }
+    if hasattr(model.backbone, "composition_bit_encoder"):
+        groups["composition_encoder"] = ("backbone.composition_bit_encoder.",)
     gradient_norms = {
         group: grouped_gradient_norm(model, prefixes)
         for group, prefixes in groups.items()
