@@ -170,6 +170,10 @@ def build_spn_model(
         "runtime_spn_ct_k1y_compact_histogram_wrong_sbox": "wrong_sbox",
         "runtime_spn_ct_k1aa_virtual_slot_histogram_true": "true",
         "runtime_spn_ct_k1aa_virtual_slot_histogram_wrong_sbox": "wrong_sbox",
+        "runtime_spn_ct_k1aa_virtual_slot_histogram_corrupted_linear": (
+            "corrupted_linear"
+        ),
+        "runtime_spn_ct_k1aa_virtual_slot_histogram_none": "none",
     }
     if name in position_histogram_models:
         descriptor_path = options.get("runtime_structure_path")
@@ -188,6 +192,7 @@ def build_spn_model(
         )
         control = position_histogram_models[name]
         runtime_structure = descriptor.structure
+        apply_sboxes = True
         if control == "wrong_sbox":
             try:
                 runtime_structure = runtime_structure.shuffled_sbox_assignments(
@@ -209,6 +214,19 @@ def build_spn_model(
                     _sbox_truth_bits_from_tables(tables[:, :, input_permutation]),
                     runtime_structure.linear_matrices,
                 )
+        elif control == "corrupted_linear":
+            corruption_seed = int_option(options, "topology_corruption_seed", 20260728)
+            assert corruption_seed is not None
+            runtime_structure = runtime_structure.corrupted(corruption_seed)
+        elif control == "none":
+            identity = torch.eye(runtime_structure.block_bits, dtype=torch.uint8)
+            runtime_structure = runtime_spn_structure_from_truth_bits(
+                runtime_structure.cell_membership,
+                runtime_structure.bit_role,
+                runtime_structure.sbox_truth_bits,
+                identity.unsqueeze(0).repeat(runtime_structure.rounds, 1, 1),
+            )
+            apply_sboxes = False
         pair_embedding_dim = int_option(options, "pair_embedding_dim", 128)
         histogram_value_dim = int_option(options, "histogram_value_dim", 8)
         assert pair_embedding_dim is not None
@@ -249,7 +267,7 @@ def build_spn_model(
             "descriptor_round_start": descriptor.round_start,
             "descriptor_available_rounds": descriptor.available_rounds,
             "runtime_structure_mode": control,
-            "apply_sboxes": True,
+            "apply_sboxes": apply_sboxes,
         }
         if adapter is FixedPositionHistogramResidualSpnProtocolAdapter:
             adapter_kwargs["invariant_cells"] = control == "invariant"

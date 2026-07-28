@@ -161,6 +161,18 @@ def literature_difference_profiles() -> dict[str, DifferenceProfile]:
             ),
             pairs_per_sample=4,
         ),
+        "midori64_k1ah_cell8_r4": DifferenceProfile(
+            name="midori64_k1ah_cell8_r4",
+            cipher="midori64",
+            kind="fixed",
+            differences=(0x0000000400000000,),
+            source="Innovation 1 K1-AH untouched-seed Midori64 r4 position confirmation",
+            note=(
+                "Native cell8 bit-role-1 input difference confirmed on seed6/7 "
+                "same-key and cross-key fresh splits; local diagnostic evidence only."
+            ),
+            pairs_per_sample=4,
+        ),
         "rectangle80_weng_repo_best_trail_r6": DifferenceProfile(
             name="rectangle80_weng_repo_best_trail_r6",
             cipher="rectangle80",
