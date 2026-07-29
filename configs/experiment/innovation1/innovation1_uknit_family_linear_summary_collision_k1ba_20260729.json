@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_linear_summary_collision_k1ba",
+  "run_id": "i1_uknit_family_linear_summary_collision_k1ba_20260729",
+  "question": "Does K1-AZ fail to identify the correct linear topology because its 18-value invariant linear summary admits distinct-operator collisions, despite responding to coarse cross-cipher summary differences?",
+  "source": {
+    "run_id": "i1_uknit_family_component_separated_structure_gate_k1az_2048_replica0_replica1_20260729",
+    "root": "outputs/local_diagnostic/i1_uknit_family_component_separated_structure_gate_k1az_2048_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_component_separated_structure_gate_k1az_2048_replica0_replica1_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1az_component_separated_training_not_supported",
+    "digests": {
+      "gate.json": "278b475252170abe922eb7e3f9fcf481a7654dd41617251089a31444fd869175",
+      "validation.json": "fe2acd09e3e923902e13b4fb9330c7f837247c6248b748ba6a44a166f5177a53",
+      "results.jsonl": "81bf2103d542e7c35ba90034293f2f82a92f97a937170c7a323ab53e65797a4d",
+      "controls.jsonl": "f52bd7235fc24b8dc021713ff5eb562aa9830200cb362794278ab93d5b53aebf",
+      "checkpoint_manifest.json": "7ddede808ad502bf83f35ddc2ab81046b39b91c04f5c1fa67acc15b034ce4ad4",
+      "structure_summaries.json": "c5529acdaffb85efbceff0f87a6289a6db13956d3487ede779340c68ad4e1dfb",
+      "dataset_manifest.jsonl": "0d1fb60a2ae61a0665e1dbf6d26a93c403bf7a46ba603b93e51af36dd8c13358"
+    }
+  },
+  "evaluation": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_descriptor",
+      "cross_cipher_linear_mismatch",
+      "same_summary_corrupted_linear"
+    ],
+    "corruption_seed": 20260729,
+    "expected_rows": 36,
+    "batch_size": 64,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "execution": "local_audit"
+  },
+  "gates": {
+    "collision_summary_max_abs_delta": 0.0,
+    "minimum_corrupted_matrix_hamming_fraction": 0.001,
+    "minimum_cross_cipher_edge_gate_delta": 0.0005,
+    "maximum_cross_cipher_auc_delta_abs": 0.001,
+    "minimum_cross_cipher_probability_spearman": 0.999,
+    "remote_scale": "no"
+  },
+  "decision_order": [
+    "invariant_linear_summary_not_topology_identifying",
+    "scalar_edge_modulation_rank_inertia",
+    "mechanism_unresolved"
+  ],
+  "blocked_actions": [
+    "training or optimizer updates",
+    "remote execution",
+    "16-pair expansion",
+    "larger samples, epochs, width, or additional seeds",
+    "loss reweighting, PCGrad, per-cipher heads, adapters, routers, MoE, or experts",
+    "changing datasets, labels, negatives, encryption runtime, checkpoints, or source mismatch order"
+  ]
+}
