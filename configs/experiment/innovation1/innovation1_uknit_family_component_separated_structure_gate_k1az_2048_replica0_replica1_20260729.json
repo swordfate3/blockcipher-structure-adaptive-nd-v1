@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_component_separated_structure_gate_k1az",
+  "run_id": "i1_uknit_family_component_separated_structure_gate_k1az_2048_replica0_replica1_20260729",
+  "question": "Does training the K1-AY component-separated connectivity from the exact K1-AW initialization improve or retain same-budget cross-key macro AUC without per-cipher harm and while preferring the correct descriptor?",
+  "readiness": {
+    "run_id": "i1_uknit_family_component_separated_structure_gate_k1ay_readiness_20260729",
+    "root": "outputs/local_readiness/i1_uknit_family_component_separated_structure_gate_k1ay_readiness_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_component_separated_structure_gate_k1ay_readiness_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1ay_component_separation_runtime_ready",
+    "digests": {
+      "gate.json": "12dc3529a5142d6ecc0f80b697333fbe702b15c7b2ec018ccabf473e967264af",
+      "validation.json": "02e7fcde9fec7679969fbffdfbd4f2d935588974a6f5f9841a947ded09966b55",
+      "results.jsonl": "3c4d1a3e61340eaf90f04bfec342413a0c5cb136981b566b5a26a38a5f29f066",
+      "controls.jsonl": "7ef311876492617a4b1902da5b90251c47ebf3c3ad79b58edf9662774b4d33d1",
+      "checkpoint_manifest.json": "7d334fb000da86465c421d4661ba7225a6dbdc9efe3c4979a09aa29142f9dffb",
+      "geometry.json": "1e8db5621180c6712d836085a916bb0426a329fe6b17f70c62c2bc31d387c013",
+      "structure_summaries.json": "82584165d1a1edfe815f7614b5c7cfcb7676ba5a71cd13a1057b44e05ef67ce9"
+    }
+  },
+  "same_budget_anchor": {
+    "run_id": "i1_uknit_family_dual_path_structure_modulation_k1aw_2048_replica0_replica1_20260729",
+    "root": "outputs/local_diagnostic/i1_uknit_family_dual_path_structure_modulation_k1aw_2048_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_dual_path_structure_modulation_k1aw_2048_replica0_replica1_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1aw_dual_path_training_not_supported",
+    "digests": {
+      "gate.json": "94f38a25ec41c480643bff3e4cc64c60c891a0ac32c9008d42903cfb4d3a588f",
+      "validation.json": "99aa89367f565b4b452bcc7fb063fb497f897e55ea25e22904b7ce7f220f8e15",
+      "results.jsonl": "04779a45c51895464df8caaebf493643b3f929e6cd196ac41a25c83aefd2ae65",
+      "controls.jsonl": "40d3a2f31b1486920b0aaa96efb211a99348222a44f60cad9ce4556b066203a3",
+      "checkpoint_manifest.json": "da7b5408ba75bbc28f96faad43cf8eccbcaec30dddeee8f553b0c42e62ec02ca"
+    }
+  },
+  "model": {
+    "model_key": "runtime_spn_ct_k1ay_component_separated_structure_gate_true",
+    "expected_trainable_parameters": 219764,
+    "expected_state_dict_entries": 55,
+    "component_separation_enabled": true,
+    "initial_state": "exact_k1aw_pretraining_state"
+  },
+  "replicas": [
+    {
+      "replica": 0,
+      "initialization_seed": 30,
+      "dataset_seeds": {"uknit64": 3, "midori64": 6, "dialga128": 0}
+    },
+    {
+      "replica": 1,
+      "initialization_seed": 31,
+      "dataset_seeds": {"uknit64": 4, "midori64": 7, "dialga128": 1}
+    }
+  ],
+  "training": {
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "equal_batches_per_cipher_per_epoch": 64,
+    "optimizer_steps_per_epoch": 192,
+    "optimizer_steps_total_per_replica": 1920,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "checkpoint_metric": "minimum_cross_key_auc_across_ciphers",
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  },
+  "controls": {
+    "mismatch_order": {
+      "uknit64": "midori64",
+      "midori64": "dialga128",
+      "dialga128": "uknit64"
+    },
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_descriptor",
+      "full_mismatch",
+      "sbox_only_mismatch",
+      "linear_only_mismatch",
+      "dual_path_disabled"
+    ],
+    "expected_rows": 60,
+    "optimizer_steps": 0
+  },
+  "gates": {
+    "cross_key_macro_improvement_per_replica": 0.0,
+    "per_panel_no_harm_margin": -0.005,
+    "correct_minus_mismatch_margin": 0.001,
+    "minimum_passing_panels_per_mismatch": 10,
+    "require_each_cipher_replica_split_covered": true,
+    "dual_path_disabled_is_supporting_control": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "remote execution",
+    "16-pair expansion",
+    "larger samples, epochs, width, or additional seeds",
+    "loss reweighting, PCGrad, or a second candidate",
+    "cipher IDs, per-cipher heads, adapters, routers, MoE, or experts",
+    "changing datasets, negatives, task order, checkpoint metric, or encryption runtime",
+    "using macro averages to hide a per-panel harm larger than 0.005"
+  ]
+}
