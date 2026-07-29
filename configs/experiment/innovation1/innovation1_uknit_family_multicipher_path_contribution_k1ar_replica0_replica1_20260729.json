@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_uknit_family_multicipher_path_contribution_k1ar_replica0_replica1_replay_fix_20260729",
+  "experiment": "innovation1_uknit_family_multicipher_path_contribution_k1ar",
+  "question": "Does inverse-norm training selectively improve Midori transition-path utility while leaving uKNIT and Dialga transition utility flat or worse?",
+  "sources": {
+    "equal_loss_k1ao": {
+      "run_id": "i1_uknit_family_multicipher_shared_weight_k1ao_2048_replica0_replica1_20260729",
+      "root": "outputs/local_diagnostic/i1_uknit_family_multicipher_shared_weight_k1ao_2048_replica0_replica1_20260729",
+      "digests": {
+        "gate.json": "b119a0241fc334b9c40e9743afac61f5ef6390d4916e13ce8d7f47d48f8ac024",
+        "validation.json": "40a621d50c96ba8f243d4eb209f5ddab12be4fc6b495814eb073117584570a7d",
+        "controls.jsonl": "a0eb237a6d58041e95a2daa9c42658355cf5caebe88be41b525839f0667ac5dc",
+        "checkpoint_manifest.json": "9f173cbd1d5b4063ee090486b91321db0d06eebb13efc461f686fe3c5a389900",
+        "checkpoints/replica0_best.pt": "b982cc85936fb357695e0488744b088e198fd748927031ed2cdb2cf59df8e3cf",
+        "checkpoints/replica1_best.pt": "80f875688c0a9add5a60f23d5556ef12b306af94fa5f3a9387c42b18717e8425"
+      }
+    },
+    "inverse_norm_k1aq": {
+      "run_id": "i1_uknit_family_multicipher_inverse_norm_k1aq_2048_replica0_replica1_20260729",
+      "root": "outputs/local_diagnostic/i1_uknit_family_multicipher_inverse_norm_k1aq_2048_replica0_replica1_20260729",
+      "digests": {
+        "gate.json": "63548f6d1ff2fb5e4244e27eb94141190db6db99ff0a75d5b1858d8a88eaa7aa",
+        "validation.json": "52018f9840908663d04f716a8f551319271abfd33586b4d42c844a6283e73450",
+        "controls.jsonl": "36a69c466943097d45345fa6d827f953a6068f3e3484ff372bdc0655c1b1e681",
+        "checkpoint_manifest.json": "a8ed8184dea642e22d1d8e254055b9b4921fa312d41d06d4d499a96d7fbfc963",
+        "checkpoints/replica0_best.pt": "7169d799a8405208f9e4cef24db06c02b6ad021fb6a7844d7c36257fd7a46105",
+        "checkpoints/replica1_best.pt": "774d0bcae3c23ef2c85b1c469310f47f53a38bf77ed3046ddf2f1f627e216adf"
+      }
+    }
+  },
+  "evaluation": {
+    "checkpoint_families": [
+      "equal_loss_k1ao",
+      "inverse_norm_k1aq"
+    ],
+    "replicas": [0, 1],
+    "ciphers": [
+      "uknit64",
+      "midori64",
+      "dialga128"
+    ],
+    "splits": [
+      "same_key_fresh",
+      "cross_key_validation"
+    ],
+    "paths": [
+      "pure_base",
+      "edge_fused",
+      "full_transition_fused"
+    ],
+    "expected_rows": 24,
+    "batch_size": 64,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "full_and_branch_replay_tolerance": 1e-7
+  },
+  "gates": {
+    "midori_transition_gain_delta_min": 0.01,
+    "midori_panels_required": 4,
+    "non_midori_transition_gain_delta_max": 0.0,
+    "non_midori_panels_required": 6,
+    "stable_transition_demand_supports_next_readiness_only": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "training or checkpoint updates",
+    "loss-scale tuning or PCGrad",
+    "16 pairs, larger samples, epochs, width, or remote GPU",
+    "cipher IDs, per-cipher heads, adapters, MoE, or experts"
+  ]
+}

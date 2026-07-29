@@ -2038,3 +2038,61 @@ history, optimizer steps and best-checkpoint metadata.
   and finished all four training rows plus 36 evaluation rows.
 
 ---
+
+## [ERR-20260729-002] k1ar_probability_precision_replay_mismatch
+
+**Logged**: 2026-07-29T09:32:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+K1-AR reproduced source logits exactly but failed its `1e-7` AUC replay gate
+because it recomputed sigmoid probabilities at a different numeric precision.
+
+### Error
+
+```text
+all_forward_replays_exact = false
+maximum branch-off AUC replay delta = 4.76837158203125e-7
+```
+
+### Context
+
+- The K1-AO/K1-AQ source evaluator applied `torch.sigmoid` to float32 logits
+  before converting probabilities to NumPy float64.
+- The first K1-AR implementation converted float32 logits to NumPy float64 and
+  then applied sigmoid.
+- Logit replays had maximum absolute delta `0.0`, but the probability precision
+  changed a few tied ranks and therefore one discrete AUC step.
+- The initial run was retained as protocol-invalid. A new `replay_fix` run ID
+  changed only the probability computation path and preserved sources, metrics,
+  thresholds and research gates.
+- The active `self-healing` skill was unavailable, so this verified repair is
+  recorded through the self-improvement fallback.
+
+### Suggested Fix
+
+Exact metric replay must preserve the source dtype and operation order through
+the probability tensor, not only the source logits. Add a source-replay test or
+gate for both logits and final probabilities whenever rank metrics can change
+at ties.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/tasks/innovation1/uknit_family_multicipher_path_contribution_k1ar.py, docs/experiments/innovation1-uknit-family-multicipher-path-contribution-k1ar-plan.md
+- See Also: ERR-20260728-001, LRN-20260625-003
+- Pattern-Key: experiment.metric_replay_preserve_probability_precision
+- Recurrence-Count: 1
+- First-Seen: 2026-07-29
+- Last-Seen: 2026-07-29
+
+### Resolution
+
+- **Resolved**: 2026-07-29T09:32:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Replayed probabilities with source-matched PyTorch float32 sigmoid; the repaired run passed all 24 full/branch checks and the final gate.
+
+---

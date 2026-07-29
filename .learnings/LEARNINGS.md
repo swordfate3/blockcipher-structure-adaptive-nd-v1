@@ -8804,3 +8804,56 @@ or scale data before this access audit.
 - **Notes**: K1-R selected a zero-neural-training K1-S tap-by-tap representation-access audit before any architecture redesign or scale.
 
 ---
+
+## [LRN-20260729-001] correction
+
+**Logged**: 2026-07-29T09:32:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+After a handoff, verify experiment-existence claims against both the recent
+result index and the run gate before reporting that a requested scale or pair
+count has not been run.
+
+### Details
+
+A handoff summary focused on K1-AO through K1-AQ and stated that a new
+`16 pairs` route must not be used. A status answer then incorrectly said that
+the user's requested 16-pair Dialga experiment had not started. The actual
+recent-result index already contained K1-AC:
+`i1_uknit_family_ctspn_dialga_retention_k1ac_16pair_2048_seed0_seed1_20260729`,
+whose gate recorded a completed local diagnostic hold because semantic
+attribution failed.
+
+The summary was useful for the current route decision but incomplete as an
+experiment-existence authority. The result index establishes discovery and
+chronology; the named gate establishes protocol, status and interpretation.
+
+### Suggested Action
+
+For questions such as “has X run,” “what is latest,” or “did 16 pairs help,”
+search `outputs/00_RECENT_RESULTS.md/json` for the exact cipher, pair count and
+scale, then open the matching `gate.json` before answering. Treat a handoff
+summary as a locator, not as proof that omitted runs do not exist.
+
+### Metadata
+
+- Source: agent_correction, result_index_audit
+- Related Files: outputs/00_RECENT_RESULTS.md, outputs/local_diagnostic/i1_uknit_family_ctspn_dialga_retention_k1ac_16pair_2048_seed0_seed1_20260729/gate.json
+- Tags: status-reporting, handoff, experiment-existence, pair-count, evidence
+- See Also: LRN-20260710-001, LRN-20260625-003
+- Pattern-Key: reporting.handoff_must_crosscheck_result_index_and_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-29
+- Last-Seen: 2026-07-29
+
+### Resolution
+
+- **Resolved**: 2026-07-29T09:32:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Corrected the user-facing statement and used the index-plus-gate check before continuing K1-AR.
+
+---
