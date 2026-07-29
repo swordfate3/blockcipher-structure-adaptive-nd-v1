@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_multicipher_inverse_norm_k1aq",
+  "run_id": "i1_uknit_family_multicipher_inverse_norm_k1aq_2048_replica0_replica1_20260729",
+  "gradient_authority": {
+    "root": "outputs/local_audit/i1_uknit_family_multicipher_gradient_conflict_k1ap_64batch_replica0_replica1_20260729",
+    "digests": {
+      "gate.json": "53143652b9a1104e05466faa74635e430ff774ea4e3d22c3a30ba21bf80b3068",
+      "validation.json": "2d5f4a79bd29fddede6b8fecfbda390c33d0d2acac650947d0f77daecfcb25f2",
+      "results.jsonl": "daccf12efc5e62133dbcdd3a61f46fba1324b2615440465355a067f9370a3f35"
+    }
+  },
+  "baseline": {
+    "root": "outputs/local_diagnostic/i1_uknit_family_multicipher_shared_weight_k1ao_2048_replica0_replica1_20260729",
+    "digests": {
+      "gate.json": "b119a0241fc334b9c40e9743afac61f5ef6390d4916e13ce8d7f47d48f8ac024",
+      "controls.jsonl": "a0eb237a6d58041e95a2daa9c42658355cf5caebe88be41b525839f0667ac5dc"
+    }
+  },
+  "replicas": [
+    {
+      "replica": 0,
+      "initialization_seed": 30,
+      "dataset_seeds": {"uknit64": 3, "midori64": 6, "dialga128": 0},
+      "source_median_gradient_norms": {
+        "uknit64": 2.981871008872986,
+        "midori64": 1.186685562133789,
+        "dialga128": 5.081811904907227
+      },
+      "loss_scales": {
+        "uknit64": 0.8786019844896883,
+        "midori64": 2.2077270251584173,
+        "dialga128": 0.5155400937524276
+      }
+    },
+    {
+      "replica": 1,
+      "initialization_seed": 31,
+      "dataset_seeds": {"uknit64": 4, "midori64": 7, "dialga128": 1},
+      "source_median_gradient_norms": {
+        "uknit64": 4.389210224151611,
+        "midori64": 1.5310049057006836,
+        "dialga128": 9.22088623046875
+      },
+      "loss_scales": {
+        "uknit64": 0.9015548634383703,
+        "midori64": 2.5846513028815425,
+        "dialga128": 0.4291468005712659
+      }
+    }
+  ],
+  "training": {
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "equal_batches_per_cipher_per_epoch": 64,
+    "optimizer_steps_per_epoch": 192,
+    "optimizer_steps_total_per_replica": 1920,
+    "loss": "mse",
+    "loss_scaling": "fixed_inverse_k1ap_median_gradient_norm_geomean_one",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "checkpoint_metric": "minimum_cross_key_auc_across_ciphers",
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  },
+  "evaluation": {
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_runtime",
+      "wrong_sbox_same_checkpoint",
+      "transition_branch_off_same_checkpoint"
+    ],
+    "expected_rows": 36,
+    "optimizer_steps": 0
+  },
+  "gates": {
+    "target_ciphers": ["uknit64", "midori64"],
+    "target_improvement_min": 0.01,
+    "target_panels_improved_min": 6,
+    "all_correct_panels_baseline_delta_min": -0.01,
+    "correct_minus_wrong_sbox_margin": 0.005,
+    "branch_pass_count_min": 11,
+    "full_anchor_retention_margin": -0.01,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "PCGrad, dynamic weighting, MoE, cipher IDs, per-cipher heads, adapters, or experts",
+    "16-pair expansion or changing differences, data, labels, negatives, keys, or seeds",
+    "larger samples, epochs, model width, or remote execution",
+    "changing Adam, learning rate, batch order, checkpoint metric, or optimizer steps",
+    "using macro averages to hide a harmed cipher or split"
+  ]
+}
