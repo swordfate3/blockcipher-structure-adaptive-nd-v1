@@ -192,6 +192,68 @@ class SharedStructureDualPathGate(nn.Module):
         return edge_gate, transition_gate
 
 
+class SharedComponentSeparatedDualPathGate(SharedStructureDualPathGate):
+    """Reuse one dual-path gate while isolating S-box and linear inputs."""
+
+    def forward(
+        self,
+        edge_global_bias: torch.Tensor,
+        transition_global_bias: torch.Tensor,
+        summary: torch.Tensor,
+        *,
+        edge_structure_enabled: bool = True,
+        component_separation_enabled: bool = True,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        if not component_separation_enabled:
+            return super().forward(
+                edge_global_bias,
+                transition_global_bias,
+                summary,
+                edge_structure_enabled=edge_structure_enabled,
+            )
+        values = torch.as_tensor(
+            summary,
+            dtype=edge_global_bias.dtype,
+            device=edge_global_bias.device,
+        )
+        if values.shape != (self.summary_dim,):
+            raise ValueError("component-separated gate summary shape drifted")
+
+        first = self.network[0]
+        activation = self.network[1]
+        output = self.network[2]
+        transition_hidden = activation(
+            F.linear(
+                values[:SBOX_SUMMARY_DIM],
+                first.weight[:, :SBOX_SUMMARY_DIM],
+                first.bias,
+            )
+        )
+        edge_hidden = activation(
+            F.linear(
+                values[SBOX_SUMMARY_DIM:],
+                first.weight[:, SBOX_SUMMARY_DIM:],
+                first.bias,
+            )
+        )
+        if edge_structure_enabled:
+            edge_projection = F.linear(
+                edge_hidden,
+                output.weight[0:1],
+            ).squeeze(-1)
+            edge_gate = torch.tanh(edge_global_bias + edge_projection)
+        else:
+            edge_gate = torch.tanh(edge_global_bias)
+        transition_projection = F.linear(
+            transition_hidden,
+            output.weight[1:2],
+        ).squeeze(-1)
+        transition_gate = torch.tanh(
+            transition_global_bias + transition_projection
+        )
+        return edge_gate, transition_gate
+
+
 def _distribution_summary(values: torch.Tensor) -> torch.Tensor:
     values = torch.as_tensor(values, dtype=torch.float64, device="cpu").reshape(-1)
     if values.numel() == 0:
@@ -252,6 +314,7 @@ __all__ = [
     "LINEAR_SUMMARY_DIM",
     "SBOX_SUMMARY_DIM",
     "STRUCTURE_SUMMARY_DIM",
+    "SharedComponentSeparatedDualPathGate",
     "SharedStructureDualPathGate",
     "SharedStructureTransitionGate",
     "hybrid_structure_summary",

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_component_separated_structure_gate_k1ay_readiness",
+  "run_id": "i1_uknit_family_component_separated_structure_gate_k1ay_readiness_20260729",
+  "question": "Can the frozen K1-AW 34-to-12-to-2 gate be evaluated with component-separated input connectivity, without changing any parameter or checkpoint shape, so that S-box and linear mismatches affect only their intended residual gates?",
+  "source": {
+    "run_id": "i1_uknit_family_dual_path_channel_orientation_k1ax_20260729",
+    "root": "outputs/local_audit/i1_uknit_family_dual_path_channel_orientation_k1ax_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_dual_path_channel_orientation_k1ax_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1ax_component_routing_misalignment_supported",
+    "digests": {
+      "gate.json": "bd5d075ecc579eaf50f599d141981979775f46de96fcefc15c668586ba9ede61",
+      "validation.json": "18407c687eaf92694e49acfb4f9d4e843c078a6f230f149fc5cad979ecc9ee11",
+      "results.jsonl": "38cad3a562b2a3811219a2e4b25d0fca4ce70219b40a7c89643b1f37bf8f1e14",
+      "checkpoint_manifest.json": "b0c928dee8137663b9d572d9fb8f0bc9e002a4a9f2fa55c98c7c96c9c8f003b1",
+      "structure_summaries.json": "19b93b1e6d8b1c433b79703262220365e356c76e414747ce50c446bb951967e8"
+    }
+  },
+  "model": {
+    "model_key": "runtime_spn_ct_k1ay_component_separated_structure_gate_true",
+    "summary_dim": 34,
+    "summary_sbox_dim": 16,
+    "summary_linear_dim": 18,
+    "gate_hidden_dim": 12,
+    "gate_output_dim": 2,
+    "edge_channel_index": 0,
+    "transition_channel_index": 1,
+    "expected_trainable_parameters": 219764,
+    "expected_state_dict_entries": 55
+  },
+  "audit": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "mismatch_conditions": [
+      "full_mismatch",
+      "sbox_only_mismatch",
+      "linear_only_mismatch"
+    ],
+    "rows_per_split": 32,
+    "expected_result_rows": 12,
+    "expected_control_rows": 36,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "device": "cpu"
+  },
+  "gates": {
+    "disabled_k1aw_logit_replay_tolerance": 0.0,
+    "irrelevant_component_jacobian_tolerance": 0.0,
+    "irrelevant_mismatch_gate_delta_tolerance": 0.0,
+    "minimum_relevant_component_jacobian_l2": 0.000001,
+    "minimum_relevant_mismatch_gate_delta": 0.000001,
+    "minimum_full_mismatch_gate_delta": 0.000001,
+    "minimum_enabled_logit_delta": 0.00000001,
+    "require_strict_state_dict_load": true,
+    "require_state_immutable": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "training or optimizer updates during K1-AY readiness",
+    "16-pair expansion",
+    "larger samples, epochs, width, or additional seeds",
+    "changing datasets, labels, negatives, encryption runtime, checkpoints, summaries, or mismatch order",
+    "loss reweighting, PCGrad, per-cipher heads, adapters, routers, experts, or MoE",
+    "remote GPU execution"
+  ],
+  "next_training": {
+    "run_label": "K1-AZ",
+    "same_budget_anchor": "K1-AW shared-summary dual-path structure gate",
+    "one_variable": "component-separated summary connectivity",
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "optimizer_steps_per_replica": 1920,
+    "replicas": [0, 1],
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  }
+}
