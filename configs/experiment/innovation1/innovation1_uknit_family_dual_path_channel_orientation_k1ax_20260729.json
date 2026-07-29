@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_dual_path_channel_orientation_k1ax",
+  "run_id": "i1_uknit_family_dual_path_channel_orientation_k1ax_20260729",
+  "question": "Did K1-AW fail semantic descriptor controls because S-box and linear summary components route into the wrong gate, because one learned residual path is harmful, or because the two path effects cancel?",
+  "source": {
+    "run_id": "i1_uknit_family_dual_path_structure_modulation_k1aw_2048_replica0_replica1_20260729",
+    "root": "outputs/local_diagnostic/i1_uknit_family_dual_path_structure_modulation_k1aw_2048_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_dual_path_structure_modulation_k1aw_2048_replica0_replica1_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1aw_dual_path_training_not_supported",
+    "digests": {
+      "gate.json": "94f38a25ec41c480643bff3e4cc64c60c891a0ac32c9008d42903cfb4d3a588f",
+      "validation.json": "99aa89367f565b4b452bcc7fb063fb497f897e55ea25e22904b7ce7f220f8e15",
+      "results.jsonl": "04779a45c51895464df8caaebf493643b3f929e6cd196ac41a25c83aefd2ae65",
+      "controls.jsonl": "40d3a2f31b1486920b0aaa96efb211a99348222a44f60cad9ce4556b066203a3",
+      "checkpoint_manifest.json": "da7b5408ba75bbc28f96faad43cf8eccbcaec30dddeee8f553b0c42e62ec02ca",
+      "structure_summaries.json": "c8a83b834d5a1d256a90942d9cdffdc7e11cdb65dbef6b25b5554f93a69892c9"
+    }
+  },
+  "evaluation": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_descriptor",
+      "full_mismatch",
+      "sbox_only_mismatch",
+      "linear_only_mismatch"
+    ],
+    "path_states": [
+      "pure_base",
+      "edge_only",
+      "transition_only",
+      "full_dual_path"
+    ],
+    "expected_rows": 48,
+    "batch_size": 64,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "full_forward_replay_tolerance": 0.0000001
+  },
+  "gates": {
+    "minimum_component_routing_panels": 10,
+    "path_harm_mechanism_panels": 3,
+    "cancellation_fraction_threshold": 0.5,
+    "cancellation_mechanism_panels": 3,
+    "remote_scale": "no"
+  },
+  "decision_order": [
+    "component_routing_misalignment",
+    "learned_path_harm",
+    "path_cancellation",
+    "mechanism_unresolved"
+  ],
+  "blocked_actions": [
+    "training or optimizer updates",
+    "remote execution",
+    "16-pair expansion",
+    "larger samples, epochs, width, or additional seeds",
+    "loss reweighting, PCGrad, per-cipher heads, adapters, routers, MoE, or experts",
+    "changing datasets, labels, negatives, encryption runtime, checkpoints, or descriptor controls"
+  ]
+}
