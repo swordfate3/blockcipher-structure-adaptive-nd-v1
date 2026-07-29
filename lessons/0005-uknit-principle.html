@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>uKNIT原理：从逐轮编织到结构适配神经网络</title>
+  <link rel="stylesheet" href="assets/lesson.css">
+</head>
+<body class="spn-architectures uknit-principle">
+<main>
+  <h1>uKNIT到底特殊在哪里</h1>
+  <p class="lede">先分清两个名字：<strong>uKNIT</strong>是一种“逐轮编织密码”的设计方法，<strong>uKNIT-BC</strong>是作者用这种方法得到的64-bit分组密码。下面用一轮真实数据说明它如何加密，再解释为什么它需要专用的结构适配神经网络。</p>
+
+  <div class="objective">
+    <strong>学完后的判断标准：</strong>你能解释为什么 uKNIT-BC 仍然是 SPN，却不能像 PRESENT 那样把同一张 S 盒表和同一张 P 层接线图重复多轮；也能说清当前网络为什么要读取“哪一轮、哪个 cell、哪张 S 盒、哪张 GF(2) 矩阵”。
+  </div>
+
+  <h2>1. 先分清：uKNIT是方法，uKNIT-BC是成品</h2>
+
+  <p>普通迭代型 SPN 先设计一个轮函数，然后重复使用：</p>
+  <div class="equation">普通 SPN：R<sub>i</sub>(X) = L(S(X XOR K<sub>i</sub>))</div>
+  <p>轮密钥和常数会变，但核心的 <code>S</code> 与 <code>L</code> 通常不变。PRESENT 就像把同一个加工站复制31次。</p>
+
+  <p>uKNIT 把限制放开，每一轮都可以使用自己的组件：</p>
+  <div class="equation">uKNIT：R<sub>i</sub>(X) = L<sub>i</sub>(S<sub>i</sub>(X XOR K<sub>i</sub>))</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>问题</th><th>普通迭代 SPN</th><th>uKNIT</th></tr></thead>
+      <tbody>
+        <tr><td class="left">第1轮与第5轮的S盒</td><td>通常同一张表</td><td>允许完全不同</td></tr>
+        <tr><td class="left">第1轮与第5轮的扩散</td><td>通常同一张接线图</td><td>允许完全不同</td></tr>
+        <tr><td class="left">怎样设计完整密码</td><td>先定轮函数，再重复</td><td>一轮一轮添加并优化</td></tr>
+        <tr><td class="left">自动工具的角色</td><td>多用于设计后的分析</td><td>直接参与候选生成与选择</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>“Breaking Round-Alignment”</strong>就是打破轮对齐：攻击者不能再假设每一轮都沿相同的 S 盒和扩散路径传播。注意，这不等于随机乱拼；每个候选仍要经过安全性与硬件性能评估。</p>
+
+  <h2>2. “编织”一条密码是怎样进行的</h2>
+
+  <div class="flow-diagram" aria-label="uKNIT逐轮设计流程">
+    <div class="flow-node control"><strong>候选池</strong><span>已有不超过 i 轮的多个密码</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>变异与交叉</strong><span>更换S盒bit转置、交换线性层行列</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node linear"><strong>自动评估</strong><span>SAT搜索差分/线性轨迹，硬件流程测延迟</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node key"><strong>适应度排序</strong><span>兼顾安全、延迟和候选多样性</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node control"><strong>添加一轮</strong><span>继续编织，直到满足目标</span></div>
+  </div>
+
+  <p>论文中的 uKNIT-BC 搜索使用200个候选、100代遗传搜索。安全侧关注最佳差分特征概率和最佳线性轨迹偏差，性能侧用硬件实现流程测延迟。它不是“神经网络设计出的密码”，也不是“机器证明绝对安全”，而是自动搜索帮助设计者从更大的非对齐空间挑候选，最后仍需独立密码分析。</p>
+
+  <div class="warning"><strong>关键边界：</strong>uKNIT 的搜索工具只优化它被要求测量的目标。论文也明确指出应保存随机种子和完整配置，并让候选接受公开分析；自动化不替代密码学审查。</div>
+
+  <h2>3. uKNIT-BC的完整骨架</h2>
+
+  <div class="architecture-meta">
+    <div><strong>分组</strong><span>64 bit</span></div>
+    <div><strong>主密钥</strong><span>128 bit</span></div>
+    <div><strong>总轮数</strong><span>12轮</span></div>
+    <div><strong>组件总数</strong><span>12个S层 + 11个L层</span></div>
+  </div>
+
+  <div class="flow-diagram" aria-label="uKNIT-BC前十一轮流程">
+    <div class="flow-node control"><strong>64-bit状态</strong><span>16个4-bit cell</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node key"><strong>XOR K<sub>i</sub></strong><span>加入本轮64-bit子密钥</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>S<sub>i</sub></strong><span>16个位置分别查本轮指定S盒</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node linear"><strong>L<sub>i</sub></strong><span>本轮专属64x64 GF(2)矩阵</span></div>
+  </div>
+  <div class="round-brace">上面执行11轮；每一轮的S盒布置和线性矩阵都可以不同</div>
+
+  <div class="flow-diagram" aria-label="uKNIT-BC最后一轮流程">
+    <div class="flow-node control"><strong>第11轮输出</strong><span>64-bit状态</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node key"><strong>XOR K<sub>11</sub></strong><span>第12轮输入加密钥</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>S<sub>11</sub></strong><span>最后一个位置相关S盒层</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node key"><strong>XOR K<sub>12</sub></strong><span>最终白化，得到密文</span></div>
+  </div>
+
+  <p>因此完整 uKNIT-BC 一共有13次密钥加法：前11轮各一次，第12轮前一次，最后再白化一次。项目里的 <code>r5</code> 是只执行前5个“密钥 + S盒 + 线性层”的前缀，不是完整12轮攻击。</p>
+
+  <h2>4. 一轮真实数据：每一步到底变成什么</h2>
+
+  <p>取项目实现中的第1轮，使用全零128-bit主密钥，并令明文为：</p>
+  <div class="equation">P = 0x0123456789ABCDEF，K<sub>0</sub> = 0</div>
+
+  <div class="mini-example" aria-label="uKNIT第一轮真实十六进制状态">
+    <div><strong>加密钥后</strong><code>0123456789ABCDEF</code></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div><strong>16个位置S盒后</strong><code>3DDF51B4250C281A</code></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div><strong>第1轮线性层后</strong><code>BC18D03F66A06BF0</code></div>
+  </div>
+
+  <p>把 S 盒前后的64 bit按16个nibble展开，可以看到每个位置单独查表：</p>
+  <div class="table-wrap">
+    <table class="nibble-map">
+      <thead><tr><th>cell位置</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th></tr></thead>
+      <tbody>
+        <tr><td>输入</td><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>A</td><td>B</td><td>C</td><td>D</td><td>E</td><td>F</td></tr>
+        <tr><td>输出</td><td>3</td><td>D</td><td>D</td><td>F</td><td>5</td><td>1</td><td>B</td><td>4</td><td>2</td><td>5</td><td>0</td><td>C</td><td>2</td><td>8</td><td>1</td><td>A</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>位置相关不是一句空话。若16个输入 cell 全部都是 <code>0</code>，第1轮 S 盒层输出并不是16个相同值，而是：</p>
+  <div class="equation">0000000000000000 -> 39C96CC36A669536</div>
+  <p>因为同一个输入值 <code>0</code> 在不同位置查的表可以不同；换到第2轮，同样的全零输入又得到 <code>995353363363AC6A</code>。所以只把“这里有一个4-bit S盒”告诉网络远远不够，还要告诉它是哪一轮、哪个位置、哪一张真值表。</p>
+
+  <h3>线性层不是搬家，而是三输入XOR</h3>
+  <p>每个线性层都是稀疏的64x64二进制矩阵。每个输出bit恰好取三个输入bit做异或。例如对上面的 S 盒输出 <code>3DDF51B4250C281A</code>，第1轮线性层的低8个输出bit按项目bit编号计算为：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>输出bit</th><th>三个来源bit</th><th>实际来源值</th><th>XOR结果</th></tr></thead>
+      <tbody>
+        <tr><td>y0</td><td>x17, x27, x28</td><td>0, 0, 0</td><td>0</td></tr>
+        <tr><td>y1</td><td>x16, x20, x31</td><td>0, 0, 0</td><td>0</td></tr>
+        <tr><td>y2</td><td>x22, x26, x29</td><td>0, 1, 1</td><td>0</td></tr>
+        <tr><td>y3</td><td>x19, x23, x24</td><td>1, 0, 1</td><td>0</td></tr>
+        <tr><td>y4</td><td>x34, x41, x47</td><td>1, 0, 0</td><td>1</td></tr>
+        <tr><td>y5</td><td>x33, x40, x45</td><td>0, 1, 0</td><td>1</td></tr>
+        <tr><td>y6</td><td>x35, x42, x44</td><td>0, 0, 1</td><td>1</td></tr>
+        <tr><td>y7</td><td>x32, x43, x46</td><td>0, 0, 1</td><td>1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>于是最低字节得到 <code>11110000</code>，也就是十六进制 <code>F0</code>。第2轮会换另一张来源表，不能把第1轮的矩阵继续重复。</p>
+
+  <h2>5. S盒不是任意乱选，线性层也不是任意乱接</h2>
+
+  <p>uKNIT-BC 的4-bit S盒都来自 MANTIS S盒：</p>
+  <div class="equation">S<sub>MANTIS</sub> = [C,A,D,3,E,B,F,7,8,9,1,5,0,2,4,6]</div>
+  <p>不同轮、不同位置通过输入bit转置和输出bit转置得到不同版本。这样可以改变各位置的具体布尔语义，又保留低延迟实现基础。</p>
+
+  <p>线性层则要求每一行和每一列恰好有三个 <code>1</code>：每个输出依赖三个输入，每个输入也被三个输出使用。作者从 PRINCE/MIDORI 风格的低延迟矩阵出发，通过受约束的行列交换产生候选，所以结构在变，但稀疏度、可逆性和硬件深度受到控制。</p>
+
+  <h2>6. 128-bit主密钥怎样变成13个轮密钥</h2>
+
+  <p>先把主密钥拆成两个64-bit半部。前两个轮密钥直接使用这两个半部；从 <code>K2</code> 开始，两条支路分别更新后再异或：</p>
+  <div class="equation">A <- P(M(A))，B <- P(M(LFSR(B)))，K<sub>i</sub> = A XOR B</div>
+
+  <ul class="steps">
+    <li><strong>M：</strong>每4个nibble做一次轻量异或扩散。</li>
+    <li><strong>P：</strong>按固定16-nibble置换重新排位置。</li>
+    <li><strong>LFSR：</strong>只作用于第二条支路的每个nibble。</li>
+    <li><strong>XOR：</strong>两条已扩散的64-bit状态合成为后续轮密钥。</li>
+  </ul>
+
+  <p>例如主密钥 <code>0123456789ABCDEFFEDCBA9876543210</code> 产生：</p>
+  <pre>K0 = 0123456789ABCDEF
+K1 = FEDCBA9876543210
+K2 = 57985450E5C15A3D
+K3 = 9C147013EEBA0EE6
+K4 = E996F9EB0D9A5B98
+K5 = 13C665B68B5607C6</pre>
+
+  <h2>7. 为什么它不该和Midori、Dialga硬共用一个最优网络</h2>
+
+  <div class="table-wrap">
+    <table class="cipher-compare">
+      <thead><tr><th>算法</th><th>真正主导的结构</th><th>对网络的要求</th></tr></thead>
+      <tbody>
+        <tr><td>uKNIT-BC</td><td class="left">每轮/每位置S盒变化，11张不同GF(2)线性矩阵</td><td class="left">保留轮次、阶段、cell位置、正确S盒和正确矩阵</td></tr>
+        <tr><td>Midori-64</td><td class="left">规则4x4 cell布局和重复的低延迟扩散骨架</td><td class="left">线性运输本身已能暴露很强信号</td></tr>
+        <tr><td>Dialga-128</td><td class="left">128-bit byte状态、轮型置换、MixColumns和tweak路径</td><td class="left">需要byte/tweak语义；当前低轮任务的线性锚点已近饱和</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>三者都可以叫 SPN，但“都是 SPN”只相当于“都是交通工具”，并不意味着摩托车、火车和叉车应共用一个最优控制器。历史路径名 <code>uknit_family</code> 只是异构 SPN 实验矩阵的工作名，不是密码学同族结论。</p>
+
+  <h2>8. 当前uKNIT专家网络到底读取什么</h2>
+
+  <p>当前 K1-V 不是让普通 MLP 从2048个bit里自己猜出 uKNIT。每条样本包含16对密文：</p>
+  <div class="equation">16 pair x (C的64 bit + C'的64 bit) = 2048 input bits</div>
+
+  <p>对 r5 前缀的最后两个结构转换，网络先按运行时描述精确构造五个阶段：</p>
+  <div class="flow-diagram" aria-label="uKNIT专家网络五阶段逆结构">
+    <div class="flow-node control"><strong>密文对</strong><span>ciphertext</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node linear"><strong>逆L4</strong><span>inverse linear slot 1</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>逆S4</strong><span>inverse S-box slot 1</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node linear"><strong>逆L3</strong><span>inverse linear slot 0</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>逆S3</strong><span>inverse S-box slot 0</span></div>
+  </div>
+
+  <p>每个阶段都保留16个原生cell；每个cell统计16对密文中16种nibble值出现的频率，得到：</p>
+  <div class="equation">5个阶段 x 16个位置 x 16种取值</div>
+  <p>共享的小编码器把每个16维直方图压到8维，再把 <code>5 x 16 x 8</code> 展平投影到128维，通过有界残差门加入主干。这样网络不用重新发明逆S盒和GF(2)运算，只学习怎样组合已经对齐的结构证据。</p>
+
+  <h3>三个同容量控制分别问什么</h3>
+  <ul class="steps">
+    <li><strong>正确结构：</strong>使用正确的uKNIT S盒和原生cell位置。</li>
+    <li><strong>错误S盒：</strong>参数量和几何不变，只换错S盒语义；检验网络是否真依赖正确非线性层。</li>
+    <li><strong>位置抹除：</strong>使用正确S盒，但平均掉cell位置；检验原生位置是否有额外价值。</li>
+  </ul>
+
+  <p>K1-V 的本地 <code>2048/class</code>、16-pair 诊断结果为：</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>seed</th><th>正确结构AUC</th><th>错误S盒AUC</th><th>位置抹除AUC</th></tr></thead>
+      <tbody>
+        <tr><td>3</td><td class="good">0.902423</td><td>0.506145</td><td>0.591490</td></tr>
+        <tr><td>4</td><td class="good">0.932539</td><td>0.499613</td><td>0.697591</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>这说明在该本地协议下，正确 S 盒和位置语义都提供了可重复增益；它仍只是小规模诊断，不是完整12轮攻击、正式规模或论文突破。下一步要在远程 <code>65536/class</code> 保持同一网络、同一16-pair数据定义和同一控制，只增加数据量。</p>
+
+  <h2>9. 用一句话真正记住</h2>
+  <div class="success"><strong>uKNIT-BC不是“每轮重复同一种SPN”，而是“每轮都有自己S盒地图和GF(2)扩散地图的SPN”。</strong>因此适合它的网络必须沿正确轮次逆向读取这些地图；把位置和阶段全平均掉，或拿别的密码的统一共享结构强行覆盖它，都会丢失最有价值的语义。</div>
+
+  <h2>10. 三个自测问题</h2>
+  <details>
+    <summary>为什么“uKNIT每轮不同”不等于“随便随机拼接”？</summary>
+    <p>候选组件来自受约束的低延迟S盒与可逆稀疏线性层空间，并经过自动差分/线性分析、硬件延迟评估、选择、交叉和变异。最终候选还需要独立安全分析。</p>
+  </details>
+  <details>
+    <summary>为什么把正确S盒换成错误S盒是关键控制？</summary>
+    <p>它保持数据、参数量、网络几何、cell划分和线性层不变，只破坏非线性真值表。若正确模型稳定胜出，增益才可归因于正确S盒语义，而不只是模型更大或输入更宽。</p>
+  </details>
+  <details>
+    <summary>为什么uKNIT专家网络只逆两层，而不是逆完整五轮？</summary>
+    <p>当前实验改变一个受控假设：使用最后两个异构转换构造五阶段结构残差，同时保留可训练主干。它不是完整解密，也不声称已显式恢复所有五轮内部状态；更长窗口必须另做单变量实验。</p>
+  </details>
+
+  <p class="source-note"><strong>主要来源：</strong><a href="../papers/%E7%AE%97%E6%B3%95/uKNIT%EF%BC%88%E8%BD%BB%E9%87%8F%E7%BA%A7%E7%AE%97%E6%B3%95%E8%AE%BE%E8%AE%A1%EF%BC%89.pdf">Hu 等，uKNIT: Breaking Round-Alignment for Cipher Design</a>，特别是第2、3、5节；<a href="../src/blockcipher_nd/ciphers/spn/uknit.py">项目uKNIT-BC实现</a>；<a href="../src/blockcipher_nd/models/structure/spn/position_histogram_residual.py">位置直方图残差网络</a>。数值例子由当前项目实现直接计算。</p>
+
+  <nav class="footer-nav">
+    复习：<a href="0004-runtime-spn-cipher-architectures.html#uknit">六种SPN架构中的uKNIT</a> ·
+    速查：<a href="reference/spn-cipher-architecture-cheatsheet.html">SPN结构速查表</a> ·
+    对不清楚的步骤继续向我提问，我可以下一课只拆“S盒位置表”或“五阶段神经输入”。
+  </nav>
+</main>
+</body>
+</html>

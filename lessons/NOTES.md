@@ -5,3 +5,6 @@
 - Introduce matrices only after showing the same cancellation directly in a plaintext/output table.
 - Before a matrix lesson, state explicitly that rows are output observables evaluated on the same fixed structure, not plaintexts, keys, or different structures.
 - Use Chinese explanations and retain exact English method names and mathematical symbols where they help map back to the paper.
+- For cipher architecture, distinguish the general design framework from one
+  concrete cipher instance, then trace one real hexadecimal state through the
+  project implementation before discussing the neural network.

@@ -643,6 +643,28 @@ summary {
   font-size: 0.88rem;
 }
 
+.uknit-principle .nibble-map {
+  min-width: 760px;
+  table-layout: fixed;
+}
+
+.uknit-principle .nibble-map th,
+.uknit-principle .nibble-map td {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+.uknit-principle .nibble-map th:first-child,
+.uknit-principle .nibble-map td:first-child {
+  width: 92px;
+}
+
+.uknit-principle .cipher-compare th:first-child,
+.uknit-principle .cipher-compare td:first-child {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
 @media (max-width: 700px) {
   main {
     width: 100%;

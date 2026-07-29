@@ -1,4 +1,4 @@
-# Integral Distinguisher Resources
+# Block Cipher Innovation Resources
 
 ## Knowledge
 
@@ -10,6 +10,13 @@
   Primary authority for the encryption semantics used by experiments. Prefer these files over remembered textbook diagrams when reporting the current project.
 - [uKNIT specification](../papers/%E7%AE%97%E6%B3%95/uKNIT%EF%BC%88%E8%BD%BB%E9%87%8F%E7%BA%A7%E7%AE%97%E6%B3%95%E8%AE%BE%E8%AE%A1%EF%BC%89.pdf)
   Published source for the 12-round non-round-aligned S-box and linear-layer schedule implemented by the project.
+- [uKNIT principle lesson](0005-uknit-principle.html)
+  Data-first explanation of the uKNIT design framework, uKNIT-BC encryption,
+  key schedule, and the structure required by the current specialist network.
+- [Official uKNIT implementation](https://github.com/syllab-ntu/UKNIT)
+  Authors' reference repository linked from the specification. Use as an
+  external oracle; the project implementation independently transcribes the
+  published tables.
 
 - [Paper: _On Extending Integral Distinguishers_](../papers/innovation_two/pdf/On%20Extending%20Integral%20Distinguishers.pdf)
   Primary source for Split-and-Cancel, the left-kernel criterion, pullback theorems, and PRESENT/GIFT results. Use for all claims about the paper.
@@ -36,3 +43,6 @@
 ## Gaps
 
 - The closest 2026 neural-guided and empirical-kernel papers still need a side-by-side protocol audit before a final Innovation 2 novelty claim.
+- No published source reviewed so far specifies the project's exact uKNIT
+  five-stage position-histogram neural residual; its evidence is project-local
+  and must be reported separately from the cipher designers' claims.
