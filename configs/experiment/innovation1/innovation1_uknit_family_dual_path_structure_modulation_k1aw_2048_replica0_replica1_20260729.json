@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_dual_path_structure_modulation_k1aw",
+  "run_id": "i1_uknit_family_dual_path_structure_modulation_k1aw_2048_replica0_replica1_20260729",
+  "question": "Does the K1-AV two-channel structure projection improve or retain the K1-AT same-budget cross-key macro AUC without per-cipher harm and while preferring the correct descriptor?",
+  "readiness": {
+    "run_id": "i1_uknit_family_dual_path_structure_modulation_k1av_readiness_20260729",
+    "root": "outputs/local_readiness/i1_uknit_family_dual_path_structure_modulation_k1av_readiness_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_dual_path_structure_modulation_k1av_readiness_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1av_dual_path_modulation_runtime_ready",
+    "digests": {
+      "gate.json": "71c1ed478b3209d37979113d01e3b17f001ac3a360ac70cf6e028b16f9740a6f",
+      "validation.json": "ef6cac7989cb837b6d3302c62200f30fae2682df27ec6f85cd1b11013527ce35",
+      "structure_summaries.json": "7b03045f510688012a1691517cd15869afdc436b44045b067d4a878b89f4dac2",
+      "checkpoint_manifest.json": "8a771cb2bd39e3fd04c3e3d02bbb442aa10268ff9d390a0dcae390066cd956d6"
+    }
+  },
+  "same_budget_anchor": {
+    "run_id": "i1_uknit_family_structure_derived_gate_k1at_2048_replica0_replica1_20260729",
+    "root": "outputs/local_diagnostic/i1_uknit_family_structure_derived_gate_k1at_2048_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_structure_derived_gate_k1at_2048_replica0_replica1_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1at_structure_gate_training_not_supported",
+    "digests": {
+      "gate.json": "2c45164c5b949700bd616733e275aa321b38d84f46e58fe6460ef8f51e84cdae",
+      "validation.json": "b2d53dd063f9be2123b33610ae544f80795b38d9bf26cb89b312a5a269650dca",
+      "results.jsonl": "8928971b51a4fbfbcd39d612888f9bdf4d31c9aec535c22c0246097443b4ff0c",
+      "controls.jsonl": "af3bef7d99efa0d0fca99135863e210ce447537e44ee4218cdf67d4b6da9eb24",
+      "checkpoint_manifest.json": "55e3571200ff615245d77214b0e4624624a44d6c94719278c557a2257c1ce814"
+    }
+  },
+  "replicas": [
+    {
+      "replica": 0,
+      "initialization_seed": 30,
+      "dataset_seeds": {"uknit64": 3, "midori64": 6, "dialga128": 0}
+    },
+    {
+      "replica": 1,
+      "initialization_seed": 31,
+      "dataset_seeds": {"uknit64": 4, "midori64": 7, "dialga128": 1}
+    }
+  ],
+  "training": {
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "equal_batches_per_cipher_per_epoch": 64,
+    "optimizer_steps_per_epoch": 192,
+    "optimizer_steps_total_per_replica": 1920,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "checkpoint_metric": "minimum_cross_key_auc_across_ciphers",
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  },
+  "controls": {
+    "mismatch_order": {
+      "uknit64": "midori64",
+      "midori64": "dialga128",
+      "dialga128": "uknit64"
+    },
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_descriptor",
+      "full_mismatch",
+      "sbox_only_mismatch",
+      "linear_only_mismatch",
+      "dual_path_disabled"
+    ],
+    "expected_rows": 60,
+    "optimizer_steps": 0
+  },
+  "gates": {
+    "cross_key_macro_improvement_per_replica": 0.0,
+    "per_panel_no_harm_margin": -0.005,
+    "correct_minus_mismatch_margin": 0.001,
+    "minimum_passing_panels_per_mismatch": 10,
+    "require_each_cipher_replica_split_covered": true,
+    "dual_path_disabled_is_supporting_control": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "remote execution",
+    "16-pair expansion",
+    "larger samples, epochs, width, or additional seeds",
+    "loss reweighting, PCGrad, or a second candidate",
+    "cipher IDs, per-cipher heads, adapters, routers, MoE, or experts",
+    "changing datasets, negatives, task order, checkpoint metric, or encryption runtime",
+    "using macro averages to hide a per-panel harm larger than 0.005"
+  ]
+}
