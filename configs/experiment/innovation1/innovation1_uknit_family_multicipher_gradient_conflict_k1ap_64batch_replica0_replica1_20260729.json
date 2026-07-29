@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_multicipher_gradient_conflict_k1ap",
+  "run_id": "i1_uknit_family_multicipher_gradient_conflict_k1ap_64batch_replica0_replica1_20260729",
+  "source": {
+    "root": "outputs/local_diagnostic/i1_uknit_family_multicipher_shared_weight_k1ao_2048_replica0_replica1_20260729",
+    "training_config": "configs/experiment/innovation1/innovation1_uknit_family_multicipher_shared_weight_k1ao_2048_replica0_replica1_20260729.json",
+    "digests": {
+      "gate.json": "b119a0241fc334b9c40e9743afac61f5ef6390d4916e13ce8d7f47d48f8ac024",
+      "validation.json": "40a621d50c96ba8f243d4eb209f5ddab12be4fc6b495814eb073117584570a7d",
+      "dataset_manifest.jsonl": "0d1fb60a2ae61a0665e1dbf6d26a93c403bf7a46ba603b93e51af36dd8c13358",
+      "checkpoint_manifest.json": "9f173cbd1d5b4063ee090486b91321db0d06eebb13efc461f686fe3c5a389900",
+      "checkpoints/replica0_best.pt": "b982cc85936fb357695e0488744b088e198fd748927031ed2cdb2cf59df8e3cf",
+      "checkpoints/replica1_best.pt": "80f875688c0a9add5a60f23d5556ef12b306af94fa5f3a9387c42b18717e8425"
+    },
+    "training_config_sha256": "d6de41297fbd917c94587c9f32495d1f83e28be3000fc8bb6eeb4585f41327b8"
+  },
+  "replicas": [
+    {
+      "replica": 0,
+      "initialization_seed": 30,
+      "dataset_seeds": {"uknit64": 3, "midori64": 6, "dialga128": 0}
+    },
+    {
+      "replica": 1,
+      "initialization_seed": 31,
+      "dataset_seeds": {"uknit64": 4, "midori64": 7, "dialga128": 1}
+    }
+  ],
+  "audit": {
+    "samples_per_class_per_cipher": 2048,
+    "pairs_per_sample": 4,
+    "batch_size": 64,
+    "positive_rows_per_batch": 32,
+    "negative_rows_per_batch": 32,
+    "batch_triplets_per_replica": 64,
+    "conditions": [
+      "correct_runtime",
+      "wrong_sbox_same_checkpoint",
+      "transition_branch_off_same_checkpoint"
+    ],
+    "parameter_groups": ["all_trainable", "transition_semantic"],
+    "loss": "mse",
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "execution": "local_audit"
+  },
+  "measurements": [
+    "pairwise_gradient_cosine",
+    "negative_cosine_frequency",
+    "median_pairwise_cosine",
+    "gradient_norm",
+    "median_gradient_norm_ratio"
+  ],
+  "gates": {
+    "systematic_conflict_median_cosine_max": -0.05,
+    "systematic_conflict_negative_frequency_min": 0.5,
+    "stable_gradient_norm_ratio_min": 4.0,
+    "require_same_signal_in_both_replicas": true,
+    "optimizer_steps": 0,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "16-pair expansion",
+    "larger samples, epochs, width, or remote execution",
+    "MoE, cipher IDs, per-cipher heads, adapters, or experts",
+    "conflict-aware training before this audit establishes its trigger",
+    "changing datasets, labels, negative definition, differences, or checkpoints"
+  ]
+}
