@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_structure_gate_identifiability_k1au",
+  "run_id": "i1_uknit_family_structure_gate_identifiability_k1au_20260729",
+  "question": "Did K1-AT lose runtime descriptor information in the 34-value summary, the shared 12-value hidden embedding, or the final one-scalar projection?",
+  "source": {
+    "run_id": "i1_uknit_family_structure_derived_gate_k1at_2048_replica0_replica1_20260729",
+    "root": "outputs/local_diagnostic/i1_uknit_family_structure_derived_gate_k1at_2048_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_structure_derived_gate_k1at_2048_replica0_replica1_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1at_structure_gate_training_not_supported",
+    "digests": {
+      "gate.json": "2c45164c5b949700bd616733e275aa321b38d84f46e58fe6460ef8f51e84cdae",
+      "validation.json": "b2d53dd063f9be2123b33610ae544f80795b38d9bf26cb89b312a5a269650dca",
+      "results.jsonl": "8928971b51a4fbfbcd39d612888f9bdf4d31c9aec535c22c0246097443b4ff0c",
+      "controls.jsonl": "af3bef7d99efa0d0fca99135863e210ce447537e44ee4218cdf67d4b6da9eb24",
+      "checkpoint_manifest.json": "55e3571200ff615245d77214b0e4624624a44d6c94719278c557a2257c1ce814",
+      "structure_summaries.json": "85398e98c5e9d0848ed95cc1eaf7077a4ff62c6ccb39e5d469c34711fbe5a200"
+    }
+  },
+  "audit": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "mismatch_conditions": [
+      "full_mismatch",
+      "sbox_only_mismatch",
+      "linear_only_mismatch"
+    ],
+    "rows_per_split": 32,
+    "expected_result_rows": 6,
+    "expected_control_rows": 36,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "device": "cpu"
+  },
+  "gates": {
+    "minimum_raw_summary_l2_distance": 0.001,
+    "minimum_hidden_l2_distance": 0.0001,
+    "required_centered_correct_hidden_rank": 2,
+    "minimum_component_jacobian_l2": 0.000001,
+    "minimum_projection_alignment_cosine": 0.1,
+    "minimum_aligned_mismatch_panels": 15,
+    "required_cross_replica_gate_rank_correlation": 1.0,
+    "minimum_cross_replica_jacobian_cosine": 0.5,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "training or optimizer updates",
+    "16-pair expansion",
+    "larger samples, epochs, width, or seeds",
+    "changing datasets, runtime structures, checkpoints, or mismatch order",
+    "loss reweighting, PCGrad, adapters, routers, experts, or MoE",
+    "remote GPU execution"
+  ]
+}
