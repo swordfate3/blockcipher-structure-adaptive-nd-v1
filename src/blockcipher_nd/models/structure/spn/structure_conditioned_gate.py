@@ -143,6 +143,55 @@ class SharedStructureTransitionGate(nn.Module):
         return torch.tanh(global_bias + self.network(values).squeeze(-1))
 
 
+class SharedStructureDualPathGate(nn.Module):
+    """Two bounded residual gates from one shared runtime-SPN summary encoder."""
+
+    def __init__(self, hidden_dim: int = 12) -> None:
+        super().__init__()
+        if hidden_dim <= 0:
+            raise ValueError("dual-path structure gate hidden_dim must be positive")
+        self.summary_dim = STRUCTURE_SUMMARY_DIM
+        self.hidden_dim = int(hidden_dim)
+        self.output_dim = 2
+        self.network = nn.Sequential(
+            nn.Linear(self.summary_dim, self.hidden_dim),
+            nn.Tanh(),
+            nn.Linear(self.hidden_dim, self.output_dim, bias=False),
+        )
+        nn.init.normal_(self.network[2].weight, mean=0.0, std=0.02)
+
+    def forward(
+        self,
+        edge_global_bias: torch.Tensor,
+        transition_global_bias: torch.Tensor,
+        summary: torch.Tensor,
+        *,
+        edge_structure_enabled: bool = True,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        values = torch.as_tensor(
+            summary,
+            dtype=edge_global_bias.dtype,
+            device=edge_global_bias.device,
+        )
+        if values.shape != (self.summary_dim,):
+            raise ValueError("dual-path structure gate summary shape drifted")
+        hidden = self.network[1](self.network[0](values))
+        if edge_structure_enabled:
+            projection = self.network[2](hidden)
+            edge_gate = torch.tanh(edge_global_bias + projection[0])
+            transition_projection = projection[1]
+        else:
+            edge_gate = torch.tanh(edge_global_bias)
+            transition_projection = F.linear(
+                hidden,
+                self.network[2].weight[1:2],
+            ).squeeze(-1)
+        transition_gate = torch.tanh(
+            transition_global_bias + transition_projection
+        )
+        return edge_gate, transition_gate
+
+
 def _distribution_summary(values: torch.Tensor) -> torch.Tensor:
     values = torch.as_tensor(values, dtype=torch.float64, device="cpu").reshape(-1)
     if values.numel() == 0:
@@ -203,6 +252,7 @@ __all__ = [
     "LINEAR_SUMMARY_DIM",
     "SBOX_SUMMARY_DIM",
     "STRUCTURE_SUMMARY_DIM",
+    "SharedStructureDualPathGate",
     "SharedStructureTransitionGate",
     "hybrid_structure_summary",
     "linear_structure_summary",

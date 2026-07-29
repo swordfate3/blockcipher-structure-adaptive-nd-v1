@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_dual_path_structure_modulation_k1av_readiness",
+  "run_id": "i1_uknit_family_dual_path_structure_modulation_k1av_readiness_20260729",
+  "question": "Can the preserved 34-value runtime summary drive separate bounded GF(2)-edge and S-box-transition modulation channels while exactly replaying K1-AT when the new edge channel is disabled?",
+  "source": {
+    "run_id": "i1_uknit_family_structure_gate_identifiability_k1au_20260729",
+    "root": "outputs/local_audit/i1_uknit_family_structure_gate_identifiability_k1au_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_structure_gate_identifiability_k1au_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1au_final_scalar_projection_bottleneck_supported",
+    "digests": {
+      "gate.json": "42a5f9873b7e421c8181c5d2ad0aa11eb9144cc951a0830cf357ef2d6230f4a8",
+      "validation.json": "37020db39d40009be126d3696a544ff70aef98b61553081e67013ec22f34ded4",
+      "results.jsonl": "4c1aeaca624f9deade103a0515987c15823af220f213a1f1ebcfa64e90b73680",
+      "controls.jsonl": "28bd5f2a60a533251a0bd6e9330370a885f4116c6b79c07f3ad2952a607eb4f5",
+      "checkpoint_manifest.json": "cd091d6c26d48cf08a567dbcd684179a28e012073c2c734b82b5827f4169ae3d",
+      "summary.json": "94e47c60b8f27d569f7c03b83f25c576470e6b7d410f43885b593b7e54bcffa6"
+    }
+  },
+  "model": {
+    "model_key": "runtime_spn_ct_k1av_dual_path_structure_gate_true",
+    "initialization_seed": 83,
+    "summary_dim": 34,
+    "summary_sbox_dim": 16,
+    "summary_linear_dim": 18,
+    "gate_hidden_dim": 12,
+    "gate_output_dim": 2,
+    "edge_channel_index": 0,
+    "transition_channel_index": 1,
+    "expected_trainable_parameters": 219764,
+    "expected_state_dict_entries": 55
+  },
+  "audit": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "mismatch_conditions": [
+      "full_mismatch",
+      "sbox_only_mismatch",
+      "linear_only_mismatch"
+    ],
+    "rows_per_split": 32,
+    "expected_result_rows": 12,
+    "expected_control_rows": 36,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "device": "cpu"
+  },
+  "gates": {
+    "disabled_k1at_logit_replay_tolerance": 0.0,
+    "cell_relabel_summary_tolerance": 0.0,
+    "minimum_component_jacobian_l2": 0.000001,
+    "maximum_cross_channel_parameter_jacobian_l2": 0.0,
+    "minimum_relevant_descriptor_gate_delta": 0.000001,
+    "minimum_enabled_logit_delta": 0.00000001,
+    "require_no_cipher_identity_or_experts": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "training or optimizer updates during K1-AV readiness",
+    "16-pair expansion",
+    "larger samples, epochs, width, or seeds",
+    "changing datasets, negatives, runtime structures, checkpoints, or mismatch order",
+    "loss reweighting, PCGrad, adapters, routers, experts, or MoE",
+    "remote GPU execution"
+  ],
+  "next_training": {
+    "run_label": "K1-AW",
+    "anchor": "K1-AT single-scalar structure gate",
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "optimizer_steps_per_replica": 1920,
+    "replicas": [0, 1],
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  }
+}
