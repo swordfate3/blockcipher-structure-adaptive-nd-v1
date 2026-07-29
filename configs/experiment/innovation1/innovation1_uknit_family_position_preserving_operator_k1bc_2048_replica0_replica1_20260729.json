@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_position_preserving_operator_k1bc",
+  "run_id": "i1_uknit_family_position_preserving_operator_k1bc_2048_replica0_replica1_20260729",
+  "question": "Does training only K1-BB's shared position-preserving operator encoder retain or improve the frozen K1-AZ same-budget anchor while preferring the correct actual GF(2) topology over same-summary corrupted and compatible cross-cipher operators?",
+  "readiness": {
+    "run_id": "i1_uknit_family_position_preserving_operator_k1bb_readiness_20260729",
+    "root": "outputs/local_readiness/i1_uknit_family_position_preserving_operator_k1bb_readiness_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_position_preserving_operator_k1bb_readiness_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1bb_position_preserving_operator_readiness_authorized",
+    "digests": {
+      "gate.json": "3211013d1c90b8f2e74ca222a9b0677f461d0852c0861d9d99fb5f8bdb1a3c5f",
+      "validation.json": "c9c8f03e00879bfff90921bb81340d921874b3f486cabc20e847f8d707579e84",
+      "results.jsonl": "171d41badb9b18c4ab75ffb2556c03e34d6bdef8b9d96d6437df2b789c7d69d6",
+      "operator_controls.json": "946b2e8f82bf841c66b3777695a93d2f2e93f232a2d59ff8bdd0ca5d9475bbf8",
+      "geometry.json": "502f52b73896bdf2654ba19747beca269742b68f0c6a8d38a3d9298c5598ae47",
+      "checkpoint_manifest.json": "3bd45bc98071e0667f7b6604e2fc3965f96b094f5e91d44c13d7ce2e3ba76e63",
+      "dataset_manifest.jsonl": "0d1fb60a2ae61a0665e1dbf6d26a93c403bf7a46ba603b93e51af36dd8c13358"
+    }
+  },
+  "same_budget_anchor": {
+    "run_id": "i1_uknit_family_component_separated_structure_gate_k1az_2048_replica0_replica1_20260729",
+    "root": "outputs/local_diagnostic/i1_uknit_family_component_separated_structure_gate_k1az_2048_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_component_separated_structure_gate_k1az_2048_replica0_replica1_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1az_component_separated_training_not_supported",
+    "digests": {
+      "gate.json": "278b475252170abe922eb7e3f9fcf481a7654dd41617251089a31444fd869175",
+      "validation.json": "fe2acd09e3e923902e13b4fb9330c7f837247c6248b748ba6a44a166f5177a53",
+      "results.jsonl": "81bf2103d542e7c35ba90034293f2f82a92f97a937170c7a323ab53e65797a4d",
+      "controls.jsonl": "f52bd7235fc24b8dc021713ff5eb562aa9830200cb362794278ab93d5b53aebf",
+      "checkpoint_manifest.json": "7ddede808ad502bf83f35ddc2ab81046b39b91c04f5c1fa67acc15b034ce4ad4",
+      "dataset_manifest.jsonl": "0d1fb60a2ae61a0665e1dbf6d26a93c403bf7a46ba603b93e51af36dd8c13358"
+    }
+  },
+  "model": {
+    "hidden_dim": 32,
+    "pair_embedding_dim": 128,
+    "dropout": 0.0,
+    "modulation_scale": 0.05,
+    "encoder_initialization_seeds": [40, 41],
+    "frozen_anchor": "exact_k1az_epoch9_checkpoint",
+    "trainable_path": "position_preserving_operator_encoder_only",
+    "expected_trainable_parameters": 41088,
+    "cipher_identity": false,
+    "per_cipher_modules": false
+  },
+  "replicas": [
+    {
+      "replica": 0,
+      "encoder_initialization_seed": 40,
+      "dataset_seeds": {"uknit64": 3, "midori64": 6, "dialga128": 0}
+    },
+    {
+      "replica": 1,
+      "encoder_initialization_seed": 41,
+      "dataset_seeds": {"uknit64": 4, "midori64": 7, "dialga128": 1}
+    }
+  ],
+  "training": {
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "equal_batches_per_cipher_per_epoch": 64,
+    "optimizer_steps_per_epoch": 192,
+    "optimizer_steps_total_per_replica": 1920,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "checkpoint_metric": "minimum_cross_key_auc_across_ciphers",
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  },
+  "controls": {
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_operator",
+      "same_summary_corrupted_operator",
+      "cross_cipher_operator",
+      "disabled_k1az"
+    ],
+    "cross_operator_construction": {
+      "uknit64": "midori64_native_operator",
+      "midori64": "uknit64_native_operator",
+      "dialga128": "uknit64_block_diagonal_x2"
+    },
+    "corruption_seed": 20260729,
+    "expected_rows": 48,
+    "optimizer_steps": 0
+  },
+  "gates": {
+    "cross_key_macro_improvement_per_replica": 0.0,
+    "per_panel_no_harm_margin": -0.005,
+    "correct_minus_control_margin": 0.001,
+    "minimum_passing_panels_per_topology_control": 10,
+    "minimum_passing_panels_per_cipher_per_topology_control": 3,
+    "require_each_replica_and_split_covered": true,
+    "disabled_k1az_is_same_budget_anchor": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "remote execution",
+    "16-pair expansion",
+    "larger samples, epochs, width, or additional seeds",
+    "unfreezing the K1-AZ anchor or changing the classifier",
+    "loss reweighting, PCGrad, per-cipher heads, adapters, routers, MoE, or experts",
+    "changing datasets, labels, negatives, encryption runtime, checkpoint selection, or metric computation"
+  ]
+}
