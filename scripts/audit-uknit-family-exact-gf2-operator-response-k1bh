@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from blockcipher_nd.cli.audit_uknit_family_exact_gf2_operator_response_k1bh import (  # noqa: E402
+    main,
+)
+
+
+raise SystemExit(main())

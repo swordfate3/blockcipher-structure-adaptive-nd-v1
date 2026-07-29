@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_uknit_family_exact_gf2_operator_response_k1bh_audit_replica0_replica1_20260729",
+  "experiment": "innovation1_uknit_family_exact_gf2_operator_response_k1bh_audit",
+  "source": {
+    "root": "outputs/local_readiness/i1_uknit_family_deterministic_token_edge_basis_k1bg_readiness_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_deterministic_token_edge_basis_k1bg_readiness_20260729.json",
+    "config_sha256": "1549994ed2d0fabf2ce2d4e20fa2b26f5ae27dc7d3dba264c85c04e2e40fe9d3",
+    "digests": {
+      "gate.json": "a63433a86449d9cb3a3d6975b2dc1f6a31a61a23ed7dc5d3fcf191f692e17e4a",
+      "validation.json": "23d18959b0b9fda8d99d9b189c61253f1087a4df733ed44bee564e5a858bf511",
+      "results.jsonl": "35a9fef7b40abbddaf82f994351dc87233e50f055c29346bddf3f465bde67124",
+      "panel_results.jsonl": "6c938a2b0ccbf57a69a11686d17a3d58714f95cb36a3ae0b1a523b858996c0cf",
+      "summary.json": "867aaaf5389ae8d989fe53e7bbdd3729a2c61eda4c81564220d624a2a650cab9",
+      "geometry.json": "9e108e6579e3e26f45857481eb449fd8c18a3bc487e146dc60e95fcf4c78b395"
+    },
+    "required_decision": "innovation1_uknit_family_k1bg_deterministic_basis_topology_lift_not_supported"
+  },
+  "feature": {
+    "raw_channels_per_bit": 3,
+    "response_channels_per_bit": 12,
+    "views": ["raw", "inverse_linear_0", "inverse_linear_1", "composed_1_then_0"],
+    "pair_reduction": "mean",
+    "native_bit_order_preserved": true,
+    "cell_and_bit_role_coordinates_preserved": true,
+    "sbox_semantics_used": false,
+    "expected_feature_dims": {
+      "uknit64": 768,
+      "midori64": 768,
+      "dialga128": 1536
+    }
+  },
+  "probe": {
+    "family": "diagonal_fisher",
+    "variance_floor": 0.000001,
+    "fit_condition": "correct_operator",
+    "counterfactuals_reuse_correct_fit": true,
+    "fit_rows": 4096,
+    "fresh_rows": 2048,
+    "label_shuffle_seeds": {
+      "replica0": {"uknit64": 73100, "midori64": 73101, "dialga128": 73102},
+      "replica1": {"uknit64": 73200, "midori64": 73201, "dialga128": 73202}
+    }
+  },
+  "evaluation": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_operator",
+      "same_summary_corrupted_operator",
+      "cross_cipher_operator",
+      "identity_operator",
+      "label_shuffled_correct_operator"
+    ],
+    "expected_result_rows": 60,
+    "expected_feature_rows": 72,
+    "expected_scorer_rows": 12,
+    "pairs_per_sample": 4,
+    "neural_training_performed": false,
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "device": "cpu",
+    "execution": "local_audit"
+  },
+  "gates": {
+    "correct_operator_auc_min": 0.55,
+    "correct_minus_identity_auc_min": 0.01,
+    "correct_minus_each_wrong_operator_auc_min": 0.01,
+    "correct_minus_label_shuffle_auc_min": 0.03,
+    "label_shuffle_auc_max": 0.53,
+    "minimum_nonzero_response_rms": 0.0,
+    "require_every_replica_cipher_fresh_split": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "neural training before audit passes",
+    "refitting a separate probe for each wrong operator",
+    "16-pair expansion",
+    "larger samples, epochs, width, seeds, or remote execution",
+    "cipher IDs, per-cipher neural heads, adapters, routers, MoE, or experts",
+    "label, negative-definition, key-sampling, difference, or benchmark changes"
+  ]
+}
