@@ -240,6 +240,12 @@ def evaluate_position(
     exact_structure: RuntimeSpnStructure,
     wrong_sbox_structure: RuntimeSpnStructure,
     batch_size: int = 256,
+    run_id: str = RUN_ID,
+    rounds: int = 5,
+    bit_index: int | None = None,
+    active_bit_role: int = ACTIVE_BIT_ROLE,
+    input_difference: int | None = None,
+    label_shuffle_seed_base: int = 20260728,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     views = DISCOVERY_VIEWS if phase == DISCOVERY_PHASE else CONFIRMATION_VIEWS
     if phase not in {DISCOVERY_PHASE, CONFIRMATION_PHASE}:
@@ -247,7 +253,14 @@ def evaluate_position(
     if set(datasets) != set(EXPECTED_SPLITS):
         raise ValueError("K1-Q requires train, same-key fresh, and cross-key splits")
 
-    input_difference = candidate_difference(cell)
+    resolved_bit_index = (
+        candidate_bit_index(cell) if bit_index is None else int(bit_index)
+    )
+    resolved_input_difference = (
+        candidate_difference(cell)
+        if input_difference is None
+        else int(input_difference)
+    )
     split_views: dict[str, dict[str, np.ndarray]] = {}
     feature_rows: list[dict[str, Any]] = []
     for split in EXPECTED_SPLITS:
@@ -263,15 +276,15 @@ def evaluate_position(
         for view in views:
             feature_rows.append(
                 {
-                    "run_id": RUN_ID,
+                    "run_id": run_id,
                     "phase": phase,
                     "cipher_key": "uknit64",
-                    "rounds": 5,
+                    "rounds": rounds,
                     "cell": cell,
-                    "bit_index": candidate_bit_index(cell),
-                    "active_bit_role": ACTIVE_BIT_ROLE,
-                    "input_difference": input_difference,
-                    "input_difference_hex": f"0x{input_difference:016x}",
+                    "bit_index": resolved_bit_index,
+                    "active_bit_role": active_bit_role,
+                    "input_difference": resolved_input_difference,
+                    "input_difference_hex": f"0x{resolved_input_difference:016x}",
                     "seed": seed,
                     "split": split,
                     "view": view,
@@ -286,7 +299,7 @@ def evaluate_position(
     train_labels = np.asarray(train.labels, dtype=np.uint8)
     shuffled_labels, permutation_sha = deterministic_label_shuffle(
         train_labels,
-        seed=20260728 + seed * 100 + cell,
+        seed=label_shuffle_seed_base + seed * 100 + resolved_bit_index,
     )
     scorer_rows: list[dict[str, Any]] = []
     result_rows: list[dict[str, Any]] = []
@@ -295,15 +308,15 @@ def evaluate_position(
         scorer = fit_diagonal_fisher(split_views["train_seen"][view], fit_labels)
         scorer_rows.append(
             {
-                "run_id": RUN_ID,
+                "run_id": run_id,
                 "phase": phase,
                 "cipher_key": "uknit64",
-                "rounds": 5,
+                "rounds": rounds,
                 "cell": cell,
-                "bit_index": candidate_bit_index(cell),
-                "active_bit_role": ACTIVE_BIT_ROLE,
-                "input_difference": input_difference,
-                "input_difference_hex": f"0x{input_difference:016x}",
+                "bit_index": resolved_bit_index,
+                "active_bit_role": active_bit_role,
+                "input_difference": resolved_input_difference,
+                "input_difference_hex": f"0x{resolved_input_difference:016x}",
                 "seed": seed,
                 "view": view,
                 "fit_split": "train_seen",
@@ -331,15 +344,15 @@ def evaluate_position(
             scores = scorer.score(feature_values)
             result_rows.append(
                 {
-                    "run_id": RUN_ID,
+                    "run_id": run_id,
                     "phase": phase,
                     "cipher_key": "uknit64",
-                    "rounds": 5,
+                    "rounds": rounds,
                     "cell": cell,
-                    "bit_index": candidate_bit_index(cell),
-                    "active_bit_role": ACTIVE_BIT_ROLE,
-                    "input_difference": input_difference,
-                    "input_difference_hex": f"0x{input_difference:016x}",
+                    "bit_index": resolved_bit_index,
+                    "active_bit_role": active_bit_role,
+                    "input_difference": resolved_input_difference,
+                    "input_difference_hex": f"0x{resolved_input_difference:016x}",
                     "seed": seed,
                     "split": split,
                     "view": view,

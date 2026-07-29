@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from blockcipher_nd.cli.audit_uknit_family_ctspn_k1q import (
+    build_structures,
+    cache_argv,
+    prepare_position_datasets,
+    write_position_csv,
+)
 from blockcipher_nd.cli.plot_uknit_family_ctspn_k1q import render_k1q_svg
 from blockcipher_nd.cli.run_uknit_family_ctspn_k1m import (
     progress,
@@ -14,49 +19,35 @@ from blockcipher_nd.cli.run_uknit_family_ctspn_k1m import (
     write_json,
     write_jsonl,
 )
-from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.matrix_runner import parse_args as parse_train_args
-from blockcipher_nd.engine.task_config import (
-    build_dataset_config,
-    resolve_task_keys,
-    validation_samples_per_class,
-)
-from blockcipher_nd.engine.task_inputs import prepare_task_inputs
 from blockcipher_nd.planning.matrix import tasks_from_plan
-from blockcipher_nd.registry.cipher_factory import build_cipher
-from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1 import (
-    differential_dataset_sha256,
-    file_sha256,
-)
-from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1g import (
-    SAME_KEY_SEED_OFFSET,
-    dataset_row_overlap_count,
-)
-from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1n import (
-    build_k1n_control,
-)
-from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1q import (
+from blockcipher_nd.tasks.innovation1.uknit_ctspn_r6_position_k1bl import (
+    ACTIVE_BIT_ROLE,
+    ANCHOR_CELL,
     CONFIRMATION_PHASE,
     DISCOVERY_PHASE,
-    EXPECTED_SPLITS,
+    ROUNDS,
     RUN_ID,
-    adjudicate_k1q,
+    adjudicate_k1bl,
     bind_discovery_input_differences,
     build_confirmation_tasks,
-    candidate_bit_index,
-    candidate_difference,
-    evaluate_position,
     select_discovery_candidates,
     validate_confirmation_tasks,
     validate_discovery_tasks,
+)
+from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1 import file_sha256
+from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1q import (
+    candidate_bit_index,
+    candidate_difference,
+    evaluate_position,
 )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Screen the same uKNIT role-1 input bit across sixteen native cells at "
-            "r5, then confirm at most two candidates on untouched seeds."
+            "Scan the uKNIT r6 role-1 input bit across all native cells, then "
+            "confirm the r5 cell11 anchor and at most two new candidates."
         )
     )
     parser.add_argument("--plan", required=True, type=Path)
@@ -71,14 +62,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.run_id != RUN_ID:
-        raise ValueError(f"K1-Q run_id must remain frozen as {RUN_ID}")
+        raise ValueError(f"K1-BL run_id must remain frozen as {RUN_ID}")
     if args.batch_size != 256:
-        raise ValueError("K1-Q feature batch size is frozen at 256")
+        raise ValueError("K1-BL feature batch size is frozen at 256")
 
     discovery_tasks = read_tasks(args.plan)
     task_checks = validate_discovery_tasks(discovery_tasks)
     if not all(task_checks.values()):
-        raise ValueError(f"K1-Q discovery task protocol is invalid: {task_checks}")
+        raise ValueError(f"K1-BL discovery protocol is invalid: {task_checks}")
 
     if args.resume:
         validate_resume_root(args)
@@ -96,30 +87,27 @@ def main(argv: list[str] | None = None) -> int:
                 "plan": str(args.plan),
                 "plan_sha256": file_sha256(args.plan),
                 "task_checks": task_checks,
+                "rounds": ROUNDS,
                 "feature_batch_size": args.batch_size,
                 "device": args.device,
-                "training_rows": 0,
-                "neural_parameter_count": 0,
-                "optimizer_steps": 0,
-                "epochs": 0,
             },
         )
-        progress(args.output_root / "progress.jsonl", "k1q_preflight_passed")
+        progress(args.output_root / "progress.jsonl", "k1bl_preflight_passed")
 
     train_args = parse_train_args(cache_argv(args))
+    dataset_rows: list[dict[str, Any]] = []
     feature_rows: list[dict[str, Any]] = []
     scorer_rows: list[dict[str, Any]] = []
     result_rows: list[dict[str, Any]] = []
-    dataset_rows: list[dict[str, Any]] = []
 
     progress(
         args.output_root / "progress.jsonl",
-        "k1q_discovery_start",
+        "k1bl_discovery_start",
         candidate_count=len(discovery_tasks),
     )
     for index, task in enumerate(discovery_tasks, start=1):
         cell = int(task["model_options"]["active_cell"])
-        datasets, manifests = prepare_position_datasets(
+        datasets, manifests = prepare_k1bl_datasets(
             task=task,
             train_args=train_args,
             output_root=args.output_root,
@@ -130,87 +118,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         dataset_rows.extend(manifests)
         exact, wrong = build_structures(task, datasets)
-        features, scorers, results = evaluate_position(
+        features, scorers, results = evaluate_k1bl_position(
             phase=DISCOVERY_PHASE,
-            cell=cell,
-            seed=int(task["seed"]),
-            datasets=datasets,
-            exact_structure=exact,
-            wrong_sbox_structure=wrong,
-            batch_size=args.batch_size,
-        )
-        feature_rows.extend(features)
-        scorer_rows.extend(scorers)
-        result_rows.extend(results)
-        progress(
-            args.output_root / "progress.jsonl",
-            "k1q_discovery_position_done",
-            cell=cell,
-            input_difference=f"0x{candidate_difference(cell):016x}",
-            index=index,
-            total=len(discovery_tasks),
-        )
-
-    selection = select_discovery_candidates(result_rows)
-    write_json(args.output_root / "selection.json", selection)
-    write_partial_artifacts(
-        args.output_root,
-        dataset_rows=dataset_rows,
-        feature_rows=feature_rows,
-        scorer_rows=scorer_rows,
-        result_rows=result_rows,
-    )
-    progress(
-        args.output_root / "progress.jsonl",
-        "k1q_discovery_done",
-        selected_cells=selection["selected_cells"],
-    )
-
-    confirmation_tasks = build_confirmation_tasks(
-        discovery_tasks,
-        selection["selected_cells"],
-    )
-    confirmation_checks = validate_confirmation_tasks(
-        confirmation_tasks,
-        selection["selected_cells"],
-    )
-    if not all(confirmation_checks.values()):
-        raise ValueError(
-            f"K1-Q confirmation task protocol is invalid: {confirmation_checks}"
-        )
-
-    if confirmation_tasks:
-        progress(
-            args.output_root / "progress.jsonl",
-            "k1q_confirmation_start",
-            task_count=len(confirmation_tasks),
-            cells=sorted(
-                {
-                    int(task["model_options"]["active_cell"])
-                    for task in confirmation_tasks
-                }
-            ),
-        )
-    for index, task in enumerate(confirmation_tasks, start=1):
-        cell = int(task["model_options"]["active_cell"])
-        datasets, manifests = prepare_position_datasets(
             task=task,
-            train_args=train_args,
-            output_root=args.output_root,
-            phase=CONFIRMATION_PHASE,
-            cell=cell,
-            index=index,
-            total=len(confirmation_tasks),
-        )
-        dataset_rows.extend(manifests)
-        exact, wrong = build_structures(task, datasets)
-        features, scorers, results = evaluate_position(
-            phase=CONFIRMATION_PHASE,
-            cell=cell,
-            seed=int(task["seed"]),
             datasets=datasets,
-            exact_structure=exact,
-            wrong_sbox_structure=wrong,
+            exact=exact,
+            wrong=wrong,
             batch_size=args.batch_size,
         )
         feature_rows.extend(features)
@@ -225,7 +138,75 @@ def main(argv: list[str] | None = None) -> int:
         )
         progress(
             args.output_root / "progress.jsonl",
-            "k1q_confirmation_task_done",
+            "k1bl_discovery_position_done",
+            cell=cell,
+            input_difference=f"0x{candidate_difference(cell):016x}",
+            index=index,
+            total=len(discovery_tasks),
+        )
+
+    selection = select_discovery_candidates(result_rows)
+    write_json(args.output_root / "selection.json", selection)
+    progress(
+        args.output_root / "progress.jsonl",
+        "k1bl_discovery_done",
+        anchor_passes_discovery=selection["anchor_passes_discovery"],
+        selected_cells=selection["selected_cells"],
+    )
+
+    confirmation_tasks = build_confirmation_tasks(
+        discovery_tasks, selection["selected_cells"]
+    )
+    confirmation_checks = validate_confirmation_tasks(
+        confirmation_tasks, selection["selected_cells"]
+    )
+    if not all(confirmation_checks.values()):
+        raise ValueError(f"K1-BL confirmation protocol is invalid: {confirmation_checks}")
+    progress(
+        args.output_root / "progress.jsonl",
+        "k1bl_confirmation_start",
+        task_count=len(confirmation_tasks),
+        cells=sorted(
+            {
+                int(task["model_options"]["active_cell"])
+                for task in confirmation_tasks
+            }
+        ),
+    )
+    for index, task in enumerate(confirmation_tasks, start=1):
+        cell = int(task["model_options"]["active_cell"])
+        datasets, manifests = prepare_k1bl_datasets(
+            task=task,
+            train_args=train_args,
+            output_root=args.output_root,
+            phase=CONFIRMATION_PHASE,
+            cell=cell,
+            index=index,
+            total=len(confirmation_tasks),
+        )
+        dataset_rows.extend(manifests)
+        exact, wrong = build_structures(task, datasets)
+        features, scorers, results = evaluate_k1bl_position(
+            phase=CONFIRMATION_PHASE,
+            task=task,
+            datasets=datasets,
+            exact=exact,
+            wrong=wrong,
+            batch_size=args.batch_size,
+        )
+        feature_rows.extend(features)
+        scorer_rows.extend(scorers)
+        result_rows.extend(results)
+        write_partial_artifacts(
+            args.output_root,
+            dataset_rows=dataset_rows,
+            feature_rows=feature_rows,
+            scorer_rows=scorer_rows,
+            result_rows=result_rows,
+        )
+        progress(
+            args.output_root / "progress.jsonl",
+            "k1bl_confirmation_task_done",
             cell=cell,
             seed=int(task["seed"]),
             index=index,
@@ -246,15 +227,11 @@ def main(argv: list[str] | None = None) -> int:
         ),
         "durable_cache_progress_recorded": any(
             row.get("event")
-            in {
-                "cache_positive_chunk",
-                "cache_negative_chunk",
-                "cache_reuse",
-            }
+            in {"cache_positive_chunk", "cache_negative_chunk", "cache_reuse"}
             for row in progress_rows
         ),
     }
-    gate = adjudicate_k1q(
+    gate = adjudicate_k1bl(
         discovery_tasks=discovery_tasks,
         selection=selection,
         dataset_rows=dataset_rows,
@@ -277,42 +254,17 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def read_tasks(path: Path) -> list[dict[str, Any]]:
-    parsed = tasks_from_plan(
+    tasks = tasks_from_plan(
         path,
         feature_encoding="ciphertext_pair_bits",
         pairs_per_sample=4,
         difference_profile=None,
         difference_member=0,
     )
-    return bind_discovery_input_differences(parsed)
+    return bind_discovery_input_differences(tasks)
 
 
-def cache_argv(args: argparse.Namespace) -> list[str]:
-    return [
-        "--plan",
-        str(args.plan),
-        "--device",
-        args.device,
-        "--batch-size",
-        "64",
-        "--hidden-bits",
-        "32",
-        "--dataset-cache-root",
-        str(args.output_root / "cache"),
-        "--dataset-cache-chunk-size",
-        "1024",
-        "--dataset-cache-workers",
-        "1",
-        "--checkpoint-output-dir",
-        str(args.output_root / "unused-checkpoints"),
-        "--progress-output",
-        str(args.output_root / "progress.jsonl"),
-        "--output",
-        str(args.output_root / "unused-training-results.jsonl"),
-    ]
-
-
-def prepare_position_datasets(
+def prepare_k1bl_datasets(
     *,
     task: dict[str, Any],
     train_args: argparse.Namespace,
@@ -321,119 +273,48 @@ def prepare_position_datasets(
     cell: int,
     index: int,
     total: int,
-    run_id: str = RUN_ID,
-    rounds: int = 5,
-    bit_index: int | None = None,
-    active_bit_role: int = 1,
-    input_difference: int | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    inputs = prepare_task_inputs(
-        task,
-        train_args,
-        progress_path=str(output_root / "progress.jsonl"),
+    return prepare_position_datasets(
+        task=task,
+        train_args=train_args,
+        output_root=output_root,
+        phase=phase,
+        cell=cell,
         index=index,
         total=total,
+        run_id=RUN_ID,
+        rounds=ROUNDS,
+        bit_index=candidate_bit_index(cell),
+        active_bit_role=ACTIVE_BIT_ROLE,
+        input_difference=candidate_difference(cell),
     )
-    train_key, validation_key = resolve_task_keys(task)
-    same_key_task = {**task, "validation_key": train_key}
-    same_key_cipher = build_cipher("uknit64", rounds, key=train_key)
-    same_key_config = build_dataset_config(
-        same_key_task,
-        cipher=same_key_cipher,
-        samples_per_class=validation_samples_per_class(task),
-        seed=int(task["seed"]) + SAME_KEY_SEED_OFFSET,
-        split="validation",
-    )
-    same_key_dataset = make_task_dataset(
-        same_key_config,
-        train_args,
-        same_key_task,
-        split="same_key_fresh",
-        progress_path=str(output_root / "progress.jsonl"),
-        index=index,
-        total=total,
-    )
-    datasets = {
-        "train_seen": inputs.train_dataset,
-        "same_key_fresh": same_key_dataset,
-        "cross_key_validation": inputs.validation_dataset,
-    }
-    train_dataset = datasets["train_seen"]
-    resolved_bit_index = (
-        candidate_bit_index(cell) if bit_index is None else int(bit_index)
-    )
-    resolved_input_difference = (
-        candidate_difference(cell)
-        if input_difference is None
-        else int(input_difference)
-    )
-    manifests = []
-    for split in EXPECTED_SPLITS:
-        dataset = datasets[split]
-        overlap = (
-            0
-            if split == "train_seen"
-            else dataset_row_overlap_count(train_dataset, dataset)
-        )
-        key = train_key if split != "cross_key_validation" else validation_key
-        cache_dir = Path(str(getattr(dataset, "cache_dir", "")))
-        manifests.append(
-            {
-                "run_id": run_id,
-                "phase": phase,
-                "cipher_key": "uknit64",
-                "rounds": rounds,
-                "cell": cell,
-                "bit_index": resolved_bit_index,
-                "active_bit_role": active_bit_role,
-                "input_difference": resolved_input_difference,
-                "input_difference_hex": f"0x{resolved_input_difference:016x}",
-                "seed": int(task["seed"]),
-                "dataset_seed": dataset_seed(int(task["seed"]), split),
-                "split": split,
-                "key_scope": (
-                    "validation_key"
-                    if split == "cross_key_validation"
-                    else "train_key"
-                ),
-                "key_hex": f"0x{int(key):032x}",
-                "rows": int(dataset.features.shape[0]),
-                "dataset_sha256": differential_dataset_sha256(dataset),
-                "cache_dir": str(cache_dir),
-                "cache_payloads_present": all(
-                    (cache_dir / name).is_file()
-                    for name in ("metadata.json", "features.npy", "labels.npy")
-                ),
-                "row_overlap_with_train": overlap,
-            }
-        )
-    return datasets, manifests
 
 
-def build_structures(
+def evaluate_k1bl_position(
+    *,
+    phase: str,
     task: Mapping[str, Any],
     datasets: Mapping[str, Any],
-) -> tuple[Any, Any]:
-    input_bits = int(datasets["train_seen"].features.shape[1])
-    exact = build_k1n_control(
-        task=task,
-        condition="exact_composition",
-        input_bits=input_bits,
-    ).runtime_structure
-    wrong = build_k1n_control(
-        task=task,
-        condition="wrong_sbox_semantics",
-        input_bits=input_bits,
-    ).runtime_structure
-    return exact, wrong
-
-
-def dataset_seed(seed: int, split: str) -> int:
-    if split == "same_key_fresh":
-        return seed + SAME_KEY_SEED_OFFSET
-    if split == "cross_key_validation":
-        return seed + 10_000
-    return seed
+    exact: Any,
+    wrong: Any,
+    batch_size: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    cell = int(task["model_options"]["active_cell"])
+    return evaluate_position(
+        phase=phase,
+        cell=cell,
+        seed=int(task["seed"]),
+        datasets=datasets,
+        exact_structure=exact,
+        wrong_sbox_structure=wrong,
+        batch_size=batch_size,
+        run_id=RUN_ID,
+        rounds=ROUNDS,
+        bit_index=candidate_bit_index(cell),
+        active_bit_role=ACTIVE_BIT_ROLE,
+        input_difference=candidate_difference(cell),
+        label_shuffle_seed_base=20260729,
+    )
 
 
 def write_partial_artifacts(
@@ -478,7 +359,6 @@ def finalize(
         "scorer_rows": len(scorer_rows),
         "result_rows": len(result_rows),
         "training_rows": 0,
-        "neural_parameter_count": 0,
         "optimizer_steps": 0,
         "epochs": 0,
     }
@@ -495,15 +375,22 @@ def finalize(
             "confirmed_cells": gate["confirmed_cells"],
             "next_action": gate["next_action"],
             "claim_scope": gate["claim_scope"],
-            "dataset_rows": len(dataset_rows),
-            "feature_rows": len(feature_rows),
-            "scorer_rows": len(scorer_rows),
-            "result_rows": len(result_rows),
-            "training_rows": 0,
-            "optimizer_steps": 0,
         },
     )
-    plot_report = render_k1q_svg(gate, output_root / "curves.svg")
+    plot_report = render_k1q_svg(
+        gate,
+        output_root / "curves.svg",
+        cipher_label="uKNIT",
+        rounds=ROUNDS,
+        anchor_cell=ANCHOR_CELL,
+        anchor_label="r5最强位置",
+        always_show_anchor=True,
+        left_margin=0.13,
+        subtitle=(
+            "固定 bit_role=1、四对密文、严格负样本和精确五阶段特征；"
+            "只把轮数从 r5 推到 r6，并在 16 个原生 cell 之间移动差分。"
+        ),
+    )
     write_json(output_root / "plot_report.json", plot_report)
     progress(
         output_root / "progress.jsonl",
@@ -516,40 +403,6 @@ def finalize(
     )
 
 
-def write_position_csv(
-    path: Path,
-    rows: Sequence[Mapping[str, Any]],
-) -> None:
-    fields = (
-        "phase",
-        "cell",
-        "bit_index",
-        "active_bit_role",
-        "input_difference_hex",
-        "seed",
-        "split",
-        "view",
-        "rows",
-        "auc",
-        "zero_threshold_accuracy",
-        "feature_dim",
-        "dataset_sha256",
-        "feature_sha256",
-        "scorer_sha256",
-        "fit_rows",
-        "pairs_per_sample",
-        "negative_mode",
-        "training_performed",
-        "neural_parameter_count",
-        "optimizer_steps",
-        "epochs",
-    )
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
-
-
 def validate_resume_root(args: argparse.Namespace) -> None:
     preflight = read_json(args.output_root / "preflight.json")
     if (
@@ -557,7 +410,7 @@ def validate_resume_root(args: argparse.Namespace) -> None:
         or preflight.get("plan_sha256") != file_sha256(args.plan)
         or preflight.get("plan") != str(args.plan)
     ):
-        raise ValueError("K1-Q resume root does not match the frozen run")
+        raise ValueError("K1-BL resume root does not match the frozen run")
 
 
 def require_fresh_output_root(path: Path) -> None:
@@ -573,20 +426,11 @@ def require_fresh_output_root(path: Path) -> None:
         "cache",
     )
     if path.exists() and any((path / name).exists() for name in protected):
-        raise ValueError("K1-Q output root already contains run artifacts")
+        raise ValueError("K1-BL output root already contains run artifacts")
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
 
 
-__all__ = [
-    "build_structures",
-    "cache_argv",
-    "dataset_seed",
-    "main",
-    "parse_args",
-    "prepare_position_datasets",
-    "read_tasks",
-    "write_position_csv",
-]
+__all__ = ["main", "parse_args", "read_tasks"]

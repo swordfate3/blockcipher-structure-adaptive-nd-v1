@@ -1,3 +1,59 @@
+## [LRN-20260730-001] best_practice
+
+**Logged**: 2026-07-30T00:01:41+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+A failed preregistered input-difference data gate is not a failed neural
+architecture; report the searched differential-family boundary separately from
+a universal round-randomness or network-ceiling claim.
+
+### Details
+
+The uKNIT r5 specialist already has retrieved remote `65536/class` evidence:
+exact S-box AUC `0.974540/0.967867` and wrong-S-box AUC
+`0.503901/0.505827` on seeds 3/4. At r6, K1-BL/K1-BM then scanned all 64
+single-bit input positions, and K1-BN scanned 48 candidates frozen from 176
+cell-local and 256 prefiltered two-cell DDT/trail pools. No r6 candidate passed
+the frozen `AUC >= 0.550` plus `exact - raw >= +0.010` discovery gate, so no
+r6 neural comparison was authorized.
+
+This supports r5 as the last stable round and r6 as the observed random
+boundary for the searched single-bit and trail-guided multibit families. It
+does not show that the specialist network failed at r6, because it was not
+trained there, and it does not quantify all `2^64 - 1` possible input
+differences or every future representation.
+
+### Suggested Action
+
+Before training a higher-round uKNIT model, require a fresh same-protocol input
+difference to pass the deterministic data gate and required controls. If the
+gate fails, stop remote scaling and architecture attribution, record the exact
+searched families and evidence scale, and use "observed boundary" rather than
+"all differences are random" or "the neural network reached its ceiling."
+
+### Metadata
+
+- Source: verified_local_experiment, self-improvement
+- Related Files: docs/experiments/innovation1-uknit-r6-role1-position-k1bl-plan.md, docs/experiments/innovation1-uknit-r6-remaining-roles-k1bm-plan.md, docs/experiments/innovation1-uknit-r6-trail-multibit-k1bn-plan.md
+- Tags: innovation1, uknit, difference-position, multibit, data-gate, neural-ceiling, evidence-scope
+- See Also: LRN-20260729-002, LRN-20260728-009
+- Pattern-Key: research.failed_difference_gate_not_neural_ceiling
+- Recurrence-Count: 1
+- First-Seen: 2026-07-30
+- Last-Seen: 2026-07-30
+
+### Resolution
+
+- **Resolved**: 2026-07-30T00:01:41+08:00
+- **Commit/PR**: pending
+- **Notes**: Completed K1-BN and documented the searched r5-to-r6 empirical boundary without a universal-randomness claim.
+
+---
+
 ## [LRN-20260728-009] best_practice
 
 **Logged**: 2026-07-28T15:21:29+08:00

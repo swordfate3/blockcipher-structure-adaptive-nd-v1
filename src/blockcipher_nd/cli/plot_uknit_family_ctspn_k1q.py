@@ -54,6 +54,10 @@ def render_k1q_svg(
     rounds: int = 5,
     confirmation_seeds: tuple[int, ...] = CONFIRMATION_SEEDS,
     anchor_cell: int = ANCHOR_CELL,
+    anchor_label: str = "0x40",
+    always_show_anchor: bool = False,
+    subtitle: str | None = None,
+    left_margin: float = 0.07,
 ) -> dict[str, Any]:
     selection = gate.get("selection", {})
     ranking = selection.get("ranking", [])
@@ -80,7 +84,7 @@ def render_k1q_svg(
     ):
         figure, axes = plt.subplots(2, 2, figsize=(16, 11.2))
         figure.subplots_adjust(
-            left=0.07,
+            left=left_margin,
             right=0.96,
             top=0.78,
             bottom=0.09,
@@ -98,7 +102,8 @@ def render_k1q_svg(
         figure.text(
             0.05,
             0.91,
-            "固定同一个 cell 内 bit_role=1、四对密文、严格负样本和精确五阶段特征；只在 16 个 native cell 之间移动差分。",
+            subtitle
+            or "固定同一个 cell 内 bit_role=1、四对密文、严格负样本和精确五阶段特征；只在 16 个 native cell 之间移动差分。",
             ha="left",
             fontsize=10.5,
             color="#4B5563",
@@ -113,7 +118,9 @@ def render_k1q_svg(
             color=_decision_color(str(gate.get("status", ""))),
         )
 
-        _plot_discovery_exact(axes[0, 0], ranking, selected, anchor_cell)
+        _plot_discovery_exact(
+            axes[0, 0], ranking, selected, anchor_cell, anchor_label
+        )
         _plot_discovery_margin(axes[0, 1], ranking, selected, anchor_cell)
         _plot_confirmation_auc(
             axes[1, 0],
@@ -121,6 +128,8 @@ def render_k1q_svg(
             selected,
             confirmation_seeds,
             anchor_cell,
+            anchor_label,
+            always_show_anchor,
         )
         _plot_confirmation_margins(
             axes[1, 1],
@@ -128,6 +137,8 @@ def render_k1q_svg(
             selected,
             confirmation_seeds,
             anchor_cell,
+            anchor_label,
+            always_show_anchor,
         )
 
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -152,6 +163,7 @@ def _plot_discovery_exact(
     ranking: list[Mapping[str, Any]],
     selected: list[int],
     anchor_cell: int,
+    anchor_label: str,
 ) -> None:
     ordered = sorted(ranking, key=lambda row: int(row["cell"]))
     cells = [int(row["cell"]) for row in ordered]
@@ -189,7 +201,9 @@ def _plot_discovery_exact(
         axis.axhline(0.5, color="#9CA3AF", linestyle=(0, (2, 3)), linewidth=1)
         axis.set_ylim(min(0.47, min(values) - 0.02), max(0.58, max(values) + 0.025))
     axis.set_xticks(cells)
-    axis.set_xlabel("native cell 编号（黄色是原 0x40；绿色是入选候选）")
+    axis.set_xlabel(
+        f"native cell 编号（黄色是锚点 {anchor_label}；绿色是入选候选）"
+    )
     axis.set_ylabel("精确五阶段特征 AUC")
     axis.set_title("发现阶段：每个差分位置的 fresh AUC", loc="left", fontweight="bold")
     axis.grid(axis="y", color="#E5E7EB", linewidth=0.8)
@@ -253,8 +267,14 @@ def _plot_confirmation_auc(
     selected: list[int],
     confirmation_seeds: tuple[int, ...],
     anchor_cell: int,
+    anchor_label: str,
+    always_show_anchor: bool,
 ) -> None:
-    cells = [anchor_cell, *selected] if selected else []
+    cells = (
+        [anchor_cell, *selected]
+        if selected or always_show_anchor
+        else []
+    )
     if not cells:
         _empty_confirmation(axis, "发现阶段没有位置同时通过两个 fresh 门槛")
         return
@@ -275,7 +295,7 @@ def _plot_confirmation_auc(
         axis,
         values,
         row_labels=[
-            f"cell {cell}" + ("（0x40）" if cell == anchor_cell else "")
+            f"cell {cell}" + (f"（{anchor_label}）" if cell == anchor_cell else "")
             for cell in cells
         ],
         column_labels=[f"seed{seed}\n{SPLIT_LABELS[split]}" for seed, split in columns],
@@ -292,8 +312,14 @@ def _plot_confirmation_margins(
     selected: list[int],
     confirmation_seeds: tuple[int, ...],
     anchor_cell: int,
+    anchor_label: str,
+    always_show_anchor: bool,
 ) -> None:
-    cells = [anchor_cell, *selected] if selected else []
+    cells = (
+        [anchor_cell, *selected]
+        if selected or always_show_anchor
+        else []
+    )
     if not cells:
         seeds = "/".join(str(seed) for seed in confirmation_seeds)
         _empty_confirmation(
@@ -319,7 +345,7 @@ def _plot_confirmation_margins(
         axis,
         matrix,
         row_labels=[
-            f"cell {cell}" + ("（0x40）" if cell == anchor_cell else "")
+            f"cell {cell}" + (f"（{anchor_label}）" if cell == anchor_cell else "")
             for cell in cells
         ],
         column_labels=["最小\n超过原始密文", "最小\n超过标签打乱"],
@@ -428,6 +454,9 @@ def _decision_text(
     gate: Mapping[str, Any],
     confirmation_seeds: tuple[int, ...],
 ) -> str:
+    explicit = gate.get("decision_text_zh")
+    if explicit:
+        return str(explicit)
     selected = gate.get("selection", {}).get("selected_cells", [])
     confirmed = gate.get("confirmed_cells", [])
     status = str(gate.get("status", ""))
