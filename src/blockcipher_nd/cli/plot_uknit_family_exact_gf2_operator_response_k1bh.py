@@ -263,18 +263,27 @@ def _render_control_margins(
 ) -> None:
     positions = np.arange(len(panels))
     identity = [float(row["correct_minus_identity"]) for row in panels]
-    shuffle = [float(row["correct_minus_label_shuffle"]) for row in panels]
+    shuffle_deviation = [
+        abs(float(row["label_shuffle_auc"]) - 0.5) for row in panels
+    ]
     axis.scatter(positions, identity, color="#6B7280", marker="D", s=44, label="正确 - 恒等（门槛 +0.01）")
-    axis.scatter(positions, shuffle, color="#2563EB", marker="^", s=52, label="正确 - 标签打乱（门槛 +0.03）")
+    axis.scatter(
+        positions,
+        shuffle_deviation,
+        color="#2563EB",
+        marker="^",
+        s=52,
+        label="|标签打乱 AUC - 0.5|（应不超过0.03）",
+    )
     axis.axhline(0.01, color="#6B7280", linestyle=(0, (3, 3)), linewidth=1.2)
     axis.axhline(0.03, color="#2563EB", linestyle="--", linewidth=1.3)
     axis.axhline(0.0, color="#9CA3AF", linewidth=1)
-    values = identity + shuffle
+    values = identity + shuffle_deviation
     span = max(0.04, max(values + [0.03]) - min(values))
     axis.set_ylim(min(-0.02, min(values) - 0.18 * span), max(0.045, max(values) + 0.2 * span))
     axis.set_xticks(positions, _panel_labels(panels), rotation=27, ha="right")
-    axis.set_ylabel("正确算子 AUC - 控制 AUC")
-    axis.set_title("排除原始密文捷径与标签偶然相关", loc="left", fontweight="bold")
+    axis.set_ylabel("恒等优势 / 标签打乱偏离随机的绝对值")
+    axis.set_title("附加诊断：单向标签门槛会漏掉反向可分信号", loc="left", fontweight="bold")
     axis.grid(axis="y", color="#E5E7EB", linewidth=0.8)
     axis.set_axisbelow(True)
     axis.legend(frameon=False, loc="upper left", fontsize=8.5)
@@ -307,7 +316,7 @@ def _decision_text(gate: Mapping[str, Any]) -> str:
     if decision.endswith("predictive_but_not_topology_identifying"):
         return "裁决：精确响应可以预测，但不能稳定认出正确拓扑；先审计错误算子等价性，不训练新网络。"
     if decision.endswith("exact_operator_signal_unstable"):
-        return "裁决：独立bit均值不能保留uKNIT信号；下一步只测试运行时cell的4-bit联合类别响应，不重复扫差分位置。"
+        return "裁决：独立bit均值不能保留uKNIT信号；下一步测试cell联合响应，并把标签打乱改为0.47–0.53双向门槛。"
     if decision.endswith("shuffle_attribution_not_supported"):
         return "裁决：标签打乱控制没有通过；先修复评分归因，当前结果不能作为结构信号。"
     return "裁决：协议无效；只修复失败的来源、GF(2)实现、评分器复用或产物绑定后原样重跑。"

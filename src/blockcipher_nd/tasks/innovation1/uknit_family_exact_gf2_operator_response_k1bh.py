@@ -685,6 +685,18 @@ def adjudicate_k1bh(
         <= float(config["gates"]["label_shuffle_auc_max"])
         for panel in panels
     )
+    shuffle_two_sided_checks = {
+        f"replica{panel['replica']}|{panel['cipher_key']}|{panel['split']}": (
+            abs(float(panel["label_shuffle_auc"]) - 0.5) <= 0.03
+        )
+        for panel in panels
+    }
+    diagnostic_checks = {
+        "label_shuffle_auc_within_symmetric_chance_band": bool(
+            shuffle_two_sided_checks
+        )
+        and all(shuffle_two_sided_checks.values())
+    }
     if not protocol_valid:
         status = "invalid"
         decision = "innovation1_uknit_family_k1bh_protocol_invalid"
@@ -709,7 +721,8 @@ def adjudicate_k1bh(
             "Preregister K1-BI with one representation variable: replace independent "
             "bit-response means by runtime-cell 4-bit categorical response histograms. "
             "Reuse the same data, four pairs, replicas, Fisher protocol and operators; "
-            "do not repeat the already-completed uKNIT cell11 position audit."
+            "replace the exposed one-sided shuffle gate by the symmetric 0.47-0.53 "
+            "chance band, and do not repeat the completed uKNIT cell11 position audit."
         )
     elif not shuffle_attribution_all:
         status = "hold"
@@ -741,6 +754,16 @@ def adjudicate_k1bh(
         "research_checks": research_checks,
         "failed_research_checks": sorted(
             name for name, passed in research_checks.items() if not passed
+        ),
+        "diagnostic_checks": diagnostic_checks,
+        "shuffle_two_sided_checks": shuffle_two_sided_checks,
+        "diagnostic_warnings": (
+            []
+            if all(diagnostic_checks.values())
+            else [
+                "The preregistered one-sided label-shuffle AUC <= 0.53 gate "
+                "accepts strongly reversed AUC; future gates must use 0.47-0.53."
+            ]
         ),
         "panels": panels,
         "next_action": next_action,

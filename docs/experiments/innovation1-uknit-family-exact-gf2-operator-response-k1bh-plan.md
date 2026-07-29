@@ -112,6 +112,20 @@ correct - label-shuffle AUC        >= 0.03
 label-shuffle AUC                  <= 0.53
 ```
 
+The last condition is the frozen preregistered gate and is intentionally
+preserved in the completed K1-BH adjudication. A post-result semantic audit
+found that it is one-sided: it accepts a strongly reversed shuffled-label AUC
+such as `0.28` or `0.40` as "near chance." K1-BH therefore also reports the
+retrospective diagnostic
+
+```text
+abs(label-shuffle AUC - 0.5) <= 0.03
+equivalently: 0.47 <= label-shuffle AUC <= 0.53
+```
+
+This diagnostic does not rewrite the frozen K1-BH decision. It exposes a
+protocol limitation that every successor, beginning with K1-BI, must fix.
+
 Every exact wrong/identity response must also differ from the correct response
 by finite, strictly positive RMS. Protocol gates require exact source digests,
 72 feature manifests, 12 scorer rows, 60 fresh result rows, frozen feature
@@ -183,11 +197,11 @@ Correct-operator AUC on the four fresh panels per cipher:
 | Midori-64 r4 | `0.603778` | `0.613360` | `0.613196` | `0.603104` |
 | Dialga-128 r4 | `0.993649` | `0.987278` | `0.990101` | `0.991722` |
 
-Midori passed every frozen topology and attribution margin. Its
+Midori passed every frozen topology and one-sided attribution margin. Its
 correct-minus-same-summary margin was `+0.092501` to `+0.121085`, and its
 correct-minus-cross-cipher margin was `+0.107615` to `+0.124783`.
 
-Dialga also passed every frozen margin. Its same-summary wrong operator still
+Dialga also passed every frozen one-sided margin. Its same-summary wrong operator still
 retained high AUC (`0.929885-0.938639`), but the correct operator remained
 ahead by `+0.048639` to `+0.061837`; its cross-cipher and identity controls
 were near chance while the correct response was approximately `0.99`.
@@ -196,6 +210,23 @@ uKNIT failed the absolute signal gate on all four panels and failed most
 operator margins. The exact bit-response feature therefore cannot serve as a
 shared uKNIT-family architecture surface even though the identical primitive
 is strongly informative for Midori and Dialga.
+
+The retrospective symmetric diagnostic failed on these shuffled-label rows:
+
+```text
+Midori replica1 same-key:    0.463100
+Dialga replica0 same-key:    0.406387
+Dialga replica0 cross-key:   0.419790
+Dialga replica1 same-key:    0.287304
+Dialga replica1 cross-key:   0.287513
+```
+
+The global `hold` decision is unchanged because all four uKNIT correct-operator
+panels already fail the absolute signal gate. Midori and Dialga still provide
+strong evidence that the exact response contains structure-sensitive signal,
+but K1-BH cannot make a publication-safe claim that the label attribution is
+fully clean. That attribution must be re-tested under the symmetric control in
+K1-BI.
 
 ## 9. Interpretation Boundary
 
@@ -239,6 +270,8 @@ three ciphers, `4096` total train rows, `2048` total rows per fresh split,
 strict encrypted-random-plaintext negatives, correct-fit Fisher scorer and the
 same-summary, cross-cipher, identity and label-shuffle controls. No data
 generation, pair expansion, remote GPU or neural optimization is authorized.
+Replace K1-BH's one-sided shuffled-label ceiling with the frozen symmetric
+chance-band requirement `abs(AUC - 0.5) <= 0.03`.
 
 Advance only if every one of the twelve fresh panels satisfies the current
 K1-BH signal and control gates, and every Midori/Dialga correct-operator AUC is

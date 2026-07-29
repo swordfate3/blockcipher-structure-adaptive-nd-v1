@@ -105,6 +105,36 @@ def test_k1bh_gate_requires_every_panel_and_correct_scorer_reuse() -> None:
     assert passed["decision"].endswith("exact_operator_topology_signal_supported")
     assert all(passed["protocol_checks"].values())
     assert all(passed["research_checks"].values())
+    assert all(passed["diagnostic_checks"].values())
+    assert passed["diagnostic_warnings"] == []
+
+    reversed_shuffle = deepcopy(results)
+    row = next(
+        item
+        for item in reversed_shuffle
+        if item["replica"] == 0
+        and item["cipher_key"] == "dialga128"
+        and item["split"] == "same_key_fresh"
+        and item["condition"] == "label_shuffled_correct_operator"
+    )
+    row["auc"] = 0.30
+    exposed = adjudicate_k1bh(
+        config=config,
+        feature_rows=features,
+        scorer_rows=scorers,
+        result_rows=reversed_shuffle,
+        source_checks={"source": True},
+    )
+    assert exposed["status"] == "pass"
+    assert all(exposed["protocol_checks"].values())
+    assert all(exposed["research_checks"].values())
+    assert not exposed["diagnostic_checks"][
+        "label_shuffle_auc_within_symmetric_chance_band"
+    ]
+    assert not exposed["shuffle_two_sided_checks"][
+        "replica0|dialga128|same_key_fresh"
+    ]
+    assert exposed["diagnostic_warnings"]
 
     weak = deepcopy(results)
     row = next(
@@ -165,6 +195,7 @@ def test_k1bh_plot_uses_clear_chinese_margin_panels(tmp_path: Path) -> None:
     assert "正确的 GF(2) 扩散算子是否留下独有的标签信号" in svg
     assert "错误算子不得重新拟合" in svg
     assert "核心裁决：正确拓扑是否在每个面板都独有" in svg
+    assert "单向标签门槛会漏掉反向可分信号" in svg
     assert "不是神经网络准确率" in svg
 
 
