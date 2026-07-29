@@ -5,7 +5,7 @@ import json
 import math
 from pathlib import Path
 import time
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 import torch
@@ -282,6 +282,8 @@ def evaluate_k1bh(
     corrupted_structures: Mapping[str, RuntimeSpnStructure],
     cross_operators: Mapping[str, RuntimeSpnStructure],
     batch_size: int = FEATURE_BATCH_SIZE,
+    feature_extractor: Callable[..., np.ndarray] = extract_exact_gf2_operator_features,
+    feature_dim: Callable[[RuntimeSpnStructure], int] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     if batch_size != FEATURE_BATCH_SIZE:
         raise ValueError("K1-BH feature batch size is frozen at 256")
@@ -295,6 +297,9 @@ def evaluate_k1bh(
     feature_rows: list[dict[str, Any]] = []
     scorer_rows: list[dict[str, Any]] = []
     result_rows: list[dict[str, Any]] = []
+    expected_feature_dim = feature_dim or (
+        lambda structure: response_feature_dim(structure.block_bits)
+    )
 
     for replica in REPLICAS:
         for cipher in EXPECTED_CIPHERS:
@@ -313,7 +318,7 @@ def evaluate_k1bh(
                 dataset = datasets[(cipher, seed, split)]
                 source_row = source_rows[(cipher, seed, split)]
                 labels = np.asarray(dataset.labels, dtype=np.uint8).reshape(-1)
-                correct_features = extract_exact_gf2_operator_features(
+                correct_features = feature_extractor(
                     dataset.features,
                     correct_structure,
                     pairs_per_sample=EXPECTED_PAIRS,
@@ -331,6 +336,7 @@ def evaluate_k1bh(
                         correct_features=correct_features,
                         structure=correct_structure,
                         source_row=source_row,
+                        expected_feature_dim=expected_feature_dim(correct_structure),
                     )
                 )
 
@@ -410,7 +416,7 @@ def evaluate_k1bh(
                     )
 
                 for condition in WRONG_CONDITIONS:
-                    wrong_features = extract_exact_gf2_operator_features(
+                    wrong_features = feature_extractor(
                         dataset.features,
                         operator_structures[condition],
                         pairs_per_sample=EXPECTED_PAIRS,
@@ -428,6 +434,9 @@ def evaluate_k1bh(
                             correct_features=correct_features,
                             structure=operator_structures[condition],
                             source_row=source_row,
+                            expected_feature_dim=expected_feature_dim(
+                                operator_structures[condition]
+                            ),
                         )
                     )
                     if split in FRESH_SPLITS:
@@ -904,6 +913,7 @@ def _feature_row(
     correct_features: np.ndarray,
     structure: RuntimeSpnStructure,
     source_row: Mapping[str, Any],
+    expected_feature_dim: int,
 ) -> dict[str, Any]:
     values = np.asarray(features, dtype=np.float32)
     correct = np.asarray(correct_features, dtype=np.float32)
@@ -917,7 +927,7 @@ def _feature_row(
         "condition": condition,
         "rows": int(values.shape[0]),
         "feature_dim": int(values.shape[1]),
-        "expected_feature_dim": response_feature_dim(structure.block_bits),
+        "expected_feature_dim": expected_feature_dim,
         "feature_sha256": numpy_array_sha256(values),
         "dataset_sha256": str(source_row["dataset_sha256"]),
         "operator_sha256": _operator_sha256(structure),

@@ -54,7 +54,16 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def render_k1bh_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
+def render_k1bh_svg(
+    gate: Mapping[str, Any],
+    output: Path,
+    *,
+    figure_title: str | None = None,
+    subtitle: str | None = None,
+    decision_summary: str | None = None,
+    footer: str | None = None,
+    control_title: str | None = None,
+) -> dict[str, Any]:
     panels = _ordered_panels(gate.get("panels", []))
     if len(panels) != 12:
         raise ValueError("K1-BH plot requires twelve replica/cipher/split panels")
@@ -84,7 +93,8 @@ def render_k1bh_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
             wspace=0.23,
         )
         figure.suptitle(
-            "创新1 K1-BH：正确的 GF(2) 扩散算子是否留下独有的标签信号",
+            figure_title
+            or "创新1 K1-BH：正确的 GF(2) 扩散算子是否留下独有的标签信号",
             x=0.045,
             y=0.965,
             ha="left",
@@ -94,7 +104,8 @@ def render_k1bh_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         figure.text(
             0.045,
             0.91,
-            "对同一批4-pair密文直接执行精确逆线性变换；Fisher只在正确算子的训练特征上拟合，错误算子不得重新拟合。",
+            subtitle
+            or "对同一批4-pair密文直接执行精确逆线性变换；Fisher只在正确算子的训练特征上拟合，错误算子不得重新拟合。",
             ha="left",
             fontsize=10.7,
             color="#4B5563",
@@ -102,7 +113,7 @@ def render_k1bh_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         figure.text(
             0.045,
             0.855,
-            _decision_text(gate),
+            decision_summary or _decision_text(gate),
             ha="left",
             fontsize=11.2,
             fontweight="bold",
@@ -111,11 +122,17 @@ def render_k1bh_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         _render_correct_auc(axes[0, 0], panels)
         _render_condition_summary(axes[0, 1], panels)
         _render_topology_margins(axes[1, 0], panels)
-        _render_control_margins(axes[1, 1], panels)
+        _render_control_margins(
+            axes[1, 1],
+            panels,
+            title=control_title
+            or "附加诊断：单向标签门槛会漏掉反向可分信号",
+        )
         figure.text(
             0.045,
             0.028,
-            "这是本地确定性机制审计，不是神经网络准确率、正式规模、密码攻击、任意SPN泛化或SOTA结果。",
+            footer
+            or "这是本地确定性机制审计，不是神经网络准确率、正式规模、密码攻击、任意SPN泛化或SOTA结果。",
             ha="left",
             fontsize=9.7,
             color="#4B5563",
@@ -260,6 +277,8 @@ def _render_topology_margins(
 def _render_control_margins(
     axis: plt.Axes,
     panels: Sequence[Mapping[str, Any]],
+    *,
+    title: str,
 ) -> None:
     positions = np.arange(len(panels))
     identity = [float(row["correct_minus_identity"]) for row in panels]
@@ -283,7 +302,7 @@ def _render_control_margins(
     axis.set_ylim(min(-0.02, min(values) - 0.18 * span), max(0.045, max(values) + 0.2 * span))
     axis.set_xticks(positions, _panel_labels(panels), rotation=27, ha="right")
     axis.set_ylabel("恒等优势 / 标签打乱偏离随机的绝对值")
-    axis.set_title("附加诊断：单向标签门槛会漏掉反向可分信号", loc="left", fontweight="bold")
+    axis.set_title(title, loc="left", fontweight="bold")
     axis.grid(axis="y", color="#E5E7EB", linewidth=0.8)
     axis.set_axisbelow(True)
     axis.legend(frameon=False, loc="upper left", fontsize=8.5)

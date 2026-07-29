@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_uknit_family_cell_joint_gf2_operator_response_k1bi_audit_replica0_replica1_20260729",
+  "experiment": "innovation1_uknit_family_cell_joint_gf2_operator_response_k1bi_audit",
+  "source": {
+    "root": "outputs/local_audit/i1_uknit_family_exact_gf2_operator_response_k1bh_audit_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_exact_gf2_operator_response_k1bh_audit_20260729.json",
+    "config_sha256": "9a5357fd5cec70b90387192c1468c17c4930d8f39deb9d32b3205dccb3c1ea37",
+    "digests": {
+      "gate.json": "26f6c6159eaa4495c625836ba1d84318ba15321ddf9d16ef9a9a5768f5642744",
+      "validation.json": "5c7f9f1a3c1039a7f419130b0994d345ee1c3905319826cf2e8a69d504447531",
+      "results.jsonl": "53cd250d06f6bfea3d2fe8b3cb2d31b2fc36935ca9806b383bc79422183f4f5b",
+      "feature_manifest.jsonl": "9180cd375d8801e905e0e31f6c9dfc213b472da2c7b2caf6291c8918ee98528c",
+      "scorers.jsonl": "b248e2962830ffa9b04f8b159aac185cee2f13e056280f342abde9e11a5bcc24",
+      "summary.json": "c3dbbd0b22962191e972d353003cedb26e0a876049c40e87067f72f8743b20ca",
+      "dataset_manifest.jsonl": "591468e7490a92757315ea6abb9d557a023774f3c36dd1bad97541f3243f01db"
+    },
+    "required_status": "hold",
+    "required_decision": "innovation1_uknit_family_k1bh_exact_operator_signal_unstable"
+  },
+  "feature": {
+    "views": ["raw", "inverse_linear_0", "inverse_linear_1", "composed_1_then_0"],
+    "raw_channels": ["left", "right", "left_xor_right"],
+    "cell_value_categories": 16,
+    "pair_reduction": "categorical_histogram_mean",
+    "runtime_cell_membership_used": true,
+    "runtime_bit_role_used": true,
+    "cell_position_and_view_order_preserved": true,
+    "sbox_semantics_used": false,
+    "expected_feature_dims": {
+      "uknit64": 3072,
+      "midori64": 3072,
+      "dialga128": 6144
+    }
+  },
+  "probe": {
+    "family": "diagonal_fisher",
+    "variance_floor": 0.000001,
+    "fit_condition": "correct_operator",
+    "counterfactuals_reuse_correct_fit": true,
+    "fit_rows": 4096,
+    "fresh_rows": 2048,
+    "label_shuffle_seeds": {
+      "replica0": {"uknit64": 73100, "midori64": 73101, "dialga128": 73102},
+      "replica1": {"uknit64": 73200, "midori64": 73201, "dialga128": 73202}
+    }
+  },
+  "evaluation": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_operator",
+      "same_summary_corrupted_operator",
+      "cross_cipher_operator",
+      "identity_operator",
+      "label_shuffled_correct_operator"
+    ],
+    "expected_result_rows": 60,
+    "expected_feature_rows": 72,
+    "expected_scorer_rows": 12,
+    "pairs_per_sample": 4,
+    "neural_training_performed": false,
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "device": "cpu",
+    "execution": "local_audit"
+  },
+  "gates": {
+    "correct_operator_auc_min": 0.55,
+    "correct_minus_identity_auc_min": 0.01,
+    "correct_minus_each_wrong_operator_auc_min": 0.01,
+    "correct_minus_label_shuffle_auc_min": 0.03,
+    "label_shuffle_auc_min": 0.47,
+    "label_shuffle_auc_max": 0.53,
+    "midori_dialga_anchor_max_auc_drop": 0.02,
+    "minimum_nonzero_response_rms": 0.0,
+    "require_every_replica_cipher_fresh_split": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "neural training before audit passes",
+    "refitting a separate probe for each wrong operator",
+    "16-pair expansion",
+    "larger samples, epochs, width, seeds, or remote execution",
+    "cipher IDs, per-cipher neural heads, adapters, routers, MoE, or experts",
+    "S-box stages, label, negative-definition, key-sampling, difference, or benchmark changes"
+  ]
+}
