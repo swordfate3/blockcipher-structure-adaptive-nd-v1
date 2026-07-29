@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_multicipher_shared_weight_k1ao",
+  "run_id": "i1_uknit_family_multicipher_shared_weight_k1ao_2048_replica0_replica1_20260729",
+  "readiness": {
+    "root": "outputs/local_readiness/i1_uknit_family_multicipher_shared_weight_k1ao_readiness_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_multicipher_shared_weight_k1ao_readiness_20260729.json",
+    "digests": {
+      "gate.json": "b12306ce1162deee43d867894cca03455405bd1985a439744ff249a2a2fb8dd0",
+      "validation.json": "71271186e8043ee42bc1a12b38249e7e935906d165a29815c40cb01af8ea5b97",
+      "dataset_manifest.jsonl": "0d1fb60a2ae61a0665e1dbf6d26a93c403bf7a46ba603b93e51af36dd8c13358",
+      "runtime_manifest.jsonl": "4b5d81c849822e11f021f014ef489289e506f809acd25469a756fba389ecbec8"
+    }
+  },
+  "anchor_sources": {
+    "uknit64": {
+      "path": "outputs/local_diagnostic/i1_uknit_family_ctspn_deterministic_position_residual_k1t_2048_seed3_seed4_20260728/controls.jsonl",
+      "sha256": "1172d5ac2711bd3b8523b9a378e579b59561c66d842255000b1b46c8a45d780e",
+      "condition": "exact_position_histogram_residual"
+    },
+    "midori64": {
+      "path": "outputs/local_diagnostic/i1_uknit_family_midori64_sbox_transition_k1ak_2048_seed6_seed7_20260729/controls.jsonl",
+      "sha256": "3b667435eb6c91dfb1c828953e834e9556dedf16c5054b4e70ded1d598e6e04e",
+      "condition": "correct_structure"
+    },
+    "dialga128": {
+      "path": "outputs/local_diagnostic/i1_uknit_family_ctspn_exact_operator_composition_k1n_2048_seed0_seed1_20260728/controls.jsonl",
+      "sha256": "05742d97b1908e3d978f1166e57dded6f6cb11d12ca58a4dabc15bcaddb74b91",
+      "condition": "exact_composition"
+    }
+  },
+  "replicas": [
+    {
+      "replica": 0,
+      "initialization_seed": 30,
+      "dataset_seeds": {"uknit64": 3, "midori64": 6, "dialga128": 0}
+    },
+    {
+      "replica": 1,
+      "initialization_seed": 31,
+      "dataset_seeds": {"uknit64": 4, "midori64": 7, "dialga128": 1}
+    }
+  ],
+  "training": {
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "equal_batches_per_cipher_per_epoch": 64,
+    "optimizer_steps_per_epoch": 192,
+    "optimizer_steps_total_per_replica": 1920,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "checkpoint_metric": "minimum_cross_key_auc_across_ciphers",
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  },
+  "evaluation": {
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_runtime",
+      "wrong_sbox_same_checkpoint",
+      "transition_branch_off_same_checkpoint"
+    ],
+    "expected_rows": 36,
+    "optimizer_steps": 0
+  },
+  "gates": {
+    "anchor_retention_margin": -0.01,
+    "correct_minus_wrong_sbox_margin": 0.005,
+    "correct_minus_branch_off_margin": 0.005,
+    "require_every_cipher_replica_split": true,
+    "allow_macro_average_to_rescue_failure": false,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "remote execution before this local gate passes",
+    "16-pair expansion",
+    "larger samples, epochs, or model width",
+    "cipher IDs, per-cipher heads, adapters, experts, or optimizer states",
+    "MoE or a new feature family",
+    "using Dialga averages to hide a failed uKNIT or Midori panel"
+  ]
+}
