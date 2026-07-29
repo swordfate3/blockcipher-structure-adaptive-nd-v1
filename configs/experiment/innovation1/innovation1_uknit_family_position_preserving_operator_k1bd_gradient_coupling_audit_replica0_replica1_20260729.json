@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_uknit_family_position_preserving_operator_k1bd_gradient_coupling_audit_replica0_replica1_20260729",
+  "experiment": "innovation1_uknit_family_position_preserving_operator_k1bd_gradient_coupling_audit",
+  "source": {
+    "root": "outputs/local_diagnostic/i1_uknit_family_position_preserving_operator_k1bc_2048_replica0_replica1_20260729",
+    "training_config": "configs/experiment/innovation1/innovation1_uknit_family_position_preserving_operator_k1bc_2048_replica0_replica1_20260729.json",
+    "training_config_sha256": "e6c1418536bc0d7a9b8ca40c19bb3c9d4eee9178bf42301c129d7cda6cefb0c6",
+    "digests": {
+      "gate.json": "76aabe3915bcd33ca2c1d8a501c61da951a02e6b76530b2b05ad5d91c6443cc7",
+      "validation.json": "e34e3e6c4aec972c27a880ef42b560adb6201fd2a5dcd088cf3a4bfdf79310c7",
+      "results.jsonl": "b9577df46b9e3b05ebfe20bf27fecac2416764eb7fb12531f4901cb7f45dd446",
+      "controls.jsonl": "9f7bf77d84a6f04eccb612af20bab92d861fe8e99edf6b31282704c5139b7dd4",
+      "checkpoint_manifest.json": "40d4bb17ef158c639756d4b230ab2940f9a110d70d74c2973062d5a8e6abefaa",
+      "summary.json": "ddafff4a68e754006560b3cd36547c7d2e79c6f13e68a3e4db943c0093cca9ee",
+      "checkpoints/replica0_best.pt": "8a60c25423f20435d609b7a96a59792de3c4d3e89488690562b285f21df9051b",
+      "checkpoints/replica1_best.pt": "b8672c2aac3ee3adbb780220c8e8c5af8d934b877a1db275153ce2b30fdd6b07"
+    }
+  },
+  "audit": {
+    "samples_per_class_per_cipher": 2048,
+    "pairs_per_sample": 4,
+    "batch_size": 64,
+    "positive_rows_per_batch": 32,
+    "negative_rows_per_batch": 32,
+    "batch_triplets_per_replica": 64,
+    "encoder_states": [
+      "initial_encoder",
+      "selected_encoder"
+    ],
+    "operator_conditions": [
+      "correct_operator",
+      "same_summary_corrupted_operator",
+      "cross_cipher_operator"
+    ],
+    "parameter_groups": [
+      "connected_all",
+      "bit_encoder",
+      "token_encoder",
+      "edge_message",
+      "bit_update",
+      "bit_update_norm",
+      "pair_projection",
+      "structure_projection"
+    ],
+    "loss": "mse",
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "execution": "local_audit"
+  },
+  "gates": {
+    "topology_gradient_median_cosine_min": 0.99,
+    "topology_gradient_high_cosine_frequency_min": 0.9,
+    "topology_gradient_relative_norm_delta_max": 0.05,
+    "systematic_conflict_median_cosine_max": -0.05,
+    "systematic_conflict_negative_frequency_min": 0.5,
+    "stable_gradient_norm_ratio_min": 4.0,
+    "disconnected_group_gradient_max": 0.0,
+    "require_same_signal_in_both_replicas": true,
+    "optimizer_steps": 0,
+    "remote_scale": "no"
+  },
+  "replicas": [
+    {
+      "replica": 0,
+      "encoder_initialization_seed": 40,
+      "dataset_seeds": {
+        "uknit64": 3,
+        "midori64": 6,
+        "dialga128": 0
+      }
+    },
+    {
+      "replica": 1,
+      "encoder_initialization_seed": 41,
+      "dataset_seeds": {
+        "uknit64": 4,
+        "midori64": 7,
+        "dialga128": 1
+      }
+    }
+  ]
+}
