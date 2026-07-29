@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_structure_derived_gate_k1at",
+  "run_id": "i1_uknit_family_structure_derived_gate_k1at_2048_replica0_replica1_20260729",
+  "question": "Does one shared structure-derived transition gate improve the frozen K1-AO shared-training anchor without harming any cipher and while preferring the correct runtime descriptor?",
+  "readiness": {
+    "root": "outputs/local_readiness/i1_uknit_family_structure_derived_gate_k1as_readiness_replay_fix_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_structure_derived_gate_k1as_readiness_20260729.json",
+    "digests": {
+      "gate.json": "78e167dce19a7bb4e493c88b594237b56c2146907f3dbb4bf56bb1638ea8209a",
+      "validation.json": "7ebf54cd2ceddbb628e6207d24f8ab2424e0553cd425ad2779fef088c80fb822",
+      "structure_summaries.json": "78dea77bdff5f72db3a2abe3cba79e9fce3a505bdba0eaf503a154299017b61a"
+    }
+  },
+  "same_budget_anchor": {
+    "run_id": "i1_uknit_family_multicipher_shared_weight_k1ao_2048_replica0_replica1_20260729",
+    "root": "outputs/local_diagnostic/i1_uknit_family_multicipher_shared_weight_k1ao_2048_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_multicipher_shared_weight_k1ao_2048_replica0_replica1_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1ao_shared_training_retention_and_semantics_failed",
+    "digests": {
+      "gate.json": "b119a0241fc334b9c40e9743afac61f5ef6390d4916e13ce8d7f47d48f8ac024",
+      "validation.json": "40a621d50c96ba8f243d4eb209f5ddab12be4fc6b495814eb073117584570a7d",
+      "results.jsonl": "beafccb3f019a02501c0bfb3b4f86f86c316a2ec6cd46910068e95c6021f0e10",
+      "controls.jsonl": "a0eb237a6d58041e95a2daa9c42658355cf5caebe88be41b525839f0667ac5dc",
+      "checkpoint_manifest.json": "9f173cbd1d5b4063ee090486b91321db0d06eebb13efc461f686fe3c5a389900"
+    }
+  },
+  "replicas": [
+    {
+      "replica": 0,
+      "initialization_seed": 30,
+      "dataset_seeds": {"uknit64": 3, "midori64": 6, "dialga128": 0}
+    },
+    {
+      "replica": 1,
+      "initialization_seed": 31,
+      "dataset_seeds": {"uknit64": 4, "midori64": 7, "dialga128": 1}
+    }
+  ],
+  "training": {
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "equal_batches_per_cipher_per_epoch": 64,
+    "optimizer_steps_per_epoch": 192,
+    "optimizer_steps_total_per_replica": 1920,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "checkpoint_metric": "minimum_cross_key_auc_across_ciphers",
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  },
+  "controls": {
+    "mismatch_order": {
+      "uknit64": "midori64",
+      "midori64": "dialga128",
+      "dialga128": "uknit64"
+    },
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_descriptor",
+      "full_mismatch",
+      "sbox_only_mismatch",
+      "linear_only_mismatch",
+      "descriptor_disabled"
+    ],
+    "expected_rows": 60,
+    "optimizer_steps": 0
+  },
+  "gates": {
+    "cross_key_macro_improvement_per_replica": 0.005,
+    "per_panel_no_harm_margin": -0.005,
+    "correct_minus_mismatch_margin": 0.001,
+    "minimum_passing_panels_per_mismatch": 10,
+    "require_each_cipher_replica_split_covered": true,
+    "descriptor_disabled_is_supporting_control": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "remote execution before a separate medium-scale readiness gate",
+    "16-pair expansion",
+    "larger samples, epochs, width, or additional seeds",
+    "loss reweighting, PCGrad, or a second candidate",
+    "cipher IDs, per-cipher heads, adapters, routers, MoE, or experts",
+    "changing the encryption runtime while testing descriptor mismatch",
+    "using macro averages to hide a per-panel harm larger than 0.005"
+  ]
+}
