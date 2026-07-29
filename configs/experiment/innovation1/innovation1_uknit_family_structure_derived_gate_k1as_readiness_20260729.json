@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_structure_derived_gate_k1as_readiness",
+  "run_id": "i1_uknit_family_structure_derived_gate_k1as_readiness_replay_fix_20260729",
+  "question": "Can one shared bounded gate derive transition-path strength from runtime S-box and GF(2) statistics without cipher identity or per-cipher parameters?",
+  "source": {
+    "run_id": "i1_uknit_family_multicipher_path_contribution_k1ar_replica0_replica1_replay_fix_20260729",
+    "root": "outputs/local_audit/i1_uknit_family_multicipher_path_contribution_k1ar_replica0_replica1_replay_fix_20260729",
+    "required_decision": "innovation1_uknit_family_k1ar_heterogeneous_transition_demand_supported",
+    "digests": {
+      "gate.json": "b7eb44688fcb77e4deed0049ce44f8d920352df0fb7d05a273b92176eb1d86f4",
+      "validation.json": "61667457c4106ff2d5cc39eb8df22da33eaf7d46e92542cebb1f6933a4ad4529",
+      "checkpoint_manifest.json": "609c0bf3bcbb1aa5e5fec0e321651eabe42d7f05119e11ba84923403f08040e5"
+    }
+  },
+  "model": {
+    "model_key": "runtime_spn_ct_k1as_structure_gate_true",
+    "initialization_seed": 73,
+    "summary_dim": 34,
+    "summary_sbox_dim": 16,
+    "summary_linear_dim": 18,
+    "gate_hidden_dim": 12,
+    "expected_trainable_parameters": 219752,
+    "expected_state_dict_entries": 55,
+    "global_transition_gate_initial_effective": 0.05
+  },
+  "audit": {
+    "checkpoint_families": ["equal_loss_k1ao", "inverse_norm_k1aq"],
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "expected_panels": 24,
+    "rows_per_panel": 32,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "device": "cpu"
+  },
+  "controls": {
+    "mismatch_order": {
+      "uknit64": "midori64",
+      "midori64": "dialga128",
+      "dialga128": "uknit64"
+    },
+    "conditions": [
+      "correct_descriptor",
+      "full_mismatch",
+      "sbox_only_mismatch",
+      "linear_only_mismatch",
+      "descriptor_disabled"
+    ]
+  },
+  "gates": {
+    "disabled_logit_replay_tolerance": 0.0,
+    "cell_relabel_summary_tolerance": 0.0,
+    "minimum_mismatch_gate_delta": 0.000001,
+    "minimum_observable_logit_delta": 0.00000001,
+    "require_nonzero_finite_gradient": true,
+    "require_no_cipher_identity_or_experts": true,
+    "remote_scale": "no"
+  },
+  "next_training": {
+    "run_label": "K1-AT",
+    "samples_per_class_per_cipher": 2048,
+    "fresh_samples_per_class_per_cipher": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "batch_size": 64,
+    "optimizer_steps_per_replica": 1920,
+    "replicas": [0, 1],
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "negative_mode": "encrypted_random_plaintexts",
+    "execution": "local_diagnostic"
+  }
+}

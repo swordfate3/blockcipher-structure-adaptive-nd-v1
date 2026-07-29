@@ -18,6 +18,10 @@ from blockcipher_nd.models.structure.spn.operator_tied_latent import (
     operator_routing_fingerprint,
 )
 from blockcipher_nd.models.structure.spn.runtime_structure import RuntimeSpnStructure
+from blockcipher_nd.models.structure.spn.structure_conditioned_gate import (
+    SharedStructureTransitionGate,
+    runtime_structure_summary,
+)
 from blockcipher_nd.models.structure.spn.topology_edge_residual import (
     TopologyEdgeResidualSpnSpec,
     ordered_cell_role_lookup,
@@ -831,6 +835,122 @@ class FixedCompactSboxTransitionResidualSpnProtocolAdapter(nn.Module):
         return logits
 
 
+class FixedStructureConditionedSboxTransitionResidualSpnProtocolAdapter(
+    FixedCompactSboxTransitionResidualSpnProtocolAdapter
+):
+    """K1-AS extension that leaves the frozen K1-AK adapter API unchanged."""
+
+    def __init__(
+        self,
+        *,
+        input_bits: int,
+        pair_bits: int,
+        structure: RuntimeSpnStructure,
+        spec: SboxTransitionResidualSpnSpec,
+        descriptor_name: str,
+        descriptor_path: str,
+        descriptor_sha256: str,
+        descriptor_round_start: int,
+        descriptor_available_rounds: int,
+        runtime_structure_mode: str,
+        apply_sboxes: bool,
+        structure_gate_hidden_dim: int = 12,
+    ) -> None:
+        super().__init__(
+            input_bits=input_bits,
+            pair_bits=pair_bits,
+            structure=structure,
+            spec=spec,
+            descriptor_name=descriptor_name,
+            descriptor_path=descriptor_path,
+            descriptor_sha256=descriptor_sha256,
+            descriptor_round_start=descriptor_round_start,
+            descriptor_available_rounds=descriptor_available_rounds,
+            runtime_structure_mode=runtime_structure_mode,
+            apply_sboxes=apply_sboxes,
+        )
+        self.backbone.structure_gate = SharedStructureTransitionGate(
+            hidden_dim=structure_gate_hidden_dim
+        )
+        self._structure_summary_cache: dict[
+            int, tuple[RuntimeSpnStructure, torch.Tensor]
+        ] = {}
+        self.structure_gate_inputs = (
+            "sbox_ddt_lat_distribution",
+            "gf2_row_column_weight_rank_diversity",
+        )
+        self.structure_gate_shared = True
+        self.structure_gate_uses_cipher_identity = False
+
+    def logits_with_runtime(
+        self,
+        features: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        apply_sboxes: bool,
+        transition_branch_enabled: bool | None = None,
+        gate_structure: RuntimeSpnStructure | None = None,
+        gate_summary: torch.Tensor | None = None,
+        structure_gate_enabled: bool | None = None,
+    ) -> torch.Tensor:
+        use_transition_branch = (
+            self.transition_branch_enabled
+            if transition_branch_enabled is None
+            else bool(transition_branch_enabled)
+        )
+        runtime = features.reshape(
+            features.shape[0],
+            -1,
+            2,
+            structure.block_bits,
+        ).flip(-1)
+        base_embedding = self.backbone.base.encode(runtime, structure)
+        edge_residual = self.backbone.edge_residual_embedding(
+            runtime,
+            structure,
+            apply_sboxes=apply_sboxes,
+        )
+        combined = base_embedding + torch.tanh(
+            self.backbone.residual_gate
+        ) * torch.tanh(edge_residual)
+        if use_transition_branch:
+            transition = self.backbone.transition_embedding(
+                runtime,
+                structure,
+                apply_sboxes=apply_sboxes,
+            )
+            effective_gate = self.effective_transition_gate(
+                structure if gate_structure is None else gate_structure,
+                summary=gate_summary,
+                enabled=structure_gate_enabled,
+            )
+            combined = combined + effective_gate * torch.tanh(transition.repeat(1, 3))
+        return self.backbone.base.classifier(combined)
+
+    def effective_transition_gate(
+        self,
+        structure: RuntimeSpnStructure,
+        *,
+        summary: torch.Tensor | None = None,
+        enabled: bool | None = None,
+    ) -> torch.Tensor:
+        if enabled is False:
+            return torch.tanh(self.backbone.transition_gate)
+        descriptor = summary
+        if descriptor is None:
+            cache_key = id(structure)
+            cached = self._structure_summary_cache.get(cache_key)
+            if cached is None or cached[0] is not structure:
+                cached = (structure, runtime_structure_summary(structure))
+                self._structure_summary_cache[cache_key] = cached
+            descriptor = cached[1]
+        return self.backbone.structure_gate(
+            self.backbone.transition_gate,
+            descriptor,
+            enabled=True,
+        )
+
+
 def deterministic_position_histogram(
     ciphertext_pairs: torch.Tensor,
     structure: RuntimeSpnStructure,
@@ -1005,6 +1125,7 @@ __all__ = [
     "CompactSboxTransitionResidualSpnDistinguisher",
     "FixedCompactInvariantHistogramResidualSpnProtocolAdapter",
     "FixedCompactSboxTransitionResidualSpnProtocolAdapter",
+    "FixedStructureConditionedSboxTransitionResidualSpnProtocolAdapter",
     "FixedPositionHistogramResidualSpnProtocolAdapter",
     "PositionHistogramResidualSpnDistinguisher",
     "PositionHistogramResidualSpnSpec",

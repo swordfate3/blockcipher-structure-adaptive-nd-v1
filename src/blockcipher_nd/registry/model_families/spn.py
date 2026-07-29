@@ -119,6 +119,7 @@ from blockcipher_nd.models.structure.spn.position_histogram_residual import (
     FixedCompactInvariantHistogramResidualSpnProtocolAdapter,
     FixedCompactSboxTransitionResidualSpnProtocolAdapter,
     FixedPositionHistogramResidualSpnProtocolAdapter,
+    FixedStructureConditionedSboxTransitionResidualSpnProtocolAdapter,
     PositionHistogramResidualSpnSpec,
     SboxTransitionResidualSpnSpec,
 )
@@ -180,6 +181,7 @@ def build_spn_model(
         "runtime_spn_ct_k1ak_sbox_transition_wrong_sbox": "wrong_sbox",
         "runtime_spn_ct_k1ak_sbox_transition_corrupted_linear": "corrupted_linear",
         "runtime_spn_ct_k1ak_sbox_transition_none": "none",
+        "runtime_spn_ct_k1as_structure_gate_true": "true",
         "runtime_spn_ct_k1an_walsh_transition_true": "true",
         "runtime_spn_ct_k1an_walsh_transition_wrong_sbox": "wrong_sbox",
         "runtime_spn_ct_k1an_walsh_transition_branch_off": "true",
@@ -247,9 +249,16 @@ def build_spn_model(
                 "runtime_spn_ct_k1aa_",
                 "runtime_spn_ct_k1ak_",
                 "runtime_spn_ct_k1an_",
+                "runtime_spn_ct_k1as_",
             )
         )
-        if name.startswith(("runtime_spn_ct_k1ak_", "runtime_spn_ct_k1an_")):
+        if name.startswith(
+            (
+                "runtime_spn_ct_k1ak_",
+                "runtime_spn_ct_k1an_",
+                "runtime_spn_ct_k1as_",
+            )
+        ):
             transition_value_dim = int_option(options, "transition_value_dim", 20)
             virtual_slots = int_option(options, "virtual_projection_slots", 16)
             assert transition_value_dim is not None
@@ -267,7 +276,12 @@ def build_spn_model(
                 if canonical_walsh_features != 64:
                     raise ValueError("K1-AN canonical_walsh_features must remain 64")
                 transition_branch_enabled = not name.endswith("_branch_off")
-            return FixedCompactSboxTransitionResidualSpnProtocolAdapter(
+            adapter = (
+                FixedStructureConditionedSboxTransitionResidualSpnProtocolAdapter
+                if name.startswith("runtime_spn_ct_k1as_")
+                else FixedCompactSboxTransitionResidualSpnProtocolAdapter
+            )
+            adapter_kwargs = dict(
                 input_bits=input_bits,
                 pair_bits=(
                     2 * runtime_structure.block_bits if pair_bits is None else pair_bits
@@ -296,6 +310,13 @@ def build_spn_model(
                 canonical_walsh_features=canonical_walsh_features,
                 transition_branch_enabled=transition_branch_enabled,
             )
+            if name.startswith("runtime_spn_ct_k1as_"):
+                adapter_kwargs.pop("canonical_walsh_features")
+                adapter_kwargs.pop("transition_branch_enabled")
+                adapter_kwargs["structure_gate_hidden_dim"] = int(
+                    options.get("structure_gate_hidden_dim", 12)
+                )
+            return adapter(**adapter_kwargs)
         adapter = (
             FixedCompactInvariantHistogramResidualSpnProtocolAdapter
             if compact_model
