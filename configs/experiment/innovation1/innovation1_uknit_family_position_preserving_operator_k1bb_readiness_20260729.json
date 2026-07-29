@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_uknit_family_position_preserving_operator_k1bb_readiness",
+  "run_id": "i1_uknit_family_position_preserving_operator_k1bb_readiness_20260729",
+  "question": "Can one shared per-edge encoder preserve actual GF(2) source-to-target relations through sample-conditioned target aggregation, separate K1-BA same-summary operator collisions, and exactly replay K1-AZ when disabled?",
+  "source": {
+    "run_id": "i1_uknit_family_linear_summary_collision_k1ba_20260729",
+    "root": "outputs/local_audit/i1_uknit_family_linear_summary_collision_k1ba_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_linear_summary_collision_k1ba_20260729.json",
+    "required_decision": "innovation1_uknit_family_k1ba_invariant_linear_summary_not_topology_identifying_supported",
+    "digests": {
+      "gate.json": "e50a2110d18786ac6f74fd5e60c5885248e424019882853c28c72f06826c80e7",
+      "validation.json": "e1104ea11ba79fb27a597a01e8172ca9646659b493599891e3a1bceaadbd04fc",
+      "results.jsonl": "6015f85716dbfb89de8b481005232d353fc6b4000276245add58b72da47e6e67",
+      "structure_collisions.json": "61e9151e9d4a26453aee169ce766d8f72182a26e69b30bdbfd64ab51d6cd7db1",
+      "checkpoint_manifest.json": "448d9b7cfb1d5952adf95851db44d2df6663a4ec98adf9619c93051d3e2dba9c",
+      "dataset_manifest.jsonl": "0d1fb60a2ae61a0665e1dbf6d26a93c403bf7a46ba603b93e51af36dd8c13358"
+    }
+  },
+  "model": {
+    "hidden_dim": 32,
+    "pair_embedding_dim": 128,
+    "dropout": 0.0,
+    "modulation_scale": 0.05,
+    "operator_token_dim": 18,
+    "operator_input": "round_position_source_cell_role_target_cell_role_nonzero_gf2_relation",
+    "interaction_order": "edge_token_then_sample_endpoint_then_target_aggregation",
+    "shared_across_widths": true,
+    "cipher_identity": false,
+    "per_cipher_modules": false
+  },
+  "evaluation": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_operator",
+      "same_summary_corrupted_operator",
+      "cross_cipher_operator"
+    ],
+    "cross_cipher_order": {
+      "uknit64": "midori64",
+      "midori64": "dialga128",
+      "dialga128": "uknit64"
+    },
+    "corruption_seed": 20260729,
+    "encoder_initialization_seeds": [40, 41],
+    "probe_rows_per_panel": 64,
+    "expected_rows": 12,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "device": "cpu",
+    "execution": "local_readiness"
+  },
+  "gates": {
+    "minimum_same_summary_operator_embedding_delta": 0.0001,
+    "minimum_cross_cipher_operator_embedding_delta": 0.0001,
+    "minimum_same_summary_edge_modulation_delta": 0.000001,
+    "minimum_same_summary_logit_delta": 0.000001,
+    "disabled_k1az_logit_replay_tolerance": 0.0,
+    "joint_relabel_embedding_tolerance": 0.000001,
+    "joint_relabel_modulation_tolerance": 0.00001,
+    "joint_relabel_logit_tolerance": 0.00001,
+    "require_fixed_parameter_geometry": true,
+    "require_zero_updates_and_immutable_states": true,
+    "remote_scale": "no"
+  },
+  "decision_order": [
+    "position_preserving_operator_readiness_authorized",
+    "representation_response_incomplete",
+    "protocol_invalid"
+  ],
+  "blocked_actions": [
+    "training before every readiness gate passes",
+    "remote execution",
+    "16-pair expansion",
+    "larger samples, epochs, width, or additional seeds",
+    "loss reweighting, PCGrad, per-cipher heads, adapters, routers, MoE, or experts",
+    "changing K1-AZ checkpoints, datasets, labels, negatives, encryption runtime, or classifier"
+  ]
+}
