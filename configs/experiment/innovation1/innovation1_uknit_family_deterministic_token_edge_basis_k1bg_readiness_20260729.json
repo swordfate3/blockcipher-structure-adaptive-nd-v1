@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_uknit_family_deterministic_token_edge_basis_k1bg_readiness_20260729",
+  "experiment": "innovation1_uknit_family_deterministic_token_edge_basis_k1bg_readiness",
+  "source": {
+    "root": "outputs/local_readiness/i1_uknit_family_mandatory_token_gate_k1be_readiness_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_mandatory_token_gate_k1be_readiness_20260729.json",
+    "config_sha256": "74baa8f70f61c3a885879238738e88e4d2dfea93eab7b1509fbdac52804397ed",
+    "digests": {
+      "gate.json": "53757f85c1489c5c5ee3c3a8c25db7b806866f098a829ff8018cbb697b6a1bf6",
+      "validation.json": "c3d95b7aebc7c2b7814302728ed920d7311131ab68a85f5b44aa64056cf2245d",
+      "panel_results.jsonl": "baa12336929959614c1217401cd4be955bacbd3846a7bd0f1b5b96afacb95d73",
+      "gradient_coverage.jsonl": "a95db64a30236f1a53e91474db8183e327a5b522f83d4083c24a3525f9dabc68",
+      "summary.json": "ab509e3a937a8974d92da262c4cb6afea6e0e4e2c3706436127903b243bbdec0",
+      "geometry.json": "88a362592c58cb1f44815daf483973b33e7a43614331de3f6af6fa70786863f7"
+    },
+    "required_decision": "innovation1_uknit_family_k1be_topology_share_lift_not_supported"
+  },
+  "model": {
+    "hidden_dim": 32,
+    "pair_embedding_dim": 128,
+    "dropout": 0.0,
+    "modulation_scale": 0.05,
+    "operator_token_dim": 18,
+    "edge_basis": "sylvester_hadamard_18_to_32_orthonormal_then_rms_tanh",
+    "basis_projection_trainable": false,
+    "token_encoder_present": false,
+    "sample_only_bypass": false,
+    "structure_projection": false,
+    "shared_across_widths": true,
+    "cipher_identity": false,
+    "per_cipher_modules": false,
+    "expected_trainable_parameters": 25696
+  },
+  "evaluation": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_operator",
+      "same_summary_corrupted_operator",
+      "cross_cipher_operator",
+      "disabled_k1az",
+      "joint_relabel"
+    ],
+    "encoder_initialization_seeds": [40, 41],
+    "probe_rows_per_panel": 64,
+    "gradient_rows_per_cipher": 64,
+    "expected_panel_rows": 12,
+    "expected_gradient_rows": 6,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "device": "cpu",
+    "execution": "local_readiness"
+  },
+  "gates": {
+    "fixed_basis_gram_max_abs_error": 0.000001,
+    "whole_path_probability_rms_k1be_ratio_min": 0.5,
+    "topology_probability_ratio_k1bc_multiplier_min": 4.0,
+    "require_topology_share_strictly_above_k1be": true,
+    "minimum_nonzero_modulation_delta": 0.0,
+    "minimum_nonzero_logit_delta": 0.0,
+    "minimum_nonzero_probability_delta": 0.0,
+    "disabled_k1az_logit_replay_tolerance": 0.0,
+    "joint_relabel_modulation_tolerance": 0.00001,
+    "joint_relabel_logit_tolerance": 0.00001,
+    "require_all_trainable_parameters_graph_connected": true,
+    "require_fixed_parameter_geometry": true,
+    "require_zero_updates_and_immutable_states": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "training before readiness passes",
+    "16-pair expansion",
+    "larger samples, epochs, width, seeds, or remote execution",
+    "cipher IDs, per-cipher heads, adapters, routers, MoE, or experts",
+    "PCGrad, loss weighting, modulation-scale inflation, or benchmark changes"
+  ]
+}
