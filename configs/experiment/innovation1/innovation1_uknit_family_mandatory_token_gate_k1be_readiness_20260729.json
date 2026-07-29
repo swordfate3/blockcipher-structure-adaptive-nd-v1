@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_uknit_family_mandatory_token_gate_k1be_readiness_20260729",
+  "experiment": "innovation1_uknit_family_mandatory_token_gate_k1be_readiness",
+  "source": {
+    "root": "outputs/local_audit/i1_uknit_family_position_preserving_operator_k1bd_gradient_coupling_audit_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_position_preserving_operator_k1bd_gradient_coupling_audit_replica0_replica1_20260729.json",
+    "config_sha256": "2bee09cd12de86c72b975238e1111dee9c13e45b72e0702752e0894101d30fed",
+    "digests": {
+      "gate.json": "f651a2d5db00d6547fcdeb0534a1ab8852279a3f30db0e654379beba54642457",
+      "validation.json": "d2279c489a3f54bc576ece085e774672a269d4384efa653f808c0743e57da24f",
+      "results.jsonl": "9706e2c1d746eff66838065bd5155a90758d7a60fd0d75f2831d381d99137031",
+      "interventions.jsonl": "03a7db0dd2aff4f6a08d31a7eb6ec918d23740f35666945ca53256882b1c8d51",
+      "checkpoint_manifest.json": "338cf50950616873dc4749c9027dfd22f43803a109f88364b83009af046eb543",
+      "summary.json": "ed4a6f4c1f7736dc7285cfd722a7dbdc7d0f5a56695f69823c6aa5649973bc84"
+    },
+    "required_decision": "innovation1_uknit_family_k1bd_modulation_coupling_redesign_required"
+  },
+  "model": {
+    "hidden_dim": 32,
+    "pair_embedding_dim": 128,
+    "dropout": 0.0,
+    "modulation_scale": 0.05,
+    "operator_token_dim": 18,
+    "edge_message": "sample_message_times_tanh_token_hidden",
+    "sample_only_bypass": false,
+    "structure_projection": false,
+    "shared_across_widths": true,
+    "cipher_identity": false,
+    "per_cipher_modules": false,
+    "expected_trainable_parameters": 26368
+  },
+  "evaluation": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "conditions": [
+      "correct_operator",
+      "same_summary_corrupted_operator",
+      "cross_cipher_operator",
+      "disabled_k1az",
+      "joint_relabel"
+    ],
+    "encoder_initialization_seeds": [40, 41],
+    "probe_rows_per_panel": 64,
+    "gradient_rows_per_cipher": 64,
+    "expected_panel_rows": 12,
+    "expected_gradient_rows": 6,
+    "training_performed": false,
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "device": "cpu",
+    "execution": "local_readiness"
+  },
+  "gates": {
+    "topology_probability_ratio_multiplier_min": 4.0,
+    "whole_path_probability_rms_anchor_ratio_min": 0.5,
+    "minimum_nonzero_modulation_delta": 0.0,
+    "minimum_nonzero_logit_delta": 0.0,
+    "minimum_nonzero_probability_delta": 0.0,
+    "disabled_k1az_logit_replay_tolerance": 0.0,
+    "joint_relabel_modulation_tolerance": 0.00001,
+    "joint_relabel_logit_tolerance": 0.00001,
+    "require_all_trainable_parameters_graph_connected": true,
+    "require_fixed_parameter_geometry": true,
+    "require_zero_updates_and_immutable_states": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "training before readiness passes",
+    "16-pair expansion",
+    "larger samples, epochs, width, seeds, or remote execution",
+    "cipher IDs, per-cipher heads, adapters, routers, MoE, or experts",
+    "PCGrad, loss weighting, or benchmark changes"
+  ]
+}
