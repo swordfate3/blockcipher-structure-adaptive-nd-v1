@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_uknit_family_multishuffle_cell_joint_null_k1bj_audit_replica0_replica1_20260729",
+  "experiment": "innovation1_uknit_family_multishuffle_cell_joint_null_k1bj_audit",
+  "source": {
+    "root": "outputs/local_audit/i1_uknit_family_cell_joint_gf2_operator_response_k1bi_audit_replica0_replica1_20260729",
+    "config": "configs/experiment/innovation1/innovation1_uknit_family_cell_joint_gf2_operator_response_k1bi_audit_20260729.json",
+    "config_sha256": "65d1576a25091a14beee6be394b89c8007250e75d30271a0c0c9d967050534f0",
+    "digests": {
+      "gate.json": "d6ade7ffb131ff6a9200bef81f79f3d9868c17911183df9cfdfa3aea6842e2c6",
+      "validation.json": "e1e2898848543bfb2933a6d9fa13d39ac2c629addac9e80ce8bd9ffb0bb79a60",
+      "results.jsonl": "21d824f015064e1830cc2f7da28b1fbcd03f147339a10227a22dcdff781d89a1",
+      "feature_manifest.jsonl": "3158c47298e4063f5a885bc40d677ad67d9ed730363f49b7eb135d9654cadd16",
+      "scorers.jsonl": "8eb02e835de130f6d3ed2c5acfe46d23ac89dfd4cc5fa2e3323108d7d89ad9ff",
+      "summary.json": "ef80157fcb02853b976819949314b95d864d7efe4e153087d057a642ae2eeb22",
+      "dataset_manifest.jsonl": "0f059c0f4d9218f25ce011ad16055d5c8dde43800bf405d91989f4ca561ab0be",
+      "curves.svg": "5bc948d2b0ced28d5463656275df1f81aac048a122e20a6015ad370dec5acc43",
+      "visual_qa_render_report.json": "e71aea08482e09d34ddccf0f66bc7515cd2dbffc0f39ed57d55f2bc6f92e2963",
+      "visual_qa_passed.marker": "64d45ee0ba76189286ce6ce0c22048bb646f1581f6c40ed0c8835e59873faa99"
+    },
+    "required_status": "hold",
+    "required_decision": "innovation1_uknit_family_k1bi_shuffle_attribution_not_supported"
+  },
+  "null": {
+    "permutations_per_replica_cipher": 31,
+    "permutation_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+    "seed_formula": "84100 + replica*10000 + cipher_index*100 + permutation_index",
+    "cipher_order": ["uknit64", "midori64", "dialga128"],
+    "statistic": "abs(auc_minus_0.5)",
+    "empirical_p": "(1 + count(null_strength >= correct_strength)) / 32",
+    "quantile_method": "higher",
+    "reuse_k1bi_cell_joint_features": true,
+    "feature_or_benchmark_change": false
+  },
+  "probe": {
+    "family": "diagonal_fisher",
+    "variance_floor": 0.000001,
+    "fit_rows": 4096,
+    "fresh_rows": 2048,
+    "pairs_per_sample": 4,
+    "neural_training_performed": false,
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "device": "cpu"
+  },
+  "evaluation": {
+    "replicas": [0, 1],
+    "ciphers": ["uknit64", "midori64", "dialga128"],
+    "splits": ["same_key_fresh", "cross_key_validation"],
+    "expected_feature_rows": 18,
+    "expected_scorer_rows": 192,
+    "expected_result_rows": 384,
+    "execution": "local_audit"
+  },
+  "gates": {
+    "correct_replay_auc_tolerance": 0.0000001,
+    "attributed_ciphers": ["midori64", "dialga128"],
+    "empirical_p_max": 0.05,
+    "correct_strength_minus_null_q95_min": 0.10,
+    "uknit_correct_auc_max_exclusive": 0.55,
+    "require_every_replica_cipher_fresh_split": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "feature, operator, difference, pair-count, data, key, cipher, round, or Fisher changes",
+    "permutation reselection after observing AUC",
+    "neural training or remote GPU",
+    "16-pair expansion, larger data, epochs, seeds, width, MoE, experts, or cipher-specific heads"
+  ]
+}

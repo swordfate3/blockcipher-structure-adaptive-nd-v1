@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_uknit_family_multishuffle_cell_joint_null_k1bj import (
+    main,
+)
+
+
+raise SystemExit(main())
