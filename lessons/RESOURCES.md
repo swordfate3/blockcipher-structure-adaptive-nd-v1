@@ -13,6 +13,10 @@
 - [uKNIT principle lesson](0005-uknit-principle.html)
   Data-first explanation of the uKNIT design framework, uKNIT-BC encryption,
   key schedule, and the structure required by the current specialist network.
+- [uKNIT public two-round window lesson](0006-uknit-public-two-round-window.html)
+  Concrete fixed-key ciphertext-pair trace showing which inverse-operator
+  stages recover exact pair differences, where the unknown round-key mask
+  remains, and how four pairs become the current 1280-dimensional histogram.
 - [Official uKNIT implementation](https://github.com/syllab-ntu/UKNIT)
   Authors' reference repository linked from the specification. Use as an
   external oracle; the project implementation independently transcribes the

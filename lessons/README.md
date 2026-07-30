@@ -24,6 +24,7 @@ self-improvement records under `.learnings/`.
 - `0003-innovation2-current-method.html`: current PG-NBPO data, labels, network, results, and high-round boundary.
 - `0004-runtime-spn-cipher-architectures.html`: Chinese visual lesson on the real encryption flow and state layout of the six Innovation 1 SPN ciphers.
 - `0005-uknit-principle.html`: data-first deep dive into the uKNIT design framework, uKNIT-BC encryption, and the current uKNIT specialist network.
+- `0006-uknit-public-two-round-window.html`: concrete five-stage public inverse-operator trace, round-key boundary, and four-pair histogram input for the current uKNIT window audit.
 
 ## Reference Sheets
 

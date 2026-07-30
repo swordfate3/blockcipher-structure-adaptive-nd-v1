@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>uKNIT最后两轮公开窗口：从密文对到训练特征</title>
+  <link rel="stylesheet" href="assets/lesson.css">
+</head>
+<body class="uknit-public-window">
+<main>
+  <h1>“最后两轮窗口”到底长什么样</h1>
+  <p class="lede">它不是拿着轮密钥把密文真正解回两轮，而是把公开的逆线性层和逆 S 盒依次作用在密文对上，生成五个确定的观察阶段。网络或统计评分器随后比较固定差分对与独立随机明文对在这些阶段里的差分分布。</p>
+
+  <div class="objective">
+    <strong>学完后的判断标准：</strong>看到 <code>r5_exact2_position</code> 时，你能说出五个阶段、哪些阶段的差分是准确对齐的、未知轮密钥留在哪里，以及一条 4-pair 样本怎样变成 <code>5 x 16 x 16 = 1280</code> 个特征。
+  </div>
+
+  <h2>1. 先把“最后两轮”放回完整 5 轮加密</h2>
+
+  <p>项目的 uKNIT 5 轮前缀仍从明文完整执行五轮。若把第4轮输入记为 <code>X3</code>，最后两轮是：</p>
+  <h3>第4轮</h3>
+  <div class="flow-diagram" aria-label="uKNIT五轮前缀的第4轮">
+    <div class="flow-node control"><strong>X3</strong><span>前三轮输出</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node key"><strong>XOR K3</strong><span>未知第4轮子密钥</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>S3</strong><span>第4轮位置相关S盒</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node linear"><strong>L3</strong><span>第4轮GF(2)扩散</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node control"><strong>X4</strong><span>第4轮输出</span></div>
+  </div>
+  <h3>第5轮</h3>
+  <div class="flow-diagram" aria-label="uKNIT五轮前缀的第5轮">
+    <div class="flow-node control"><strong>X4</strong><span>第4轮输出</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node key"><strong>XOR K4</strong><span>未知第5轮子密钥</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>S4</strong><span>第5轮位置相关S盒</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node linear"><strong>L4</strong><span>第5轮GF(2)扩散</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node control"><strong>C</strong><span>5轮密文</span></div>
+  </div>
+
+  <p>代码索引从0开始，所以人说的第4、5轮在代码里是 <code>round_start=3, runtime_rounds=2</code>。对于6轮密文，同样的两轮窗口改成代码轮4、5，也就是人说的第5、6轮。</p>
+
+  <h2>2. 公开窗口只撤销算子，不猜轮密钥</h2>
+
+  <div class="flow-diagram" aria-label="从密文构造五阶段公开窗口">
+    <div class="flow-node control"><strong>V0 = C</strong><span>密文</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node linear"><strong>V1 = L4^-1(V0)</strong><span>精确撤销最后扩散</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>V2 = S4^-1(V1)</strong><span>得到 X4 XOR K4</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node linear"><strong>V3 = L3^-1(V2)</strong><span>仍带固定密钥遮罩</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>V4 = S3^-1(V3)</strong><span>密钥条件化公开视图</span></div>
+  </div>
+
+  <div class="warning"><strong>最重要的边界：</strong><code>exact2</code> 的“exact”表示使用的 S 盒表和 GF(2)矩阵与密码规范完全一致，不表示已经恢复真实内部状态。窗口没有执行 <code>XOR K4</code> 或 <code>XOR K3</code>，因为网络根本不知道这些轮密钥。</div>
+
+  <p>单条密文经过前两步后确实有：</p>
+  <div class="equation">V2 = S4^-1(L4^-1(C)) = X4 XOR K4</div>
+  <p>继续逆线性层时，因为 <code>L3</code> 是线性的：</p>
+  <div class="equation">V3 = S3(X3 XOR K3) XOR L3^-1(K4)</div>
+  <p>所以 <code>V3</code> 不是实际的第4轮 S 盒输出，而是它再异或一个对所有同密钥样本固定的遮罩。对密文对 <code>C,C'</code> 做异或时，这个固定遮罩会消掉：</p>
+  <div class="equation">Delta V3 = V3 XOR V3' = S3(X3 XOR K3) XOR S3(X3' XOR K3)</div>
+  <p>这正是窗口仍有价值的原因：虽然不知道状态本身，但多个阶段的<strong>成对差分</strong>仍能沿正确线性拓扑对齐。最后的 <code>Delta V4</code> 经过带未知遮罩的非线性逆 S 盒，不再等于真实更早一轮差分；它只是一个固定密钥下可重复的派生视图。</p>
+
+  <h2>3. 一对真实数据逐步变成什么</h2>
+
+  <p>下面使用项目实现、固定128-bit密钥和当前 K1-BO 的输入差分。明文是为了讲解而固定选择的，但计算流程与实验相同：</p>
+  <pre>key = 0123456789ABCDEFFEDCBA9876543210
+P   = 0123456789ABCDEF
+P'  = 0123056789ABCDEF
+P XOR P' = 0000400000000000</pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>公开阶段</th><th>左侧64-bit值</th><th>右侧64-bit值</th><th>两者XOR差分</th></tr></thead>
+      <tbody>
+        <tr><td>V0 密文</td><td><code>CAB26F543F397F51</code></td><td><code>E9EA453FF20CE7B9</code></td><td><code>23582A6BCD3598E8</code></td></tr>
+        <tr><td>V1 逆L4</td><td><code>24975FBB2DF32551</code></td><td><code>4F0419017A4B9102</code></td><td><code>6B9346BA57B8B453</code></td></tr>
+        <tr><td>V2 逆S4</td><td><code>8D01A3C235AFBFEE</code></td><td><code>EA677FABDFE4975C</code></td><td><code>6766DC69EA4B28B2</code></td></tr>
+        <tr><td>V3 逆L3</td><td><code>09EBCA787DC464D6</code></td><td><code>5DC951B26DB46BB8</code></td><td><code>54229BCA10700F6E</code></td></tr>
+        <tr><td>V4 逆S3</td><td><code>5F21F015916EB860</code></td><td><code>F14F65BBC18EB719</code></td><td><code>AE6E95AE50E00F79</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>可以直接核对三个准确关系：</p>
+  <ul class="steps">
+    <li><code>Delta V1 = 6B9346BA57B8B453</code>，等于真实第5轮 S 盒输出差分。</li>
+    <li><code>Delta V2 = 6766DC69EA4B28B2</code>，等于真实第4轮输出差分。</li>
+    <li><code>Delta V3 = 54229BCA10700F6E</code>，等于真实第4轮 S 盒输出差分。</li>
+  </ul>
+  <p>但真实第4轮 S 盒输入差分是 <code>7B11259280B00FED</code>，它不等于 <code>Delta V4 = AE6E95AE50E00F79</code>。这组数具体展示了“公开算子精确、真实部分解密不成立”的区别。</p>
+
+  <h2>4. 四对密文怎样变成一条训练输入</h2>
+
+  <p>最新 K1-BO 每条样本有4对密文。窗口只保留每个阶段的 <code>C XOR C'</code>，再把64 bit切成16个4-bit cell。下面只看活动位置 <code>cell11</code>：</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>pair</th><th>V0 密文</th><th>V1 逆L4</th><th>V2 逆S4</th><th>V3 逆L3</th><th>V4 逆S3</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>2</td><td>4</td><td>D</td><td>9</td><td>9</td></tr>
+        <tr><td>2</td><td>2</td><td>3</td><td>6</td><td>9</td><td>7</td></tr>
+        <tr><td>3</td><td>4</td><td>3</td><td>9</td><td>9</td><td>C</td></tr>
+        <tr><td>4</td><td>2</td><td>6</td><td>B</td><td>5</td><td>B</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>例如 V3 的四个 cell11 差分是 <code>[9, 9, 9, 5]</code>，于是16格直方图只有两格非零：</p>
+  <div class="equation">V3 / cell11：P(value=9)=3/4，P(value=5)=1/4，其余14种取值=0</div>
+  <p>同样操作覆盖全部5个阶段和16个位置：</p>
+  <div class="equation">5 stages x 16 cells x 16 possible nibble values = 1280 features</div>
+
+  <h2>5. 为什么这些公开特征可以拿来训练</h2>
+
+  <p>训练标签不是“某个比特是多少”，而是这条由4对密文组成的样本属于哪种生成规则：</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>标签</th><th>明文对怎样产生</th><th>网络实际拿到什么</th></tr></thead>
+      <tbody>
+        <tr><td class="good">1：真实差分</td><td class="left"><code>P' = P XOR 0x0000400000000000</code></td><td class="left">只给4对5轮密文经公开窗口得到的1280维统计</td></tr>
+        <tr><td>0：严格负样本</td><td class="left"><code>P</code> 与 <code>P'</code> 是两个独立随机明文</td><td class="left">也先真实加密，再做完全相同的公开窗口和统计</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>固定差分在低轮 SPN 中沿特定 S 盒和扩散路径传播，不同 cell、不同阶段的差分值频率可能偏离独立随机对。公开窗口相当于把混在最终密文里的差分按正确结构重新摆齐，让模型不用从头猜“哪些bit在第4轮属于同一个S盒”。</p>
+
+  <div class="success"><strong>可以训练，不等于一定能区分。</strong>它只是一个由密文确定、没有标签泄漏、没有明文输入、没有轮密钥输入的合法特征变换。有没有可泛化信号仍要看同预算基线、错误S盒、位置抹除、标签打乱、同密钥新样本和跨密钥验证。</div>
+
+  <h3>最新 K1-BO 要单独说明</h3>
+  <p>最新的 K1-BO 不是神经训练：它把上述1280维特征交给确定性的对角 Fisher 评分器，训练轮数、神经参数和优化步数都为0，用来先判断2轮与3轮窗口是否存在值得训练的信号。结果没有通过 <code>AUC >= 0.55</code> 门槛，因此当前没有授权6轮神经训练。历史 K1-U 类神经模型才会把每个16格直方图用共享的 <code>16 -> 8</code> 小编码器压缩，再投影为128维残差加入主干。</p>
+
+  <h2>6. 三个自测问题</h2>
+  <details>
+    <summary>为什么不知道 K4，Delta V2 仍然是准确的第4轮输出差分？</summary>
+    <p>两边在逆 S4 后分别是 <code>X4 XOR K4</code> 和 <code>X4' XOR K4</code>。再异或时，同一个 <code>K4</code> 出现两次而抵消，只剩 <code>X4 XOR X4'</code>。</p>
+  </details>
+  <details>
+    <summary>为什么不能把 V4 叫作真实第3轮输出？</summary>
+    <p>V3 在真实 S3 输出上还带有 <code>L3^-1(K4)</code> 遮罩。非线性逆 S 盒不能像线性层那样把这个遮罩简单分离，所以 V4 只是固定密钥条件下的确定视图。</p>
+  </details>
+  <details>
+    <summary>一条最新 K1-BO 样本最终有多少个窗口特征？</summary>
+    <p>4对密文先形成5个阶段；每个阶段保留16个cell，每个cell统计16种差分值的频率，所以是 <code>5 x 16 x 16 = 1280</code>。4是每格直方图的观测次数，不是额外的特征维。</p>
+  </details>
+
+  <p class="source-note"><strong>主要来源：</strong><a href="../src/blockcipher_nd/ciphers/spn/uknit.py">项目uKNIT-BC加密实现</a>；<a href="../src/blockcipher_nd/models/structure/spn/exact_operator_composition.py">公开逆算子窗口实现</a>；<a href="../src/blockcipher_nd/models/structure/spn/position_histogram_residual.py">位置直方图实现</a>；<a href="../docs/experiments/innovation1-uknit-r6-public-window-depth-k1bo-plan.md">K1-BO实验记录</a>。十六进制示例由当前项目实现直接计算。</p>
+
+  <nav class="footer-nav">
+    前置：<a href="0005-uknit-principle.html">uKNIT原理与逐轮结构</a> ·
+    速查：<a href="reference/spn-cipher-architecture-cheatsheet.html">SPN结构速查表</a> ·
+    对任何一步不清楚都可以继续问我；下一步可以专门手算“为什么同一个轮密钥在差分中抵消”。
+  </nav>
+</main>
+</body>
+</html>
