@@ -27,6 +27,13 @@ mechanical continuation of K1-U and is not formal or paper-scale evidence.
   `runtime_round_start=4`, `runtime_rounds=2`
 - Execution: remote physical GPU 1, disk-backed chunked cache under `G:\lxy`
 
+Remote launch repair on 2026-07-30: two clean SSH clone attempts were closed on
+GitHub port 22 before checkout. The run-owned clone therefore uses the public
+repository's HTTPS transport for read-only source retrieval, then checks out
+and verifies the exact GitHub-published commit. This does not transfer a local
+source overlay or weaken the source-revision gate. Result-branch push failure
+still falls back to raw retrieval from the completed `G:\lxy` run root.
+
 The inherited profile name `uknit64_k1q_cell11_r5` is retained only because it
 identifies the frozen difference. The actual cipher round count is 6 and the
 explicit model option binds the difference value, so the profile suffix must

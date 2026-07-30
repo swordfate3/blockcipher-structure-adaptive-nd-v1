@@ -105,6 +105,7 @@ def test_k1br_remote_assets_freeze_cache_gpu_and_windows_safety() -> None:
     assert "!" not in run + launch
     assert "cmd.exe /k" not in run + launch + config["launch_policy"]
     assert "cmd.exe /c" in launch
+    assert "set REPO_URL=https://github.com/" in launch
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in run + launch
     assert "--dataset-cache-chunk-size 1024" in run
     assert "--dataset-cache-workers 1" in run

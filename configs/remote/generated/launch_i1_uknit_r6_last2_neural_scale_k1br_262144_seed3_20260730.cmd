@@ -7,7 +7,7 @@ if "%SOURCE_COMMIT%"=="" exit /b 2
 if "%PHYSICAL_GPU%"=="" exit /b 2
 if not "%PHYSICAL_GPU%"=="1" exit /b 3
 
-set REPO_URL=git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git
+set REPO_URL=https://github.com/swordfate3/blockcipher-structure-adaptive-nd-v1.git
 set RUN_ID=i1_uknit_r6_last2_neural_scale_k1br_262144_seed3_20260730
 set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
 set SCHEDULE_ROOT=G:\lxy\scheduled-runs
