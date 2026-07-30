@@ -50,8 +50,16 @@ def render_k1br_svg(gate: dict[str, Any], output: Path) -> dict[str, Any]:
         )
     chance = scale(0.5)
     title = "uKNIT 6轮：扩大数据后能否学到可归因的区分信号"
-    subtitle = "262144/类训练，seed3，4对密文，10轮训练；单种子大规模诊断，不是正式结论"
-    tier = html.escape(str(gate.get("tier", "unknown")))
+    subtitle = "262144/类训练，seed3，4对密文，10轮训练；单种子扩样诊断，不是正式结论"
+    tier_labels = {
+        "invalid": "协议未通过",
+        "no_supported_positive_signal": "未观察到可信正向信号",
+        "weak_unattributed": "微弱但未归因",
+        "weak_attributed": "微弱且可归因",
+        "strong_attributed": "强且可归因",
+    }
+    raw_tier = str(gate.get("tier", "unknown"))
+    tier = html.escape(tier_labels.get(raw_tier, raw_tier))
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="610" viewBox="0 0 1120 610">
 <style>
 text {{ font-family: "Noto Sans CJK SC", "Microsoft YaHei", sans-serif; fill: #202124; letter-spacing: 0; }}

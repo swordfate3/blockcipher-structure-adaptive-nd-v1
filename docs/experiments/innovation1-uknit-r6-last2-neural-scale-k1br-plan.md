@@ -83,7 +83,9 @@ training or compare it directly to paper-scale neural distinguishers.
 
 ## Launch record
 
-- Status: running remotely; no result is available yet.
+- Status: completed remotely; fallback-retrieved raw results; local strict gate
+  remains invalid because one restored-checkpoint metric exceeded the frozen
+  replay tolerance.
 - Launch time: 2026-07-30 14:46 Asia/Shanghai.
 - Source commit: `d967b02c3221365638189353107eb5b7efb6419f`, verified
   equal to GitHub `main` before launch.
@@ -102,3 +104,44 @@ plot generation, and recent-results indexing. After retrieval, run
 `visual-qa-redraw` on the rendered result before marking the figure complete,
 then append metrics, deltas, decision, claim scope, and the evidence-backed next
 action to this record.
+
+## Retrieved result and adjudication
+
+The remote GPU completed all three ten-epoch rows and wrote three result rows.
+Plan/result validation passed `3/3`, the progress log contains `run_done`, both
+disk caches completed, all four control reuses occurred, and the exact source
+commit remained `d967b02c3221365638189353107eb5b7efb6419f`.
+
+The remote postprocessor then failed before archive creation because the gate
+wrapper could not import `blockcipher_nd`. The raw result and logs were therefore
+retrieved from the completed `G:\lxy` run root into
+`outputs/remote_results_incomplete/` and are not a verified result-branch
+archive.
+
+| Condition | restored-checkpoint AUC |
+|---|---:|
+| Correct S-box plus native positions | 0.500422927 |
+| Wrong-S-box control | 0.503789498 |
+| Position-invariant control | 0.500420902 |
+
+The best intended candidate is the exact-position model at `0.500422927`, below
+the preregistered weak floor `0.51`. Its margin over the wrong-S-box control is
+`-0.003366571`. Thus this single-seed `262144/class` diagnostic does not observe
+a credible six-round signal and does not authorize seed4 or `1M/class` scale.
+
+The local strict gate remains `invalid`, rather than a clean research hold,
+because the position-invariant row's restored evaluation AUC differs from its
+recorded best-checkpoint AUC by about `1.54e-5`, above the frozen `1e-6`
+tolerance. That artifact/protocol mismatch does not create a positive signal,
+but it must be resolved before a plan-aligned closure is recorded.
+
+Recommended next action: repair only the remote postprocessing import path and
+audit the existing invariant checkpoint's deterministic replay without
+retraining. If the unchanged checkpoint passes the frozen protocol and the
+three AUCs remain below `0.51`, close K1-BR as a no-supported-positive-signal
+larger diagnostic. Do not add another seed, more data, more epochs, more pairs,
+another difference, or a deeper runtime window before that audit.
+
+The final Chinese SVG was rendered to `2016x1098` pixels and passed
+`visual-qa-redraw`: no text overlap, clipping, missing glyphs, ambiguous title,
+misleading scale, or unreadable marker separation was observed.
