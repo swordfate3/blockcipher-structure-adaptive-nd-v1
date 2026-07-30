@@ -80,3 +80,25 @@ Launch this exact single-seed remote diagnostic from a GitHub-verified commit.
 Its only purpose is to decide whether a larger-data 6-round signal exists and
 is attributable to the correct structural semantics. Do not call it formal
 training or compare it directly to paper-scale neural distinguishers.
+
+## Launch record
+
+- Status: running remotely; no result is available yet.
+- Launch time: 2026-07-30 14:46 Asia/Shanghai.
+- Source commit: `d967b02c3221365638189353107eb5b7efb6419f`, verified
+  equal to GitHub `main` before launch.
+- Remote task: `I1_UKNIT_R6_K1BR_S3_GPU1` on physical GPU 1.
+- Remote run root:
+  `G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_uknit_r6_last2_neural_scale_k1br_262144_seed3_20260730`.
+- Local monitor: `i1_uknit_r6_k1br_262k_s3_monitor`.
+- Durable start evidence: run-owned source clone at the exact commit, scheduled
+  task in `Running` state, and source/GPU/torch logs under the run root.
+- Estimated duration: about 6--8 hours, extrapolated from the retrieved K1-U
+  65536/class run (six rows in 3.31 hours) while accounting for three rows,
+  four-times larger training data, and two-times larger validation data.
+
+The monitor owns completion waiting, retrieval, local validation, adjudication,
+plot generation, and recent-results indexing. After retrieval, run
+`visual-qa-redraw` on the rendered result before marking the figure complete,
+then append metrics, deltas, decision, claim scope, and the evidence-backed next
+action to this record.
