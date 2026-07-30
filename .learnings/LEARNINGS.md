@@ -1,3 +1,51 @@
+## [LRN-20260730-002] correction
+
+**Logged**: 2026-07-30T12:00:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Report AUC at or above `0.51` as a weak candidate signal, separately from the
+strong experiment pass gate and scale authorization.
+
+### Details
+
+The user corrected binary reporting that described every result below `0.55`
+as unsupported. For local SPN discovery, `0.51 <= AUC < 0.55` can be useful as
+a weak signal worth bounded confirmation. It is not by itself evidence of a
+stable distinguisher: K1-BP's selected seed2 cell reached minimum fresh AUC
+`0.514677`, but the frozen seed3/4 sparse confirmation AUCs were only
+`0.484064-0.501928`, and wrong full-key controls reached as high as `0.518814`.
+
+### Suggested Action
+
+Use evidence tiers: below `0.51` is no supported positive signal,
+`0.51-0.55` is weak and permits only local confirmation, and `>=0.55` is a
+strong candidate floor. Keep required seed replication, same-budget controls,
+confidence/uncertainty analysis and route-specific rank gates separate; a
+single AUC above `0.51` must not authorize remote scale or a success claim.
+
+### Metadata
+
+- Source: user_feedback, verified_local_experiment
+- Related Files: docs/experiments/innovation1-uknit-r6-last-round-key-hypothesis-k1bp-plan.md, src/blockcipher_nd/tasks/innovation1/uknit_r6_key_hypothesis_k1bp.py
+- Tags: innovation1, auc, weak-signal, evidence-tier, controls
+- See Also: LRN-20260730-001
+- Pattern-Key: research.auc_weak_signal_reporting_tier
+- Recurrence-Count: 1
+- First-Seen: 2026-07-30
+- Last-Seen: 2026-07-30
+
+### Resolution
+
+- **Resolved**: 2026-07-30T12:00:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added a reporting-only weak-signal tier without relaxing the frozen strong pass gate.
+
+---
+
 ## [LRN-20260730-001] best_practice
 
 **Logged**: 2026-07-30T00:01:41+08:00
