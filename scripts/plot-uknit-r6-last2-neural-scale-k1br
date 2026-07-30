@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.plot_uknit_r6_last2_neural_scale_k1br import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
