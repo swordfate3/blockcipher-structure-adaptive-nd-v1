@@ -8,10 +8,15 @@ import torch
 from blockcipher_nd.cli.run_uknit_family_ctspn_k1r import read_tasks
 from blockcipher_nd.engine.modeling import model_metadata
 from blockcipher_nd.models.structure.spn.exact_operator_composition import (
+    COMPOSITION_STAGE_NAMES,
+    composition_stage_names,
     exact_operator_composition_views,
 )
 from blockcipher_nd.models.structure.spn.position_histogram_residual import (
     deterministic_position_histogram,
+)
+from blockcipher_nd.models.structure.spn.runtime_structure import (
+    load_runtime_spn_descriptor,
 )
 from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1n import build_k1n_control
 from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1o import (
@@ -28,6 +33,48 @@ K1R_PLAN = (
     ROOT
     / "configs/experiment/innovation1/innovation1_uknit_family_ctspn_cell11_neural_attribution_k1r_2048_seed3_seed4.csv"
 )
+UKNIT_DESCRIPTOR = ROOT / "configs/runtime/spn/uknit64.json"
+
+
+def test_exact_operator_composition_extends_two_round_prefix_to_three_rounds() -> None:
+    two = load_runtime_spn_descriptor(
+        UKNIT_DESCRIPTOR,
+        rounds=2,
+        round_start=4,
+    ).structure
+    three = load_runtime_spn_descriptor(
+        UKNIT_DESCRIPTOR,
+        rounds=3,
+        round_start=3,
+    ).structure
+    runtime = torch.randint(
+        0,
+        2,
+        (3, 4, 2, 64),
+        generator=torch.Generator().manual_seed(20260730),
+    ).float()
+
+    two_views = exact_operator_composition_views(runtime, two)
+    three_views = exact_operator_composition_views(runtime, three)
+    two_histogram = deterministic_position_histogram(runtime, two)
+    three_histogram = deterministic_position_histogram(runtime, three)
+
+    assert COMPOSITION_STAGE_NAMES == composition_stage_names(2)
+    assert composition_stage_names(3) == (
+        "ciphertext",
+        "inverse_linear_2",
+        "inverse_sbox_2",
+        "inverse_linear_1",
+        "inverse_sbox_1",
+        "inverse_linear_0",
+        "inverse_sbox_0",
+    )
+    assert two_views.shape == (3, 4, 64, 15)
+    assert three_views.shape == (3, 4, 64, 21)
+    assert torch.equal(three_views[..., :15], two_views)
+    assert two_histogram.shape == (3, 5, 16, 16)
+    assert three_histogram.shape == (3, 7, 16, 16)
+    assert torch.equal(three_histogram[:, :5], two_histogram)
 
 
 def test_position_histogram_exactly_matches_k1s_t0_geometry_and_values() -> None:

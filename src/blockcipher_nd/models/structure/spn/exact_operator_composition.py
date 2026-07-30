@@ -17,13 +17,16 @@ from blockcipher_nd.models.structure.spn.topology_edge_residual import (
 )
 
 
-COMPOSITION_STAGE_NAMES = (
-    "ciphertext",
-    "inverse_linear_1",
-    "inverse_sbox_1",
-    "inverse_linear_0",
-    "inverse_sbox_0",
-)
+def composition_stage_names(rounds: int) -> tuple[str, ...]:
+    if type(rounds) is not int or rounds <= 0:
+        raise ValueError("composition rounds must be a positive integer")
+    names = ["ciphertext"]
+    for slot in reversed(range(rounds)):
+        names.extend((f"inverse_linear_{slot}", f"inverse_sbox_{slot}"))
+    return tuple(names)
+
+
+COMPOSITION_STAGE_NAMES = composition_stage_names(2)
 
 
 class ExactOperatorCompositionSpnDistinguisher(
@@ -168,8 +171,6 @@ def exact_operator_composition_views(
         raise ValueError("ciphertext pairs must have shape [batch, pairs, 2, bits]")
     if ciphertext_pairs.shape[-1] != structure.block_bits:
         raise ValueError("ciphertext pair width does not match runtime structure")
-    if structure.rounds != 2:
-        raise ValueError("exact operator composition requires two transitions")
     if not torch.all((ciphertext_pairs == 0) | (ciphertext_pairs == 1)):
         raise ValueError("exact operator composition requires binary values")
 
@@ -177,7 +178,7 @@ def exact_operator_composition_views(
     right = ciphertext_pairs[:, :, 1]
     current = _triplet(left, right)
     stages = [current]
-    for slot in (1, 0):
+    for slot in reversed(range(structure.rounds)):
         current = apply_gf2_operator(
             current,
             structure.inverse_linear_matrices[slot],
@@ -201,7 +202,9 @@ def composition_fingerprint(
     apply_sboxes: bool,
 ) -> str:
     digest = hashlib.sha256()
-    digest.update("|".join(COMPOSITION_STAGE_NAMES).encode("ascii"))
+    digest.update(
+        "|".join(composition_stage_names(structure.rounds)).encode("ascii")
+    )
     digest.update(bytes((int(apply_sboxes),)))
     digest.update(structure.cell_membership.numpy().tobytes())
     digest.update(structure.bit_role.numpy().tobytes())
@@ -215,6 +218,7 @@ __all__ = [
     "COMPOSITION_STAGE_NAMES",
     "ExactOperatorCompositionSpnDistinguisher",
     "FixedExactOperatorCompositionSpnProtocolAdapter",
+    "composition_stage_names",
     "composition_fingerprint",
     "exact_operator_composition_views",
 ]

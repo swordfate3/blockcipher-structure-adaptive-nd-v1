@@ -11,6 +11,7 @@ from torch.nn import functional as F
 from blockcipher_nd.models.structure.spn.exact_operator_composition import (
     COMPOSITION_STAGE_NAMES,
     ExactOperatorCompositionSpnDistinguisher,
+    composition_stage_names,
     composition_fingerprint,
     exact_operator_composition_views,
 )
@@ -1194,7 +1195,7 @@ def deterministic_position_histogram(
         apply_sboxes=apply_sboxes,
     )
     batch, pairs, bits, channels = views.shape
-    stages_count = len(COMPOSITION_STAGE_NAMES)
+    stages_count = len(composition_stage_names(structure.rounds))
     if channels != stages_count * 3:
         raise ValueError("exact composition histogram geometry is invalid")
     stages = views.reshape(batch, pairs, bits, stages_count, 3)[..., 2].permute(
