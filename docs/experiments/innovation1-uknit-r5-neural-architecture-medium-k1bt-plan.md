@@ -41,6 +41,11 @@ checkpoint           = restore best validation AUC
 execution            = remote A6000 physical GPU1 from exact pushed commit
 ```
 
+The remote network closes GitHub SSH port 22. Both source-clone and result-push
+commands therefore use GitHub's official `ssh.github.com:443` SSH endpoint with
+the existing repository-scoped key; the repository URL and commit pin remain
+unchanged.
+
 The generated-data path must use parameter-matched disk caches with
 `features.npy`, `labels.npy`, `metadata.json`, durable progress JSONL and reuse
 between the two architectures for each seed/split. Four cache creations, four

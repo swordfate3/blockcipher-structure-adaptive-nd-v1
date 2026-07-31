@@ -13,7 +13,7 @@ set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
 set SCHEDULE_ROOT=G:\lxy\scheduled-runs
 set LAUNCH_LOG_DIR=%RUNS_ROOT%\launcher_logs
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
-set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
+set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o Hostname=ssh.github.com -p 443
 set TASK_NAME=I1_UKNIT_K1BT_S3S4_GPU1
 set SCHEDULE_CMD=%SCHEDULE_ROOT%\i1_uknit_k1bt_seed3_seed4_gpu1.cmd
 

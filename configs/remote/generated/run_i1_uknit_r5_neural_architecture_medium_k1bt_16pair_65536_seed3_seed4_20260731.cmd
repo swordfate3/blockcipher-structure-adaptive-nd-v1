@@ -18,7 +18,7 @@ set PLAN=configs\experiment\innovation1\innovation1_uknit_r5_neural_architecture
 set REMOTE_CONFIG=configs\remote\innovation1_uknit_k1bt_architecture_medium_65536_seed3_seed4_gpu1_20260731.json
 set PY=F:\Anaconda\envs\DWT\torch310\python.exe
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
-set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
+set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o Hostname=ssh.github.com -p 443
 set CUDA_VISIBLE_DEVICES=%PHYSICAL_GPU%
 set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 

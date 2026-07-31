@@ -131,6 +131,7 @@ def test_k1bt_launch_gate_and_generated_assets_are_fail_closed() -> None:
     assert 'if not "%PHYSICAL_GPU%"=="1"' in run + launch
     assert "git clone --no-checkout" in launch
     assert "git checkout --detach" in launch
+    assert "Hostname=ssh.github.com -p 443" in run + launch
     assert 'sed \'s/\\r$//\' SHA256SUMS | sha256sum -c -' in monitor
     assert "retrieved_from_verified_result_branch.marker" in monitor
     assert "fallback_retrieved.marker" in monitor
