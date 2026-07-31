@@ -1,3 +1,56 @@
+## [LRN-20260731-002] correction
+
+**Logged**: 2026-07-31T23:19:38+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Separate cryptanalysis included in a new cipher's design paper from independent
+post-publication attacks when reporting the public round frontier.
+
+### Details
+
+A comparison described uKNIT-BC's 7-round integral, impossible-differential and
+zero-correlation distinguishers, and its 9/10-round reduced-round key-recovery
+analyses, as the "public frontier." That wording suggested that third parties
+had already attacked the recently published cipher. The verified source is the
+uKNIT design paper itself: its abstract promises a complete security analysis,
+Section 6 says "we performed" the cryptanalysis, Table 1 lists the authors'
+9/10-round reduced-round key-recovery analyses, and Section 6.6 reports that the
+longest zero-sum property found by the authors is 7 rounds. The checked IACR
+keyword results did not identify an independent follow-up attack, although that
+limited search is not an exhaustive absence proof.
+
+### Suggested Action
+
+For newly proposed ciphers, report three distinct evidence classes: design-paper
+self-analysis, independently published follow-up cryptanalysis, and local neural
+experiments. Use "authors' design-time security evaluation" for the first class
+and reserve "independent public attack frontier" for verified third-party work.
+Do not calculate a direct neural-versus-frontier round gap across these classes
+without stating the different task, data, complexity and key-recovery semantics.
+
+### Metadata
+
+- Source: user_feedback, verified_primary_source
+- Related Files: papers/算法/uKNIT（轻量级算法设计）.pdf, docs/experiments/innovation1-uknit-r5-neural-architecture-medium-k1bt-plan.md
+- Tags: innovation1, uknit, literature, design-paper, independent-attack, evidence-scope
+- See Also: LRN-20260730-003, LRN-20260730-001
+- Pattern-Key: research.literature.design_self_analysis_vs_independent_attack
+- Recurrence-Count: 1
+- First-Seen: 2026-07-31
+- Last-Seen: 2026-07-31
+
+### Resolution
+
+- **Resolved**: 2026-07-31T23:19:38+08:00
+- **Commit/PR**: pending
+- **Notes**: Corrected the user-facing distinction and recorded the verified primary-source wording for future comparisons.
+
+---
+
 ## [LRN-20260730-003] best_practice
 
 **Logged**: 2026-07-30T22:00:00+08:00
