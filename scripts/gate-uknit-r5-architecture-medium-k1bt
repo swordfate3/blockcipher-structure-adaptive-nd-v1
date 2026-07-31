@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.gate_uknit_r5_architecture_medium_k1bt import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
