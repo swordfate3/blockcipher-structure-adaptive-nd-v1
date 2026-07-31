@@ -109,6 +109,28 @@ completion detection, verified-branch or raw fallback retrieval, local
 re-adjudication, plotting, and result indexing; the main workflow must not poll
 the remote job.
 
+### First-launch readiness failure
+
+The monitor subsequently retrieved a fail marker. The first launch stopped
+before dataset generation or optimization:
+
+```text
+remote config readiness = pass
+torch / CUDA             = 2.5.1+cu118 / CUDA 11.8
+visible GPU              = RTX A6000
+training rows completed  = 0
+failure                  = ModuleNotFoundError: blockcipher_nd
+failing entrypoint       = scripts/check-uknit-r6-pair-amplification-k1bv
+```
+
+Cause: the new experiment wrappers omitted the standard repository `src/`
+bootstrap used by `scripts/train`, `scripts/validate-results`, and
+`scripts/check-remote-readiness`. This is a launch-compatibility failure, not a
+model, dataset, or r6 evidence result. The repair adds the standard bootstrap to
+all K1-BV wrappers and sets `PYTHONPATH=%SOURCE_ROOT%\src` in the remote run
+script. The frozen plan, data, keys, pair counts, models, seeds, epochs, and
+gates remain unchanged for the retry.
+
 ## Result gate
 
 For each seed independently calculate:

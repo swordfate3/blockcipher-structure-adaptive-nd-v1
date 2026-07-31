@@ -21,12 +21,14 @@ set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o Hostname=ssh.github.com -p 443
 set CUDA_VISIBLE_DEVICES=%PHYSICAL_GPU%
 set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+set PYTHONPATH=%SOURCE_ROOT%\src
 
 if not exist "%RUN_ROOT%" mkdir "%RUN_ROOT%"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 if not exist "%RESULTS_DIR%" mkdir "%RESULTS_DIR%"
 if not exist "%CHECKPOINT_DIR%" mkdir "%CHECKPOINT_DIR%"
 if not exist "%CACHE_ROOT%" mkdir "%CACHE_ROOT%"
+if exist "%LOG_DIR%\%RUN_ID%_failed.marker" del /q "%LOG_DIR%\%RUN_ID%_failed.marker"
 
 cd /d "%SOURCE_ROOT%" || goto failed
 for /f "delims=" %%S in ('git status --porcelain') do goto dirty_source

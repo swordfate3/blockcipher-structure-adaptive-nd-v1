@@ -50,6 +50,41 @@ retain all entries within a configurable time window, defaulting to seven days.
 
 ---
 
+## [FEAT-20260731-003] self_healing_skill_availability
+
+**Logged**: 2026-07-31T14:20:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: infra
+
+### Requested Capability
+Install or expose the `self-healing` skill required by the repository for
+active runtime diagnosis, verified repair, and structured `HEAL-` evidence.
+
+### User Context
+The K1-BV remote run failed before training because a newly generated Python
+wrapper did not bootstrap the repository `src/` path. `AGENTS.md` requires the
+active failure to use `self-healing`, but neither the current skill catalog nor
+the installed skill roots contained that skill. Similar missing-skill fallbacks
+have already been recorded repeatedly in `.learnings/ERRORS.md`.
+
+### Complexity Estimate
+simple
+
+### Suggested Implementation
+Install the compatible `self-healing` skill beside `self-improvement`, expose it
+in the Codex skill catalog, and verify that a fresh task can read the complete
+skill and create a validated `HEAL-` entry without modifying unrelated learning
+records.
+
+### Metadata
+- Frequency: recurring
+- Related Features: self-improvement, remote experiment recovery, HEALS.md
+- See Also: existing self-healing-unavailable entries in `.learnings/ERRORS.md`
+- Pattern-Key: workflow.self_healing.skill_availability
+
+---
+
 ## [FEAT-20260716-002] visual_qa_redraw_workflow_availability
 
 **Logged**: 2026-07-16T21:20:00+08:00

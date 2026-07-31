@@ -95,10 +95,23 @@ def test_remote_assets_are_safe_and_ready() -> None:
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in run + launch
     assert "--expected-rows 6" in run
     assert "--dataset-cache-root" in run
+    assert "set PYTHONPATH=%SOURCE_ROOT%\\src" in run
     assert "Hostname=ssh.github.com -p 443" in run + launch
     assert "git clone --no-checkout" in launch
     assert "sed 's/\\r$//' SHA256SUMS | sha256sum -c -" in monitor
     assert "visual_qa_pending.marker" in monitor
+
+    wrappers = (
+        "check-uknit-r6-pair-amplification-k1bv",
+        "check-uknit-r6-pair-amplification-k1bv-launch",
+        "gate-uknit-r6-pair-amplification-k1bv",
+        "package-uknit-r6-pair-amplification-k1bv",
+        "plot-uknit-r6-pair-amplification-k1bv",
+    )
+    for wrapper in wrappers:
+        text = (ROOT / "scripts" / wrapper).read_text(encoding="utf-8")
+        assert "sys.path.insert(0" in text
+        assert 'parents[1] / "src"' in text
 
 
 def test_plot_uses_plain_chinese_r6_pair_explanation(tmp_path: Path) -> None:
