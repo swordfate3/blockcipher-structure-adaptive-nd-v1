@@ -131,6 +131,22 @@ all K1-BV wrappers and sets `PYTHONPATH=%SOURCE_ROOT%\src` in the remote run
 script. The frozen plan, data, keys, pair counts, models, seeds, epochs, and
 gates remain unchanged for the retry.
 
+The verified repair commit and retry handoff are:
+
+```text
+repair source commit = 1d7a2ea00ad205a39ba3e5295233b399b0bdf6eb
+remote main          = 1d7a2ea00ad205a39ba3e5295233b399b0bdf6eb
+launch gate          = pass / should_ssh=true / ssh_allowed=true
+remote checkout      = detached at 1d7a2ea0
+retry launch         = returned successfully on physical GPU0
+local monitor        = i1_k1bv_2048_monitor (independent tmux socket)
+```
+
+The immediate retry confirmation again failed at the SSH connection layer
+before reading a marker. The monitor therefore owns confirmation and retrieval;
+the retry remains `launch returned / remote start awaiting monitor evidence`
+until a new started, progress, result, or fail artifact is retrieved locally.
+
 ## Result gate
 
 For each seed independently calculate:
