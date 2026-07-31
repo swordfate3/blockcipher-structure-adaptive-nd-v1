@@ -2,7 +2,7 @@
 
 ## Status
 
-`preregistered / zero-training readiness passed / remote launch pending`
+`preregistered / zero-training readiness passed / remote launch handed off`
 
 ## Research question
 
@@ -87,6 +87,27 @@ selected remote device            = physical GPU0 / RTX A6000
 The bounded pre-launch inspection found both remote A6000 devices idle and the
 K1-BV run root absent. This is readiness evidence only; no K1-BV metric exists
 until the remote six-row matrix completes and is retrieved.
+
+## Remote handoff
+
+The scoped source commit was published and independently verified on GitHub:
+
+```text
+source commit = 1e74787740070ec92c942864c062d5479d4eb158
+remote main   = 1e74787740070ec92c942864c062d5479d4eb158
+device        = physical GPU0 / RTX A6000
+launch        = cmd.exe /c scheduled task from a clean run-owned clone
+monitor       = i1_k1bv_2048_monitor
+```
+
+The launch command returned successfully and both clean-clone HEAD checks
+matched the source commit. Two immediate post-launch SSH attempts failed at the
+connection layer before a marker could be read. Therefore the current state is
+`launch returned / started marker awaiting monitor confirmation`, not yet
+`running confirmed`. The local tmux monitor owns subsequent connection retry,
+completion detection, verified-branch or raw fallback retrieval, local
+re-adjudication, plotting, and result indexing; the main workflow must not poll
+the remote job.
 
 ## Result gate
 
