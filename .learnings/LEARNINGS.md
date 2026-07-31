@@ -1,3 +1,56 @@
+## [LRN-20260731-003] knowledge_gap
+
+**Logged**: 2026-07-31T23:29:34+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Resolve contradictory cipher parameters against the specification, algorithm
+geometry and published vectors instead of treating one paper table as decisive.
+
+### Details
+
+The Dialga ToSC 2025(4) paper is internally inconsistent about block size.
+Section 2 explicitly defines Dialga as a 128-bit-block TBC and denotes
+`Dialga-t` by its 128- or 256-bit tweak. Its data state is a 4-by-4 array of
+bytes, and the published encryption vectors have 128-bit plaintexts and
+ciphertexts. However, Table 5 prints `256 bits` in the Block Size column for
+all four variants. An earlier report treated that table cell as evidence that
+the project's 128-bit adapter might be a partial projection. The project
+implementation instead matches four published full 16/20-round vectors and a
+published 16-round state trace, so the checked evidence supports the 128-bit
+implementation and identifies Table 5 as the inconsistent source.
+
+### Suggested Action
+
+When a primary paper disagrees with itself, cite the inconsistency explicitly
+and triangulate the parameter from prose, state geometry, pseudocode and public
+test vectors. For Dialga, describe a 128-bit block, 256-bit key and 128/256-bit
+tweak; do not infer block size from the `Dialga-128/256` suffix or Table 5 alone.
+Keep reduced-prefix neural experiments distinct from the complete 16/20-round
+variants even though they use the verified full-cipher round trace.
+
+### Metadata
+
+- Source: primary_source_audit, agent_correction
+- Related Files: papers/算法/（超低时延密码算法）Family of Low-Latency Tweakable.pdf, src/blockcipher_nd/ciphers/spn/dialga.py, tests/test_dialga128.py
+- Tags: innovation1, dialga, specification, block-size, paper-erratum, test-vector
+- See Also: LRN-20260731-002
+- Pattern-Key: research.literature.resolve_internal_parameter_contradiction
+- Recurrence-Count: 1
+- First-Seen: 2026-07-31
+- Last-Seen: 2026-07-31
+
+### Resolution
+
+- **Resolved**: 2026-07-31T23:29:34+08:00
+- **Commit/PR**: pending
+- **Notes**: Verified the 128-bit project implementation against published full-round vectors and recorded the paper's contradictory Table 5 entry.
+
+---
+
 ## [LRN-20260731-002] correction
 
 **Logged**: 2026-07-31T23:19:38+08:00
