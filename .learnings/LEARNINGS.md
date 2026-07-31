@@ -2,7 +2,7 @@
 
 **Logged**: 2026-07-30T22:00:00+08:00
 **Priority**: high
-**Status**: resolved
+**Status**: promoted
 **Area**: docs
 
 ### Summary
@@ -57,15 +57,67 @@ experiment record.
 - Tags: academic-cryptanalysis, reduced-round, distinguisher, safe-description, status-reporting
 - See Also: LRN-20260730-001
 - Pattern-Key: reporting.academic_cryptanalysis_benign_scope_wording
-- Recurrence-Count: 2
+- Recurrence-Count: 3
 - First-Seen: 2026-07-30
-- Last-Seen: 2026-07-30
+- Last-Seen: 2026-07-31
+- Promoted: AGENTS.md
 
 ### Resolution
 
 - **Resolved**: 2026-07-30T22:00:00+08:00
 - **Commit/PR**: pending
-- **Notes**: Adopted reduced-round terminology for detailed reports and a minimal public/local/round/result template for intermediate chat updates; not promoted globally because recurrence remains below the project threshold of three.
+- **Notes**: Adopted reduced-round terminology for detailed reports and a minimal public/local/round/result template for intermediate chat updates. The third recurrence promoted the prevention rule to AGENTS.md.
+
+---
+
+## [LRN-20260731-001] correction
+
+**Logged**: 2026-07-31T11:10:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: config
+
+### Summary
+
+Use the local GPU for small training and smoke experiments when available, and
+reserve the remote A6000 for medium-or-larger datasets.
+
+### Details
+
+The K1-BS `2048/class` architecture diagnostic was preregistered and launched
+on local CPU. The user clarified the preferred device split for future runs:
+small local training, smoke and readiness work should use the local GPU rather
+than CPU when local CUDA is available; medium and larger datasets should use
+the remote A6000 workflow. An already-running fixed-budget comparison must not
+switch device halfway through, because that breaks its execution protocol and
+does not recover the completed optimizer work.
+
+### Suggested Action
+
+Before a local training launch, check local CUDA and select the local GPU for
+sub-medium smoke or diagnostic work. Keep CPU for non-training preflight or an
+explicitly justified tiny fallback. Continue to require the remote A6000,
+disk-backed cache/progress/reuse and the normal remote handoff for
+`65536/class` or larger Innovation 1 SPN-family work. Record the selected device
+in the experiment plan before optimization.
+
+### Metadata
+
+- Source: user_feedback, conversation
+- Related Files: AGENTS.md, docs/experiments/innovation1-uknit-r5-neural-architecture-ablation-k1bs-plan.md
+- Tags: experiment-device, local-gpu, remote-a6000, scale-policy, reproducibility
+- See Also: LRN-20260625-002
+- Pattern-Key: research.execution.local_small_gpu_remote_medium_scale
+- Recurrence-Count: 1
+- First-Seen: 2026-07-31
+- Last-Seen: 2026-07-31
+- Promoted: AGENTS.md
+
+### Resolution
+
+- **Resolved**: 2026-07-31T11:10:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added the local-GPU-first and remote-A6000 scale split to AGENTS.md; the already-running K1-BS comparison remains on its frozen CPU protocol.
 
 ---
 

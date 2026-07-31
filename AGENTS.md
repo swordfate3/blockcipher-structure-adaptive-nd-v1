@@ -8,6 +8,7 @@
 - Before claiming a SPN/PRESENT model or feature route has hit its ceiling, require completed, retrieved, plan-aligned scale evidence. A reasonable ladder is `65536/class -> 262144/class`; formal claims should use at least `1000000/class` and multiple seeds.
 - ARX/SPECK has had completed `>=100000/class` results; SPN/PRESENT had not, as of the 2026-06-21 audit. Keep those evidence levels separate in progress reports.
 - Innovation 1 SPN/PRESENT/GIFT non-smoke runs at `65536/class` or above are medium-or-larger experiments and must run on the remote GPU workstation, not local CPU/GPU. Local execution is limited to sub-medium smoke/readiness/diagnostic gates. If local CUDA is unavailable, do not substitute a long local CPU run; prepare and launch the pushed commit through the remote workflow instead.
+- For sub-medium smoke and local diagnostic training, use the local GPU when local CUDA is available; keep CPU for non-training preflight or an explicitly justified tiny fallback. Freeze the device before optimization and never switch an active same-budget comparison halfway through. Medium-or-larger Innovation 1 SPN-family work remains assigned to the remote A6000.
 
 ## Memory And Handoff Hygiene
 
@@ -54,6 +55,7 @@
 
 ## Factual Reporting Discipline
 
+- Describe work on public block ciphers as offline reduced-round distinguisher or output-prediction evaluation. In short status updates, state the public algorithm, local/offline scope, round count, observed result and completion state; avoid broad network-security or key-recovery wording when it is not the actual task.
 - Before answering what the project currently uses or how a feature is implemented, inspect the relevant source, config, dependency files, logs, or artifacts first. Do not answer from expectation or memory for dependencies, plotting/rendering libraries, training protocols, remote scripts, artifact paths, experiment status, checkpoint selection, or metrics.
 - If a current-state answer has not been verified in files or command output, either check it before reporting or explicitly label it as an assumption. When a prior statement is wrong, correct it plainly and distinguish the old false claim from the newly verified state.
 - Before downloading or citing a paper, open the actual arXiv/ePrint/publisher landing page and verify that the identifier, title, authors, year, and topic agree. Treat copied bibliographies and remembered identifiers as unverified; record and correct mismatches before they influence route ranking or reproduction plans.
