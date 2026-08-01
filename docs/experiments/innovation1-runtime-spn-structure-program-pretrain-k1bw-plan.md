@@ -1,7 +1,7 @@
 # Innovation 1 K1-BW Learnable Runtime-SPN Structure Program Gate
 
-**Date:** 2026-08-01  
-**Status:** planned / local structure-only diagnostic  
+**Date:** 2026-08-01
+**Status:** completed / hold / linear and order holdout margins insufficient
 **Run ID:** `i1_runtime_spn_structure_program_pretrain_k1bw_20260801`
 
 ## Research Question
