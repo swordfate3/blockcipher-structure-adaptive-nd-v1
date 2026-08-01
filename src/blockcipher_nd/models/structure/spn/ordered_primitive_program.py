@@ -343,6 +343,38 @@ def permute_program_target_bindings(
     )
 
 
+def permute_program_source_roles(
+    program: CompiledSpnProgram,
+    *,
+    role_permutation: Sequence[int],
+) -> CompiledSpnProgram:
+    """Corrupt source roles without changing target fan-in or expert routing."""
+    roles = tuple(int(value) for value in role_permutation)
+    if sorted(roles) != list(range(4)) or roles == tuple(range(4)):
+        raise ValueError("source-role control requires a non-identity 4-role permutation")
+    stages = []
+    for stage in program.stages:
+        linear_cells = tuple(
+            replace(
+                item,
+                edges=tuple(
+                    sorted(
+                        (target_role, source_cell, roles[source_role])
+                        for target_role, source_cell, source_role in item.edges
+                    )
+                ),
+            )
+            for item in stage.linear_cells
+        )
+        stages.append(replace(stage, linear_cells=linear_cells))
+    role_label = "_".join(str(value) for value in roles)
+    return replace(
+        program,
+        stages=tuple(stages),
+        control=f"source_role_permutation_{role_label}",
+    )
+
+
 def program_exactly_replays(
     program: CompiledSpnProgram,
     structure: RuntimeSpnStructure,
@@ -404,6 +436,7 @@ __all__ = [
     "CompiledSpnStage",
     "compile_ordered_primitive_program",
     "materialize_ordered_primitive_payload",
+    "permute_program_source_roles",
     "permute_program_target_bindings",
     "program_exactly_replays",
     "replay_ordered_primitive_program",

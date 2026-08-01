@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.plot_runtime_spn_permutation_control_identifiability_k1by4 import (
+    main,
+)
+
+
+raise SystemExit(main())
