@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 import hashlib
 import json
+import math
 from typing import Mapping, Sequence
 
 import torch
@@ -375,6 +376,51 @@ def permute_program_source_roles(
     )
 
 
+def permute_program_source_endpoints_affine(
+    program: CompiledSpnProgram,
+    *,
+    multiplier: int,
+    offset: int,
+) -> CompiledSpnProgram:
+    """Apply one global affine bijection to compiled source-bit endpoints."""
+    if program.block_bits != program.cells * 4:
+        raise ValueError("affine endpoint control requires complete 4-bit cells")
+    modulus = program.block_bits
+    multiplier = int(multiplier)
+    offset = int(offset) % modulus
+    if math.gcd(multiplier, modulus) != 1:
+        raise ValueError("affine endpoint multiplier must be invertible")
+    mapped = tuple((multiplier * endpoint + offset) % modulus for endpoint in range(modulus))
+    if mapped == tuple(range(modulus)):
+        raise ValueError("affine endpoint control must be non-identity")
+    stages = []
+    for stage in program.stages:
+        linear_cells = tuple(
+            replace(
+                item,
+                edges=tuple(
+                    sorted(
+                        (
+                            target_role,
+                            mapped[4 * source_cell + source_role] // 4,
+                            mapped[4 * source_cell + source_role] % 4,
+                        )
+                        for target_role, source_cell, source_role in item.edges
+                    )
+                ),
+            )
+            for item in stage.linear_cells
+        )
+        stages.append(replace(stage, linear_cells=linear_cells))
+    return replace(
+        program,
+        stages=tuple(stages),
+        control=(
+            f"source_endpoint_affine_m{multiplier}_b{offset}_mod{modulus}"
+        ),
+    )
+
+
 def program_exactly_replays(
     program: CompiledSpnProgram,
     structure: RuntimeSpnStructure,
@@ -436,6 +482,7 @@ __all__ = [
     "CompiledSpnStage",
     "compile_ordered_primitive_program",
     "materialize_ordered_primitive_payload",
+    "permute_program_source_endpoints_affine",
     "permute_program_source_roles",
     "permute_program_target_bindings",
     "program_exactly_replays",

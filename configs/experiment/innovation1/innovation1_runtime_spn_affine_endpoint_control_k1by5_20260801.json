@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_runtime_spn_affine_endpoint_control_k1by5_present_r7_seed2_seed3_20260801",
+  "experiment": "innovation1_runtime_spn_affine_endpoint_control_k1by5",
+  "source": {
+    "root": "outputs/local_audit/i1_runtime_spn_permutation_control_identifiability_k1by4_present_r7_seed2_seed3_20260801",
+    "config": "configs/experiment/innovation1/innovation1_runtime_spn_permutation_control_identifiability_k1by4_20260801.json",
+    "config_sha256": "3b7b552dd98dabb19f69c7d42579f9996b6165ba8fdbbbf6779f331b33bb408b",
+    "digests": {
+      "preflight.json": "833d4c4336d3ca8cb0443e1518ad3fadbe72ba0f609350393d9acdc21ee22e70",
+      "results.jsonl": "864795aed705096f24356d1d29645b9fa40544969414ba58d5e6daa5ed77ad32",
+      "validation.json": "6d3f8f294e3ea07b1b1271963c932a3a9d1290b35fc4a40accfb702ff61cfa01",
+      "gate.json": "7a996db3cab27fc772a62e90fab9a20854644e6c3dcf8c74acbe2cac3b7ec42c"
+    },
+    "required_status": "hold",
+    "required_decision": "innovation1_runtime_spn_k1by4_permutation_expert_hold"
+  },
+  "audit": {
+    "cipher": "PRESENT-80",
+    "rounds": 7,
+    "seeds": [2, 3],
+    "pairs_per_sample": 16,
+    "validation_samples_total": 2048,
+    "runtime_rounds": 2,
+    "runtime_round_start": 0,
+    "control": "source_endpoint_affine_m5_b1_mod64",
+    "source_endpoint_flattening": "4 * source_cell + source_role",
+    "affine_multiplier": 5,
+    "affine_offset": 1,
+    "affine_modulus": 64,
+    "execution_stage_indices": [1, 0],
+    "taps": ["inverse_linear", "post_inverse_sbox"],
+    "metrics": [
+      "multiset_equal_rate",
+      "pooled_summary_l1",
+      "ordered_histogram_l1"
+    ],
+    "expected_result_rows": 8,
+    "neural_training_performed": false,
+    "optimizer_steps": 0,
+    "data_generation": false,
+    "device": "cpu",
+    "execution": "local_audit"
+  },
+  "gates": {
+    "identifiable_multiset_equal_rate_max": 0.95,
+    "identifiable_pooled_summary_l1_min": 0.0001,
+    "require_every_seed_stage_tap": true,
+    "remote_scale": "no"
+  },
+  "decisions": {
+    "pass": "innovation1_runtime_spn_k1by5_affine_endpoint_control_ready",
+    "hold": "innovation1_runtime_spn_k1by5_affine_endpoint_control_not_identifiable",
+    "invalid": "innovation1_runtime_spn_k1by5_protocol_invalid"
+  },
+  "blocked_actions": [
+    "neural training before the affine control passes every deterministic tap",
+    "trying another random or tuned endpoint permutation after observing this result",
+    "remote execution or mechanical sample scaling",
+    "changing PRESENT data, labels, negative definition, keys, difference, pairs, seeds, stages, taps, or thresholds",
+    "adding absolute cell identity to the network",
+    "adding GIFT or another cipher before the PRESENT permutation control is adjudicated"
+  ]
+}

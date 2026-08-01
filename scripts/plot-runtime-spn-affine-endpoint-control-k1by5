@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.plot_runtime_spn_affine_endpoint_control_k1by5 import main
+
+
+raise SystemExit(main())
