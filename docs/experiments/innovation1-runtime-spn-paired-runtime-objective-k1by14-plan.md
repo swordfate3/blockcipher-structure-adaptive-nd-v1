@@ -1,7 +1,8 @@
 # Innovation 1 Runtime SPN Paired Runtime Objective K1-BY14
 
 **Date:** 2026-08-01
-**Status:** preregistered / implementation pending / no optimizer step authorized
+**Status:** implementation complete / zero-training readiness pass / CUDA
+diagnostic pending
 **Execution:** zero-training readiness locally; diagnostic training uses local
 CUDA when available, otherwise the established remote-A6000 device-availability
 exception after the exact source commit is published and verified
@@ -167,6 +168,40 @@ rows, four restored checkpoints, twelve same-checkpoint evaluation rows,
 validation, gate, summary, comparison/history CSV and a Chinese SVG. The SVG
 must pass `visual-qa-redraw`, and both recent-result indexes must be refreshed.
 
-Immediate next action: implement only the paired runtime objective, named-
-parameter counterfactual call, held-out evaluation and fail-closed gates; then
-run zero-training readiness before any diagnostic training.
+## Completed Zero-Training Readiness
+
+The implementation and frozen-source audit completed locally before any
+optimizer step. The exact four-row plan, K1-BY3/K1-BY8/K1-BY13 decisions and
+artifact digests all matched. The focused K1-BY8/K1-BY13/K1-BY14 suite passed
+`25/25` tests and Ruff reported no errors.
+
+```text
+outputs/local_readiness/
+i1_runtime_spn_paired_runtime_objective_k1by14_present_r7_
+16pair_2048_seed2_seed3_20260801_retry1/
+```
+
+```text
+status                         = pass
+decision                       = innovation1_runtime_spn_k1by14_readiness_authorized
+training performed             = false
+optimizer steps                = 0
+trainable parameters/model     = 235780
+same-seed paired initialization= byte-identical
+counterfactual parameters      = unregistered / reused functionally
+```
+
+Fixture auxiliary-loss evidence was:
+
+| Seed | Orientation | Auxiliary loss | Total gradient L1 | Primary/counterfactual max logit delta |
+|---:|---|---:|---:|---:|
+| 2 | correct | `0.005037162` | `4.726845365` | `0.002576545` |
+| 2 | swapped | `0.004962839` | `4.726845380` | `0.002576545` |
+| 3 | correct | `0.005005104` | `1.224699659` | `0.002348945` |
+| 3 | swapped | `0.004994901` | `1.224699646` | `0.002348945` |
+
+The current host reports no usable CUDA device. Full CPU training remains
+fail-closed. The evidence-backed next action is to publish and verify the exact
+implementation commit, audit a `G:\\lxy`-only remote launcher with durable
+cache/progress output, and run the unchanged four-row diagnostic on the remote
+A6000. Do not change the objective, controls, seeds, samples, pairs or epochs.

@@ -187,6 +187,8 @@ def build_spn_model(
         "runtime_spn_k1by13_adapter_correct": "correct",
         "runtime_spn_k1by13_adapter_affine": "affine_wrong_endpoint",
         "runtime_spn_k1by13_adapter_shuffled": "correct",
+        "runtime_spn_k1by14_paired_correct": "correct",
+        "runtime_spn_k1by14_paired_affine": "affine_wrong_endpoint",
     }
     if name in ordered_primitive_models:
         descriptor_path = options.get("runtime_structure_path")
@@ -245,40 +247,69 @@ def build_spn_model(
             raise ValueError(
                 "post_expert_source_cell_permutation must be a JSON list"
             )
-        return FixedOrderedPrimitiveConditionedSpnProtocolAdapter(
-            input_bits=input_bits,
-            pair_bits=(
-                2 * descriptor.structure.block_bits if pair_bits is None else pair_bits
+        spec = OrderedPrimitiveConditionerSpec(
+            hidden_dim=primitive_hidden_dim,
+            pair_embedding_dim=pair_embedding_dim,
+            dropout=float(options.get("dropout", 0.0)),
+            initial_effective_gate=float(
+                options.get("primitive_gate_initial_effective", 0.05)
             ),
-            program=program,
-            spec=OrderedPrimitiveConditionerSpec(
-                hidden_dim=primitive_hidden_dim,
-                pair_embedding_dim=pair_embedding_dim,
-                dropout=float(options.get("dropout", 0.0)),
-                initial_effective_gate=float(
-                    options.get("primitive_gate_initial_effective", 0.05)
-                ),
-                linear_histogram_mode=str(
-                    options.get("linear_histogram_mode", "local")
-                ),
-                post_expert_residual_mode=str(
-                    options.get("post_expert_residual_mode", "none")
-                ),
-                post_expert_adapter_mode=str(
-                    options.get("post_expert_adapter_mode", "none")
-                ),
-                post_expert_adapter_bottleneck_dim=int(
-                    options.get("post_expert_adapter_bottleneck_dim", 16)
-                ),
-                post_expert_source_cell_permutation=source_permutation,
+            linear_histogram_mode=str(
+                options.get("linear_histogram_mode", "local")
             ),
-            descriptor_name=descriptor.name,
-            descriptor_path=str(descriptor.path),
-            descriptor_sha256=descriptor.sha256,
-            descriptor_round_start=descriptor.round_start,
-            descriptor_available_rounds=descriptor.available_rounds,
-            conditioner_enabled=control != "no_conditioner",
+            post_expert_residual_mode=str(
+                options.get("post_expert_residual_mode", "none")
+            ),
+            post_expert_adapter_mode=str(
+                options.get("post_expert_adapter_mode", "none")
+            ),
+            post_expert_adapter_bottleneck_dim=int(
+                options.get("post_expert_adapter_bottleneck_dim", 16)
+            ),
+            post_expert_source_cell_permutation=source_permutation,
         )
+
+        def build_ordered_adapter(
+            runtime_program,
+        ) -> FixedOrderedPrimitiveConditionedSpnProtocolAdapter:
+            return FixedOrderedPrimitiveConditionedSpnProtocolAdapter(
+                input_bits=input_bits,
+                pair_bits=(
+                    2 * descriptor.structure.block_bits
+                    if pair_bits is None
+                    else pair_bits
+                ),
+                program=runtime_program,
+                spec=spec,
+                descriptor_name=descriptor.name,
+                descriptor_path=str(descriptor.path),
+                descriptor_sha256=descriptor.sha256,
+                descriptor_round_start=descriptor.round_start,
+                descriptor_available_rounds=descriptor.available_rounds,
+                conditioner_enabled=control != "no_conditioner",
+            )
+
+        model = build_ordered_adapter(program)
+        if name in {
+            "runtime_spn_k1by14_paired_correct",
+            "runtime_spn_k1by14_paired_affine",
+        }:
+            counterfactual_program = compile_ordered_primitive_program(
+                descriptor.structure
+            )
+            if control == "correct":
+                counterfactual_program = permute_program_source_endpoints_affine(
+                    counterfactual_program,
+                    multiplier=int(options.get("affine_endpoint_multiplier", 5)),
+                    offset=int(options.get("affine_endpoint_offset", 1)),
+                )
+            model.configure_runtime_contrast(
+                orientation=str(options.get("runtime_contrast_orientation", "")),
+                counterfactual_model=build_ordered_adapter(counterfactual_program),
+                scale=float(options.get("runtime_contrast_scale", 0.25)),
+                margin=float(options.get("runtime_contrast_margin", 0.02)),
+            )
+        return model
     position_histogram_models = {
         "runtime_spn_ct_k1t_position_histogram_true": "true",
         "runtime_spn_ct_k1t_position_histogram_wrong_sbox": "wrong_sbox",

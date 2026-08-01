@@ -552,7 +552,138 @@ class FixedOrderedPrimitiveConditionedSpnProtocolAdapter(nn.Module):
             spec.post_expert_source_cell_permutation
         )
 
+        self.runtime_contrast_orientation: str | None = None
+        self.runtime_contrast_scale = 0.0
+        self.runtime_contrast_margin = 0.0
+        self.runtime_contrast_primary_sha256: str | None = None
+        self.runtime_contrast_counterfactual_sha256: str | None = None
+        self.last_auxiliary_loss: torch.Tensor | None = None
+        self.last_auxiliary_metrics: dict[str, torch.Tensor] = {}
+        self._last_runtime_counterfactual_logits: torch.Tensor | None = None
+
+    def configure_runtime_contrast(
+        self,
+        *,
+        orientation: str,
+        counterfactual_model: FixedOrderedPrimitiveConditionedSpnProtocolAdapter,
+        scale: float,
+        margin: float,
+    ) -> None:
+        if orientation not in {"correct_vs_affine", "affine_vs_correct"}:
+            raise ValueError("unsupported runtime contrast orientation")
+        if not math.isfinite(scale) or scale <= 0.0:
+            raise ValueError("runtime contrast scale must be finite and positive")
+        if not math.isfinite(margin) or not 0.0 <= margin <= 1.0:
+            raise ValueError("runtime contrast margin must be in [0, 1]")
+        primary_geometry = tuple(
+            (name, tuple(parameter.shape))
+            for name, parameter in self.named_parameters()
+        )
+        counterfactual_geometry = tuple(
+            (name, tuple(parameter.shape))
+            for name, parameter in counterfactual_model.named_parameters()
+        )
+        if primary_geometry != counterfactual_geometry:
+            raise ValueError("runtime counterfactual parameter geometry changed")
+        if (
+            counterfactual_model.compiled_program_semantic_sha256
+            == self.compiled_program_semantic_sha256
+        ):
+            raise ValueError("runtime counterfactual must change program semantics")
+        if counterfactual_model.runtime_contrast_orientation is not None:
+            raise ValueError("runtime counterfactual must not own another contrast")
+
+        # Alternate runtime buffers stay outside the registered module tree. Its
+        # parameters are replaced functionally by this model's named parameters.
+        object.__setattr__(
+            self,
+            "_runtime_contrast_counterfactual",
+            counterfactual_model,
+        )
+        self.runtime_contrast_orientation = orientation
+        self.runtime_contrast_scale = float(scale)
+        self.runtime_contrast_margin = float(margin)
+        self.runtime_contrast_primary_sha256 = self.compiled_program_semantic_sha256
+        self.runtime_contrast_counterfactual_sha256 = (
+            counterfactual_model.compiled_program_semantic_sha256
+        )
+
     def forward(self, features: torch.Tensor) -> torch.Tensor:
+        logits = self._forward_logits(features)
+        self.last_auxiliary_loss = None
+        self.last_auxiliary_metrics = {}
+        self._last_runtime_counterfactual_logits = None
+        if self.training and self.runtime_contrast_orientation is not None:
+            counterfactual = getattr(
+                self,
+                "_runtime_contrast_counterfactual",
+                None,
+            )
+            if counterfactual is None:
+                raise RuntimeError("runtime counterfactual model is unavailable")
+            counterfactual.to(features.device)
+            counterfactual.train(self.training)
+            self._last_runtime_counterfactual_logits = torch.func.functional_call(
+                counterfactual,
+                dict(self.named_parameters()),
+                (features,),
+                strict=False,
+            )
+        return logits
+
+    def compute_auxiliary_loss(
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        loss_name: str,
+    ) -> torch.Tensor | None:
+        if self.runtime_contrast_orientation is None:
+            return self.last_auxiliary_loss
+        if self._last_runtime_counterfactual_logits is None:
+            raise RuntimeError("runtime counterfactual logits are unavailable")
+        primary_loss = self._per_sample_classification_loss(
+            logits,
+            labels,
+            loss_name,
+        )
+        counterfactual_loss = self._per_sample_classification_loss(
+            self._last_runtime_counterfactual_logits.squeeze(1),
+            labels,
+            loss_name,
+        )
+        margin_values = F.relu(
+            self.runtime_contrast_margin + primary_loss - counterfactual_loss
+        )
+        auxiliary_loss = self.runtime_contrast_scale * margin_values.mean()
+        self.last_auxiliary_loss = auxiliary_loss
+        self.last_auxiliary_metrics = {
+            "runtime_primary_loss": primary_loss.detach().mean(),
+            "runtime_counterfactual_loss": counterfactual_loss.detach().mean(),
+            "runtime_loss_gap": (
+                counterfactual_loss.detach().mean() - primary_loss.detach().mean()
+            ),
+            "runtime_margin_loss": margin_values.detach().mean(),
+            "runtime_violation_rate": (margin_values.detach() > 0.0).float().mean(),
+        }
+        return auxiliary_loss
+
+    @staticmethod
+    def _per_sample_classification_loss(
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        loss_name: str,
+    ) -> torch.Tensor:
+        if loss_name == "mse":
+            return F.mse_loss(torch.sigmoid(logits), labels, reduction="none")
+        if loss_name == "bce":
+            return F.binary_cross_entropy_with_logits(
+                logits,
+                labels,
+                reduction="none",
+            )
+        raise ValueError(f"unsupported loss: {loss_name}")
+
+    def _forward_logits(self, features: torch.Tensor) -> torch.Tensor:
         runtime = features.reshape(
             features.shape[0],
             -1,

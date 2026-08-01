@@ -68,6 +68,11 @@ def model_metadata(model: Any) -> dict[str, Any]:
         "state_width_independent_parameter_shapes",
         "ordered_stage_recurrence",
         "primitive_conditioner_enabled",
+        "runtime_contrast_orientation",
+        "runtime_contrast_scale",
+        "runtime_contrast_margin",
+        "runtime_contrast_primary_sha256",
+        "runtime_contrast_counterfactual_sha256",
     ):
         if hasattr(model, field):
             value = getattr(model, field)
