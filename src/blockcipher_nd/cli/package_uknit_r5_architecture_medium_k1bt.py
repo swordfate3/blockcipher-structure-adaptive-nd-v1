@@ -106,7 +106,7 @@ def package_archive(
     logs_archive.mkdir()
     for path in sorted(logs_root.glob(f"{RUN_ID}_*")):
         if path.is_file():
-            shutil.copy2(path, logs_archive / path.name)
+            shutil.copy2(path, logs_archive / _archive_log_name(path))
     checkpoint_manifest = {
         "count": len(checkpoints),
         "checkpoints": [{"path": path.relative_to(run_root).as_posix(), "archive_path": f"checkpoints/{path.name}", "bytes": path.stat().st_size, "sha256": _sha256(path)} for path in checkpoints],
@@ -128,6 +128,10 @@ def package_archive(
     checksum_files = [path for path in sorted(archive_root.rglob("*")) if path.is_file() and path.name != "SHA256SUMS"]
     (archive_root / "SHA256SUMS").write_text("".join(f"{_sha256(path)}  {path.relative_to(archive_root).as_posix()}\n" for path in checksum_files), encoding="utf-8")
     return run_manifest
+
+
+def _archive_log_name(path: Path) -> str:
+    return path.name.removeprefix(f"{RUN_ID}_")
 
 
 def _copy(source: Path, destination: Path) -> None:

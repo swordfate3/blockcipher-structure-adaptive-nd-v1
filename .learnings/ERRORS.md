@@ -1,3 +1,54 @@
+## [ERR-20260801-001] remote_archive_long_path_and_run_id_collision
+
+**Logged**: 2026-08-01T22:58:40+08:00
+**Priority**: high
+**Status**: in_progress
+**Area**: infra
+
+### Summary
+
+Remote post-processing exposed two provenance failures: long archive paths
+blocked packaging, and reusing a completed run id overwrote K1-BT progress and
+results with a different execution.
+
+### Error
+
+```text
+FileNotFoundError: ...results_archive\<long-run-id>\logs\<long-run-id>_failed.marker
+K1-BT remote progress: 659 rows / 8 cache_start / 0 cache_reuse
+K1-BT earlier fallback: 990 rows / 4 cache_start / 4 cache_reuse
+```
+
+### Context
+
+- DMC1 completed its six rows and passed its frozen remote gate, but packaging
+  repeated the long run id in the run root, archive root, and archived filename,
+  exceeding the practical Windows path limit.
+- K1-BT was executed again under the same run id. The later execution replaced
+  remote progress/results, so its metrics and cache provenance no longer match
+  the earlier fallback retrieved by the monitor.
+- The active `self-healing` skill was unavailable; this is recorded through the
+  project-approved self-improvement fallback.
+
+### Suggested Fix
+
+Strip the run-id prefix from filenames inside result archives, test generated
+Windows destination lengths, and treat any nonempty existing terminal run root
+as immutable. Recovery reruns must use a new run id and a clean cache/progress/
+results root; never overwrite completed evidence in place.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/cli/package_dialga_r4_dmc1.py, src/blockcipher_nd/cli/package_uknit_r5_architecture_medium_k1bt.py, docs/experiments/innovation1-uknit-r5-neural-architecture-medium-k1bt-plan.md
+- See Also: ERR-20260728-003, ERR-20260729-001
+- Pattern-Key: experiment.remote_run_root_immutable_and_archive_paths_bounded
+- Recurrence-Count: 1
+- First-Seen: 2026-08-01
+- Last-Seen: 2026-08-01
+
+---
+
 ## [ERR-20260728-003] k1n_checkpoint_manifest_hardcoded_candidate
 
 **Logged**: 2026-07-28T12:20:00+08:00

@@ -8,6 +8,7 @@ from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.cli.package_uknit_r5_architecture_medium_k1bt import (
     RESULT_FILES,
     SOURCE_FILES,
+    _archive_log_name,
     package_archive,
 )
 from blockcipher_nd.cli.plot_uknit_r5_architecture_medium_k1bt import render_k1bt_svg
@@ -125,6 +126,7 @@ def test_k1bt_launch_gate_and_generated_assets_are_fail_closed() -> None:
     assert "cmd.exe /c" in launch
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in run + launch
     assert "--dataset-cache-root" in run
+    assert "set PYTHONPATH=%SOURCE_ROOT%\\src" in run
     assert "--dataset-cache-chunk-size 1024" in run
     assert "--dataset-cache-workers 1" in run
     assert "--expected-rows 4" in run
@@ -177,6 +179,10 @@ def test_k1bt_archive_requires_four_checkpoints_and_caches(tmp_path: Path) -> No
     assert report["cache_count"] == 4
     assert (archive / "SHA256SUMS").is_file()
     assert len(list((archive / "checkpoints").glob("*.pt"))) == 4
+
+
+def test_k1bt_archive_shortens_windows_log_names() -> None:
+    assert _archive_log_name(Path(f"{RUN_ID}_failed.marker")) == "failed.marker"
 
 
 def _result_rows(tmp_path: Path) -> list[dict[str, object]]:

@@ -3,9 +3,9 @@ setlocal EnableExtensions
 
 set PHYSICAL_GPU=%~1
 if "%PHYSICAL_GPU%"=="" exit /b 5
-if not "%PHYSICAL_GPU%"=="1" exit /b 5
+if not "%PHYSICAL_GPU%"=="0" exit /b 5
 
-set RUN_ID=i1_uknit_r5_neural_architecture_medium_k1bt_16pair_65536_seed3_seed4_20260731
+set RUN_ID=i1_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1_20260801
 set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
 set RUN_ROOT=%RUNS_ROOT%\%RUN_ID%
 set SOURCE_ROOT=%RUN_ROOT%\source
@@ -14,8 +14,8 @@ set RESULTS_DIR=%RUN_ROOT%\results
 set CHECKPOINT_DIR=%RUN_ROOT%\checkpoints
 set CACHE_ROOT=%RUN_ROOT%\cache
 set ARCHIVE_DIR=%SOURCE_ROOT%\results_archive\%RUN_ID%
-set PLAN=configs\experiment\innovation1\innovation1_uknit_r5_neural_architecture_medium_k1bt_16pair_65536_seed3_seed4.csv
-set REMOTE_CONFIG=configs\remote\innovation1_uknit_k1bt_architecture_medium_65536_seed3_seed4_gpu1_20260731.json
+set PLAN=configs\experiment\innovation1\innovation1_spn_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1.csv
+set REMOTE_CONFIG=configs\remote\innovation1_dialga_dmc2_r4_scale_262144_seed0_seed1_gpu0_20260801.json
 set PY=F:\Anaconda\envs\DWT\torch310\python.exe
 set PYTHONPATH=%SOURCE_ROOT%\src
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
@@ -43,7 +43,7 @@ echo started>"%LOG_DIR%\%RUN_ID%_started.marker"
   --plan "%PLAN%" ^
   --epochs 10 ^
   --batch-size 64 ^
-  --hidden-bits 32 ^
+  --hidden-bits 64 ^
   --device cuda ^
   --learning-rate 0.0001 ^
   --optimizer adam ^
@@ -65,25 +65,25 @@ echo started>"%LOG_DIR%\%RUN_ID%_started.marker"
   > "%LOG_DIR%\%RUN_ID%_train_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_train_stderr.txt"
 if errorlevel 1 goto failed
 
-"%PY%" scripts\validate-results --plan "%PLAN%" --results "%RESULTS_DIR%\results.jsonl" --expected-rows 4 --output "%RESULTS_DIR%\validation-plan.json" > "%LOG_DIR%\%RUN_ID%_validation_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_validation_stderr.txt"
+"%PY%" scripts\validate-results --plan "%PLAN%" --results "%RESULTS_DIR%\results.jsonl" --expected-rows 6 --output "%RESULTS_DIR%\validation-plan.json" > "%LOG_DIR%\%RUN_ID%_validation_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_validation_stderr.txt"
 if errorlevel 1 goto failed
-"%PY%" scripts\gate-uknit-r5-architecture-medium-k1bt --plan "%PLAN%" --results "%RESULTS_DIR%\results.jsonl" --progress "%LOG_DIR%\progress.jsonl" --source-commit-file "%LOG_DIR%\%RUN_ID%_git_revision.txt" --expected-source-commit-file "%RUN_ROOT%\source_expected_commit.txt" --output-root "%RESULTS_DIR%" > "%LOG_DIR%\%RUN_ID%_gate_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_gate_stderr.txt"
+"%PY%" scripts\gate-dialga-r4-dmc2 --plan "%PLAN%" --results "%RESULTS_DIR%\results.jsonl" --progress "%LOG_DIR%\progress.jsonl" --checkpoint-root "%CHECKPOINT_DIR%" --source-commit-file "%LOG_DIR%\%RUN_ID%_git_revision.txt" --expected-source-commit-file "%RUN_ROOT%\source_expected_commit.txt" --output-root "%RESULTS_DIR%" > "%LOG_DIR%\%RUN_ID%_gate_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_gate_stderr.txt"
 if errorlevel 1 goto failed
 
 set RESULT_LINES=0
 for /f "tokens=3" %%L in ('find /c /v "" "%RESULTS_DIR%\results.jsonl"') do set RESULT_LINES=%%L
 echo result_lines=%RESULT_LINES% > "%LOG_DIR%\%RUN_ID%_result_gate.txt"
-echo expected_rows=4 >> "%LOG_DIR%\%RUN_ID%_result_gate.txt"
-if not "%RESULT_LINES%"=="4" goto incomplete_results
+echo expected_rows=6 >> "%LOG_DIR%\%RUN_ID%_result_gate.txt"
+if not "%RESULT_LINES%"=="6" goto incomplete_results
 
-"%PY%" scripts\package-uknit-r5-architecture-medium-k1bt --run-root "%RUN_ROOT%" --source-root "%SOURCE_ROOT%" --source-commit-file "%LOG_DIR%\%RUN_ID%_git_revision.txt" --expected-source-commit-file "%RUN_ROOT%\source_expected_commit.txt" --archive-root "%ARCHIVE_DIR%" > "%LOG_DIR%\%RUN_ID%_package_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_package_stderr.txt"
+"%PY%" scripts\package-dialga-r4-dmc2 --run-root "%RUN_ROOT%" --source-root "%SOURCE_ROOT%" --source-commit-file "%LOG_DIR%\%RUN_ID%_git_revision.txt" --expected-source-commit-file "%RUN_ROOT%\source_expected_commit.txt" --archive-root "%ARCHIVE_DIR%" > "%LOG_DIR%\%RUN_ID%_package_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_package_stderr.txt"
 if errorlevel 1 goto failed
 
 git config user.name "remote-experiment"
 git config user.email "remote-experiment@local.invalid"
 git checkout -B results/%RUN_ID% > "%LOG_DIR%\%RUN_ID%_result_branch_checkout.txt" 2>&1 || goto result_sync_failed
 git add "results_archive\%RUN_ID%" || goto result_sync_failed
-git commit -m "results: %RUN_ID% remote medium confirmation" > "%LOG_DIR%\%RUN_ID%_result_branch_commit.txt" 2>&1 || goto result_sync_failed
+git commit -m "results: %RUN_ID% remote scale confirmation" > "%LOG_DIR%\%RUN_ID%_result_branch_commit.txt" 2>&1 || goto result_sync_failed
 git push origin HEAD:refs/heads/results/%RUN_ID% > "%LOG_DIR%\%RUN_ID%_result_branch_push.txt" 2>&1 || goto result_sync_failed
 echo pushed>"%LOG_DIR%\%RUN_ID%_result_branch_pushed.marker"
 echo done>"%LOG_DIR%\%RUN_ID%_done.marker"

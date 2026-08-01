@@ -113,3 +113,30 @@ evidence and readiness output under the `G:\lxy` run root. The local monitor is
 responsible for completion detection, verified-result-branch retrieval or raw
 fallback, local re-adjudication, visualization generation and result indexing.
 Until those artifacts arrive, this launch supplies no new AUC or formal result.
+
+## Provenance Re-adjudication (2026-08-01)
+
+K1-BT is now classified as protocol-invalid rather than pending. Two different
+completed artifact states exist under the same run id:
+
+- the earlier local fallback has 990 progress rows, four cache creations, four
+  parameter-matched cache reuses, and AUC values used in the draft paper;
+- the current remote run root has 659 progress rows, eight cache creations, no
+  cache reuse, different result values, and a different progress SHA-256.
+
+The current remote gate recovered after setting `PYTHONPATH`, but correctly
+returned:
+
+```text
+status   = invalid
+decision = innovation1_uknit_k1bt_medium_protocol_invalid
+failed   = four_disk_caches_created, four_parameter_matched_cache_reuses
+```
+
+The research thresholds passed in the overwritten remote result, but favorable
+metrics cannot repair the run-id collision or broken shared-cache contract.
+K1-BT therefore does not authorize K1-BU. Do not select one artifact version for
+the paper. The only valid recovery is a new uniquely named K1-BT repair run with
+the original frozen `65536/class` matrix, clean progress/results roots, and
+verified cache reuse; scale may advance only after that repair is retrieved and
+passes its gate.

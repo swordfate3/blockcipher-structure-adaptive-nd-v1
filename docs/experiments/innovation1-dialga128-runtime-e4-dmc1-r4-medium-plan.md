@@ -127,3 +127,34 @@ After automatic retrieval, rerun the local gate, render the Chinese comparison
 figure, complete rendered-pixel visual QA, refresh both recent-result indexes,
 and update this record. Advance to DMC2 only if all protocol checks and all six
 per-seed research checks pass.
+
+## Retrieved Result And Scale Decision (2026-08-01)
+
+The remote run completed all six rows at source commit
+`d547598045a5dcfba5c9621f91de9cdf196921e6`. The remote gate passed every
+frozen source, matrix, cache, checkpoint, result, and per-seed research check:
+
+| seed | correct AUC | corrupted AUC | AutoND AUC | correct-corrupted | correct-AutoND |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.978120916 | 0.964931685 | 0.507460726 | +0.013189230 | +0.470660189 |
+| 1 | 0.978711151 | 0.964382136 | 0.500493946 | +0.014329014 | +0.478217205 |
+
+```text
+status       = pass
+decision     = innovation1_dialga_dmc1_medium_topology_supported
+remote_scale = authorized_262144_per_class
+retrieval    = raw fallback; verified result-branch package failed
+```
+
+The package failure was post-gate and did not invalidate the trained rows. Its
+cause was a Windows path-length overflow when the long run id was repeated in
+both the archive directory and archived log filename. The fallback result,
+gate, validation, progress, and source SHA are retained under
+`outputs/remote_results_incomplete/`. This is sufficient to execute the
+preregistered DMC2 scale decision, but it remains fallback-retrieved evidence
+and is not promoted to publication-ready DMC1 evidence.
+
+The next executable question is DMC2: does the two-seed correct-topology margin
+survive a fourfold increase to `262144/class` while every non-scale protocol
+field remains unchanged? A DMC2 pass authorizes DFC1 preregistration at at least
+`1000000/class` with independent final tests; a hold stops mechanical scaling.

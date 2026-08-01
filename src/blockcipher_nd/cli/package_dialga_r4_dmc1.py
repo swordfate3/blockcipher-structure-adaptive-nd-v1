@@ -59,6 +59,16 @@ def package_archive(
     source_commit_file: Path,
     expected_source_commit_file: Path,
     archive_root: Path,
+    run_id: str = RUN_ID,
+    expected_result_rows: int = EXPECTED_RESULT_ROWS,
+    expected_cache_creations: int = EXPECTED_CACHE_CREATIONS,
+    source_files: tuple[str, ...] = SOURCE_FILES,
+    source_archive_names: tuple[str, ...] | None = None,
+    short_checkpoint_names: bool = False,
+    claim_scope: str = (
+        "remote 65536/class Dialga prefix-r4 medium confirmation; "
+        "not formal or paper-scale evidence"
+    ),
 ) -> dict[str, Any]:
     source_commit = _read_sha(source_commit_file)
     expected_commit = _read_sha(expected_source_commit_file)
@@ -69,18 +79,20 @@ def package_archive(
     checkpoints_root = run_root / "checkpoints"
     cache_root = run_root / "cache"
     rows = _read_jsonl(results_root / "results.jsonl")
-    if len(rows) != EXPECTED_RESULT_ROWS:
+    if len(rows) != expected_result_rows:
         raise ValueError(
-            f"expected {EXPECTED_RESULT_ROWS} DMC1 results, got {len(rows)}"
+            f"expected {expected_result_rows} results, got {len(rows)}"
         )
     checkpoints = sorted(checkpoints_root.glob("*.pt"))
-    if len(checkpoints) != EXPECTED_RESULT_ROWS or any(
+    if len(checkpoints) != expected_result_rows or any(
         path.stat().st_size == 0 for path in checkpoints
     ):
-        raise ValueError("DMC1 requires six non-empty checkpoints")
+        raise ValueError(f"run requires {expected_result_rows} non-empty checkpoints")
     metadata_paths = sorted(cache_root.rglob("metadata.json"))
-    if len(metadata_paths) != EXPECTED_CACHE_CREATIONS:
-        raise ValueError("DMC1 requires four cache metadata files")
+    if len(metadata_paths) != expected_cache_creations:
+        raise ValueError(
+            f"run requires {expected_cache_creations} cache metadata files"
+        )
     cache_entries: list[dict[str, Any]] = []
     for index, metadata_path in enumerate(metadata_paths):
         features = metadata_path.with_name("features.npy")
@@ -122,12 +134,26 @@ def package_archive(
     _copy(logs_root / "progress.jsonl", archive_root / "progress.jsonl")
     _copy(source_commit_file, archive_root / "git_revision.txt")
     _copy(expected_source_commit_file, archive_root / "source_expected_commit.txt")
-    for source in SOURCE_FILES:
-        _copy(source_root / source, archive_root / Path(source).name)
+    if source_archive_names is not None and len(source_archive_names) != len(source_files):
+        raise ValueError("source archive names must align with source files")
+    for index, source in enumerate(source_files):
+        archive_name = (
+            source_archive_names[index]
+            if source_archive_names is not None
+            else Path(source).name
+        )
+        _copy(source_root / source, archive_root / archive_name)
     checkpoint_archive = archive_root / "checkpoints"
     checkpoint_archive.mkdir()
-    for checkpoint in checkpoints:
-        shutil.copy2(checkpoint, checkpoint_archive / checkpoint.name)
+    archived_checkpoint_names: dict[Path, str] = {}
+    for index, checkpoint in enumerate(checkpoints):
+        archive_name = (
+            f"checkpoint_{index:02d}.pt"
+            if short_checkpoint_names
+            else checkpoint.name
+        )
+        archived_checkpoint_names[checkpoint] = archive_name
+        shutil.copy2(checkpoint, checkpoint_archive / archive_name)
     metadata_archive = archive_root / "cache_metadata"
     metadata_archive.mkdir()
     for index, metadata_path in enumerate(metadata_paths):
@@ -136,15 +162,15 @@ def package_archive(
         )
     logs_archive = archive_root / "logs"
     logs_archive.mkdir()
-    for path in sorted(logs_root.glob(f"{RUN_ID}_*")):
+    for path in sorted(logs_root.glob(f"{run_id}_*")):
         if path.is_file():
-            shutil.copy2(path, logs_archive / path.name)
+            shutil.copy2(path, logs_archive / _archive_log_name(path, run_id=run_id))
     checkpoint_manifest = {
         "count": len(checkpoints),
         "checkpoints": [
             {
                 "path": path.relative_to(run_root).as_posix(),
-                "archive_path": f"checkpoints/{path.name}",
+                "archive_path": f"checkpoints/{archived_checkpoint_names[path]}",
                 "bytes": path.stat().st_size,
                 "sha256": _sha256(path),
             }
@@ -152,16 +178,13 @@ def package_archive(
         ],
     }
     run_manifest = {
-        "run_id": RUN_ID,
+        "run_id": run_id,
         "source_commit": source_commit,
         "result_rows": len(rows),
         "checkpoint_count": len(checkpoints),
         "cache_count": len(cache_entries),
         "result_sync": "verified_result_branch_with_local_raw_fallback",
-        "claim_scope": (
-            "remote 65536/class Dialga prefix-r4 medium confirmation; "
-            "not formal or paper-scale evidence"
-        ),
+        "claim_scope": claim_scope,
     }
     _write_json(archive_root / "checkpoint_manifest.json", checkpoint_manifest)
     _write_json(
@@ -203,6 +226,11 @@ def package_archive(
         encoding="utf-8",
     )
     return run_manifest
+
+
+def _archive_log_name(path: Path, *, run_id: str) -> str:
+    prefix = f"{run_id}_"
+    return path.name.removeprefix(prefix)
 
 
 def _copy(source: Path, destination: Path) -> None:
