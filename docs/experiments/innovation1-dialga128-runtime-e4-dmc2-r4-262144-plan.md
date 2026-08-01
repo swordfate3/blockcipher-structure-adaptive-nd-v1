@@ -5,10 +5,34 @@ Date: 2026-08-01
 ## Status
 
 ```text
-phase = preregistered; remote launch pending exact pushed commit
+phase = running remotely; completion and gate pending
 scale = 262144/class scale confirmation, not formal evidence
 paper role = last scale gate before DFC1 formal preregistration
 ```
+
+## Remote Launch Record
+
+```text
+launched_at       = 2026-08-01 23:42 CST
+source_commit     = 9168cbd8881c539c3db9b5da9a96f83a5c25dc5b
+github_main       = exact SHA match verified before launch
+remote_host       = lxy-a6000 / DESKTOP-BBLPACJ
+physical_gpu      = 0
+remote_run_root   = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1_20260801
+launch_gate       = pass / innovation1_dialga_dmc2_remote_launch_authorized
+durable_start     = source_expected_commit.txt, readiness.txt, started.marker, progress.jsonl
+local_monitor     = tmux:i1_dialga_dmc2_262k_monitor
+retrieval_status  = running; no result archive or result claim yet
+```
+
+The historical standard clone at
+`G:\lxy\blockcipher-structure-adaptive-nd` was found dirty and behind its
+upstream, so it was excluded without modification. The launch instead created
+the run-owned `source` clone directly from GitHub, detached it at the exact
+verified commit, and then invoked the committed launcher. The local monitor is
+responsible for completion detection, verified-branch retrieval or raw
+fallback retrieval, local re-adjudication, result indexing, and the visual-QA
+pending marker. The main task must not SSH-poll this run.
 
 ## Research Question
 
