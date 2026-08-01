@@ -45,6 +45,21 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation1_runtime_spn_k1by13_readiness_authorized": (
+        "PRESENT七轮零初始化可训练专家后适配器实现门通过，可发布后执行冻结八行GPU诊断"
+    ),
+    "innovation1_runtime_spn_k1by13_trainable_adapter_supported": (
+        "可训练专家后适配器在双seed保留锚点并稳定使用正确边，开放同预算新seed确认"
+    ),
+    "innovation1_runtime_spn_k1by13_capacity_without_edge_use": (
+        "可训练专家后适配器仅增加容量但未稳定使用正确边，停止调瓶颈或加深网络"
+    ),
+    "innovation1_runtime_spn_k1by13_signal_or_retention_failed": (
+        "可训练专家后适配器未保留PRESENT七轮信号，返回锚点并重审训练目标"
+    ),
+    "innovation1_runtime_spn_k1by13_protocol_invalid": (
+        "可训练专家后适配器协议、缓存或检查点无效，修复前不解释指标"
+    ),
     "innovation1_uknit_family_ctspn_k1_readiness_passed_waiting_present": (
         "uKNIT/Dialga规范边CT-SPN零训练实现门通过，等待PRESENT正式seed1裁决后才允许训练"
     ),
@@ -2540,6 +2555,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_runtime_spn_trainable_post_expert_adapter_k1by13_present_r7"
+    ):
+        return "创新1 K1-BY13：PRESENT七轮可训练专家后结构适配器"
     if run_id.startswith(
         "i1_uknit_family_ctspn_linear_schedule_k1_readiness"
     ):

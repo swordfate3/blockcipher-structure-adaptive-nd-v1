@@ -183,6 +183,10 @@ def build_spn_model(
             "affine_wrong_endpoint"
         ),
         "runtime_spn_k1by1_no_compiler_conditioner": "no_conditioner",
+        "runtime_spn_k1by13_anchor_correct": "correct",
+        "runtime_spn_k1by13_adapter_correct": "correct",
+        "runtime_spn_k1by13_adapter_affine": "affine_wrong_endpoint",
+        "runtime_spn_k1by13_adapter_shuffled": "correct",
     }
     if name in ordered_primitive_models:
         descriptor_path = options.get("runtime_structure_path")
@@ -230,6 +234,17 @@ def build_spn_model(
         )
         assert pair_embedding_dim is not None
         assert primitive_hidden_dim is not None
+        source_permutation_value = options.get(
+            "post_expert_source_cell_permutation"
+        )
+        if source_permutation_value is None:
+            source_permutation = None
+        elif isinstance(source_permutation_value, list):
+            source_permutation = tuple(int(value) for value in source_permutation_value)
+        else:
+            raise ValueError(
+                "post_expert_source_cell_permutation must be a JSON list"
+            )
         return FixedOrderedPrimitiveConditionedSpnProtocolAdapter(
             input_bits=input_bits,
             pair_bits=(
@@ -249,6 +264,13 @@ def build_spn_model(
                 post_expert_residual_mode=str(
                     options.get("post_expert_residual_mode", "none")
                 ),
+                post_expert_adapter_mode=str(
+                    options.get("post_expert_adapter_mode", "none")
+                ),
+                post_expert_adapter_bottleneck_dim=int(
+                    options.get("post_expert_adapter_bottleneck_dim", 16)
+                ),
+                post_expert_source_cell_permutation=source_permutation,
             ),
             descriptor_name=descriptor.name,
             descriptor_path=str(descriptor.path),
