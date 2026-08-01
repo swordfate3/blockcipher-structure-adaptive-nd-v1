@@ -121,6 +121,7 @@ from blockcipher_nd.models.structure.spn.ordered_primitive_conditioner import (
 )
 from blockcipher_nd.models.structure.spn.ordered_primitive_program import (
     compile_ordered_primitive_program,
+    permute_program_source_endpoints_affine,
     permute_program_target_bindings,
     rotate_program_stages,
 )
@@ -178,6 +179,9 @@ def build_spn_model(
         "runtime_spn_k1by1_compiler_correct": "correct",
         "runtime_spn_k1by1_compiler_wrong_order": "wrong_order",
         "runtime_spn_k1by1_compiler_wrong_binding": "wrong_binding",
+        "runtime_spn_k1by1_compiler_affine_wrong_endpoint": (
+            "affine_wrong_endpoint"
+        ),
         "runtime_spn_k1by1_no_compiler_conditioner": "no_conditioner",
     }
     if name in ordered_primitive_models:
@@ -203,6 +207,20 @@ def build_spn_model(
             program = permute_program_target_bindings(
                 program,
                 seed=wrong_binding_seed,
+            )
+        elif control == "affine_wrong_endpoint":
+            affine_multiplier = int_option(
+                options,
+                "affine_endpoint_multiplier",
+                5,
+            )
+            affine_offset = int_option(options, "affine_endpoint_offset", 1)
+            assert affine_multiplier is not None
+            assert affine_offset is not None
+            program = permute_program_source_endpoints_affine(
+                program,
+                multiplier=affine_multiplier,
+                offset=affine_offset,
             )
         pair_embedding_dim = int_option(options, "pair_embedding_dim", 128)
         primitive_hidden_dim = int_option(
