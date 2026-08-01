@@ -1,7 +1,7 @@
 # Innovation 1 Runtime SPN Affine Endpoint Control K1-BY5
 
 **Date:** 2026-08-01
-**Status:** preregistered / pending local deterministic audit
+**Status:** completed / pass
 **Execution:** local CPU, zero neural training, inherited K1-BY3 validation caches
 
 ## Research question
@@ -138,3 +138,71 @@ i1_runtime_spn_affine_endpoint_control_k1by5_present_r7_seed2_seed3_20260801/
 
 After completion, record measured metrics, claim boundary and the exact next
 route here, then refresh both recent-result indexes before reporting.
+
+## Completed result
+
+All K1-BY4/K1-BY3 source bindings, cache digests, affine-bijection checks,
+program-geometry checks and artifact checks passed. The audit produced all
+eight expected rows, performed zero optimizer steps and left every source
+digest unchanged.
+
+| Seed | Inverse step | Tap | Multiset change rate | Pooled summary L1 | Ordered histogram L1 |
+|---:|---:|---|---:|---:|---:|
+| 2 | 1 | inverse linear | `1.000` | `0.021784` | `0.509073` |
+| 2 | 1 | post inverse S-box | `1.000` | `0.023262` | `0.509945` |
+| 2 | 2 | inverse linear | `1.000` | `0.033918` | `0.509974` |
+| 2 | 2 | post inverse S-box | `1.000` | `0.034247` | `0.509890` |
+| 3 | 1 | inverse linear | `1.000` | `0.021909` | `0.509665` |
+| 3 | 1 | post inverse S-box | `1.000` | `0.023431` | `0.509592` |
+| 3 | 2 | inverse linear | `1.000` | `0.033945` | `0.507795` |
+| 3 | 2 | post inverse S-box | `1.000` | `0.034277` | `0.509314` |
+
+Equivalently, `multiset_equal_rate=0.0` on every row. Every cached validation
+sample changes even after cell order is removed, and every pooled-summary L1 is
+more than 200 times the preregistered `0.0001` floor. No seed, stage or tap
+needed averaging or rescue.
+
+The frozen decision is:
+
+```text
+status       = pass
+decision     = innovation1_runtime_spn_k1by5_affine_endpoint_control_ready
+remote_scale = no
+```
+
+## Interpretation and claim boundary
+
+K1-BY5 isolates the K1-BY4 failure mechanism. A uniform source-role change was
+an automorphism-like complete-cell relabeling for PRESENT's invariant
+representation. The affine map makes source-cell destination depend on bit
+role, splits every source bundle and therefore remains visible before and after
+both inverse S-box stages.
+
+This establishes a valid deterministic negative-control surface for a
+PRESENT permutation expert. It does not establish a neural AUC improvement,
+exact P-layer learning, cross-cipher transfer, formal-scale performance, an
+attack or a SOTA result. Those claims remain blocked until neural attribution.
+
+## Executable next action
+
+Preregister K1-BY6 as a two-row local neural attribution diagnostic:
+
+| Frozen field | Value |
+|---|---|
+| Cipher / rounds | PRESENT-80 r7 |
+| Difference / negatives | unchanged K1-BY3 MCND difference / encrypted random plaintexts |
+| Train / validation | `2048/class` train; `1024/class` validation |
+| Pairs / seeds | 16 / seed2 and seed3 |
+| Epochs / optimizer / loss | 10 / Adam / MSE |
+| New rows only | affine wrong endpoint control, one row per seed |
+| Frozen anchors | K1-BY3 correct routing and no-conditioner rows |
+| Primary gate | correct AUC - affine-control AUC `>= +0.005` on each seed |
+| Execution | local sub-medium diagnostic; no remote scale |
+
+The K1-BY3 correct and no-conditioner models must not be retrained. K1-BY6
+must reuse the exact source data caches, parameter count, initialization
+protocol, checkpoint metric and ten-epoch schedule. If both routing margins
+pass, retain the affine control and move to a second permutation-style SPN
+(GIFT) at the same diagnostic scale. If either fails, audit learned tap access
+before changing capacity or data. Do not increase samples, pairs, epochs,
+width or seeds and do not launch remotely from this local control result.
