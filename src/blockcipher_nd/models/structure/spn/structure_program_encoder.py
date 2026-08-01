@@ -152,6 +152,154 @@ class RuntimeSpnProgramEncoder(nn.Module):
         return F.normalize(self.output_projection(summary), dim=-1)
 
 
+class RuntimeSpnTargetCellProgramEncoder(nn.Module):
+    """Preserve GF(2) endpoint binding until after ordered cell updates."""
+
+    def __init__(self, spec: StructureProgramEncoderSpec) -> None:
+        super().__init__()
+        self.spec = spec
+        hidden = spec.hidden_dim
+        self.sbox_encoder = nn.Sequential(
+            nn.Linear(SBOX_TOKEN_DIM, hidden),
+            nn.GELU(),
+            nn.LayerNorm(hidden),
+        )
+        self.edge_encoder = nn.Sequential(
+            nn.Linear(EDGE_TOKEN_DIM, hidden),
+            nn.GELU(),
+            nn.LayerNorm(hidden),
+        )
+        self.cell_fusion = nn.Sequential(
+            nn.Linear(hidden * 4, hidden * 2),
+            nn.GELU(),
+            nn.Dropout(spec.dropout),
+            nn.Linear(hidden * 2, hidden),
+            nn.LayerNorm(hidden),
+        )
+        self.cell_transition = nn.GRUCell(hidden, hidden)
+        self.stage_projection = nn.Sequential(
+            nn.Linear(hidden * 3, hidden),
+            nn.GELU(),
+            nn.LayerNorm(hidden),
+        )
+        self.program_gru = nn.GRU(hidden, hidden, batch_first=True)
+        self.output_projection = nn.Sequential(
+            nn.Linear(hidden * 3, spec.embedding_dim),
+            nn.LayerNorm(spec.embedding_dim),
+        )
+        self.uses_cipher_identity = False
+        self.uses_cipher_name = False
+        self.uses_actual_source_target_connectivity = True
+        self.uses_sbox_truth_tables = True
+        self.preserves_transition_order = True
+        self.aggregates_edges_at_actual_target_cell = True
+        self.pools_only_after_cell_transition = True
+
+    def forward(self, structures: Sequence[RuntimeSpnStructure]) -> torch.Tensor:
+        if not structures:
+            raise ValueError("target-cell structure encoder requires a structure")
+        return torch.stack([self.encode_structure(structure) for structure in structures])
+
+    def encode_structure(
+        self,
+        structure: RuntimeSpnStructure,
+        *,
+        cell_position_ids: torch.Tensor | None = None,
+        edge_binding_seed: int | None = None,
+    ) -> torch.Tensor:
+        device = self.sbox_encoder[0].weight.device
+        dtype = self.sbox_encoder[0].weight.dtype
+        position_ids = _validated_position_ids(
+            structure,
+            cell_position_ids,
+            device=device,
+        )
+        membership = structure.cell_membership.to(device)
+        semantic_membership = position_ids[membership]
+        roles = structure.bit_role.to(device)
+        binding = _edge_binding_permutation(
+            structure.cells,
+            edge_binding_seed,
+            device=device,
+        )
+        cell_state = torch.zeros(
+            structure.cells,
+            self.spec.hidden_dim,
+            device=device,
+            dtype=dtype,
+        )
+        stage_rows: list[torch.Tensor] = []
+        for stage in range(structure.rounds):
+            stage_position = _position_triplet(
+                torch.full((structure.cells,), stage, device=device),
+                structure.rounds,
+                dtype=dtype,
+            )
+            cell_position = _position_triplet(
+                position_ids,
+                structure.cells,
+                dtype=dtype,
+            )
+            truth = structure.sbox_truth_bits[stage].to(device=device, dtype=dtype)
+            sbox_hidden = self.sbox_encoder(
+                torch.cat((stage_position, cell_position, truth), dim=-1)
+            )
+
+            edges = torch.nonzero(
+                structure.inverse_linear_matrices[stage],
+                as_tuple=False,
+            )
+            if edges.numel() == 0:
+                raise ValueError("target-cell program requires nonempty GF(2) edges")
+            targets = edges[:, 0].to(device)
+            sources = edges[:, 1].to(device)
+            edge_count = int(edges.shape[0])
+            edge_tokens = torch.cat(
+                (
+                    _position_triplet(
+                        torch.full((edge_count,), stage, device=device),
+                        structure.rounds,
+                        dtype=dtype,
+                    ),
+                    _position_triplet(
+                        semantic_membership[sources],
+                        structure.cells,
+                        dtype=dtype,
+                    ),
+                    _position_triplet(
+                        semantic_membership[targets],
+                        structure.cells,
+                        dtype=dtype,
+                    ),
+                    F.one_hot(roles[sources], num_classes=4).to(dtype),
+                    F.one_hot(roles[targets], num_classes=4).to(dtype),
+                ),
+                dim=-1,
+            )
+            if edge_tokens.shape[-1] != EDGE_TOKEN_DIM:
+                raise RuntimeError("target-cell edge token width drifted")
+            edge_hidden = self.edge_encoder(edge_tokens)
+            target_cells = membership[targets]
+            if binding is not None:
+                target_cells = binding[target_cells]
+            edge_at_cell = _segment_pool(edge_hidden, target_cells, structure.cells)
+            cell_input = self.cell_fusion(torch.cat((sbox_hidden, edge_at_cell), dim=-1))
+            cell_state = self.cell_transition(cell_input, cell_state)
+            stage_rows.append(self.stage_projection(_pool(cell_state)))
+
+        program = torch.stack(stage_rows).unsqueeze(0)
+        recurrent, final = self.program_gru(program)
+        summary = torch.cat(
+            (
+                final.squeeze(0).squeeze(0),
+                recurrent.mean(dim=1).squeeze(0),
+                recurrent.max(dim=1).values.squeeze(0),
+            ),
+            dim=-1,
+        )
+        return F.normalize(self.output_projection(summary), dim=-1)
+
+
 def _validated_position_ids(
     structure: RuntimeSpnStructure,
     values: torch.Tensor | None,
@@ -194,9 +342,46 @@ def _pool(values: torch.Tensor) -> torch.Tensor:
     )
 
 
+def _segment_pool(
+    values: torch.Tensor,
+    segments: torch.Tensor,
+    segment_count: int,
+) -> torch.Tensor:
+    rows = []
+    for segment in range(segment_count):
+        selected = values[segments == segment]
+        if selected.numel() == 0:
+            rows.append(
+                torch.zeros(
+                    values.shape[-1] * 3,
+                    device=values.device,
+                    dtype=values.dtype,
+                )
+            )
+        else:
+            rows.append(_pool(selected))
+    return torch.stack(rows)
+
+
+def _edge_binding_permutation(
+    cells: int,
+    seed: int | None,
+    *,
+    device: torch.device,
+) -> torch.Tensor | None:
+    if seed is None:
+        return None
+    generator = torch.Generator().manual_seed(seed)
+    permutation = torch.randperm(cells, generator=generator)
+    if torch.equal(permutation, torch.arange(cells)):
+        permutation = torch.roll(permutation, shifts=1)
+    return permutation.to(device)
+
+
 __all__ = [
     "EDGE_TOKEN_DIM",
     "SBOX_TOKEN_DIM",
     "RuntimeSpnProgramEncoder",
+    "RuntimeSpnTargetCellProgramEncoder",
     "StructureProgramEncoderSpec",
 ]

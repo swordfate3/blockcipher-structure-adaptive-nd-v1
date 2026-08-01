@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_target_cell_program_k1bx0",
+  "run_id": "i1_runtime_spn_target_cell_program_k1bx0_20260801",
+  "source": {
+    "root": "outputs/local_diagnostic/i1_runtime_spn_structure_program_pretrain_k1bw_20260801",
+    "config": "configs/experiment/innovation1/innovation1_runtime_spn_structure_program_pretrain_k1bw_20260801.json",
+    "required_status": "hold",
+    "required_decision": "innovation1_runtime_spn_k1bw_structure_program_not_ready",
+    "digests": {
+      "config": "8148b599c92f47a835a841497a903fa93fd0cf7bd704f3a99147ac1acd8dd496",
+      "gate.json": "23180465d0a599cc61a6920d10fd3ca52445eafddb9d32b3213e68a8c4dda725",
+      "results.jsonl": "78eb4263d4a1b00d1de3f0c88c743870b946889d17647e93be5dbf587bb3a46d",
+      "validation.json": "83af1750423bd931d67fa420a66e98d1ce75bcc508303d13b5cb8c93f3d6f405"
+    }
+  },
+  "structures": {
+    "gift64": {"path": "configs/runtime/spn/gift64.json", "round_start": 0, "rounds": 2},
+    "present64": {"path": "configs/runtime/spn/present64.json", "round_start": 0, "rounds": 2},
+    "rectangle64": {"path": "configs/runtime/spn/rectangle64.json", "round_start": 0, "rounds": 2},
+    "skinny64": {"path": "configs/runtime/spn/skinny64.json", "round_start": 0, "rounds": 2},
+    "midori64": {"path": "configs/runtime/spn/midori64.json", "round_start": 0, "rounds": 2},
+    "uknit64": {"path": "configs/runtime/spn/uknit64.json", "round_start": 3, "rounds": 2},
+    "dialga128": {"path": "configs/runtime/spn/dialga128.json", "round_start": 2, "rounds": 2}
+  },
+  "training": {
+    "train_ciphers": ["gift64", "present64", "rectangle64", "skinny64", "midori64", "uknit64"],
+    "holdout_ciphers": ["dialga128"],
+    "seeds": [0, 1],
+    "corruption_seeds": [11, 23, 37, 53],
+    "epochs": 160,
+    "learning_rate": 0.001,
+    "weight_decay": 0.00001,
+    "triplet_margin": 0.12,
+    "device": "cpu",
+    "execution": "local_structure_only_diagnostic"
+  },
+  "model": {
+    "variant": "target_cell_message_aggregation",
+    "hidden_dim": 48,
+    "embedding_dim": 64,
+    "dropout": 0.0,
+    "cipher_name_input": false,
+    "cipher_id_input": false,
+    "actual_gf2_edges": true,
+    "sbox_truth_tables": true,
+    "transition_order": true,
+    "target_cell_aggregation_before_pooling": true,
+    "ordered_cell_transition": true
+  },
+  "controls": [
+    "wrong_linear",
+    "wrong_sbox",
+    "wrong_order",
+    "wrong_edge_binding"
+  ],
+  "gates": {
+    "protocol_errors_max": 0,
+    "relabel_cosine_min": 0.999999,
+    "holdout_correct_minus_wrong_cosine_distance_min": 0.02,
+    "holdout_margin_gain_over_initial_min": 0.005,
+    "wrong_sbox_k1bw_anchor_max_drop": 0.02,
+    "all_structure_parameter_geometry_equal": true,
+    "remote_scale": "no"
+  }
+}
