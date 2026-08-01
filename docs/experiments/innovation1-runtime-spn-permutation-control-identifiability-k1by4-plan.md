@@ -1,7 +1,7 @@
 # Innovation 1 Runtime SPN Permutation Control Identifiability K1-BY4
 
 **Date:** 2026-08-01  
-**Status:** preregistered / pending local deterministic audit  
+**Status:** completed / hold
 **Execution:** local CPU, zero neural training, frozen K1-BY3 validation caches
 
 ## Research question
@@ -132,3 +132,92 @@ i1_runtime_spn_permutation_control_identifiability_k1by4_present_r7_seed2_seed3_
 After completion this document must record the measured metrics, frozen
 decision, claim boundary and executable next action. The recent-result indexes
 must be refreshed in the same turn.
+
+## Completed result
+
+All source, cache, program-geometry and artifact checks passed. The audit read
+both frozen validation caches without changing any source digest, produced all
+16 expected rows and performed zero optimizer steps.
+
+The two seeds were numerically consistent. `1 - multiset_equal_rate` and
+`pooled_summary_l1` are shown below; both must be positive enough at every tap
+for a control to be accepted.
+
+| Control | Inverse step | Tap | seed2 multiset change / pooled L1 | seed3 multiset change / pooled L1 |
+|---|---:|---|---:|---:|
+| current wrong target binding | 1 | inverse linear | `0.000 / 0.000000` | `0.000 / 0.000000` |
+| current wrong target binding | 1 | post inverse S-box | `0.000 / 0.000000` | `0.000 / 0.000000` |
+| current wrong target binding | 2 | inverse linear | `1.000 / 0.033804` | `1.000 / 0.033601` |
+| current wrong target binding | 2 | post inverse S-box | `1.000 / 0.034588` | `1.000 / 0.034649` |
+| uniform source-role corruption | 1 | inverse linear | `0.000 / 0.000000` | `0.000 / 0.000000` |
+| uniform source-role corruption | 1 | post inverse S-box | `0.000 / 0.000000` | `0.000 / 0.000000` |
+| uniform source-role corruption | 2 | inverse linear | `0.000 / 0.000000` | `0.000 / 0.000000` |
+| uniform source-role corruption | 2 | post inverse S-box | `0.000 / 0.000000` | `0.000 / 0.000000` |
+
+Both controls changed the ordered histograms substantially: normalized ordered
+L1 was approximately `0.414-0.508` for current target binding and
+`0.509-0.510` for source-role corruption. Therefore the zero invariant metrics
+are not caused by an implementation no-op. They show that these changes are
+cell permutations that disappear exactly when cell order is removed.
+
+The current target-binding control stops being equivalent only after the
+second compiled inverse transition. The uniform `[1,3,0,2]` source-role change
+remains multiset-equivalent through both transitions. It is therefore weaker,
+not stronger, for the K1-BY3 invariant representation.
+
+The preregistered decision is:
+
+```text
+status       = hold
+decision     = innovation1_runtime_spn_k1by4_permutation_expert_hold
+remote_scale = no
+```
+
+## Interpretation and claim boundary
+
+K1-BY4 explains why a random-fixture output delta was an insufficient K1-BY3
+readiness check. A control can change every ordered cell position while leaving
+the exact cell-token multiset and mean/max summaries unchanged. On homogeneous
+PRESENT layers, complete target-cell movement and one uniform source-role
+permutation are automorphism-like changes from the invariant network's point
+of view.
+
+This result does not retract the K1-BY3 correct-versus-no-conditioner signal.
+It narrows the unsupported attribution claim: the existing controls cannot
+test exact P-layer semantics at every recurrent stage. K1-BY4 contains no AUC,
+accuracy, training-scale or cross-cipher evidence.
+
+## Executable next action
+
+Preregister K1-BY5 as one more zero-training control audit on the identical
+K1-BY3 caches. Change only the source-endpoint bijection. Flatten each source
+endpoint as:
+
+```text
+u = 4 * source_cell + source_role
+```
+
+and use the frozen affine permutation:
+
+```text
+u -> (5 * u + 1) mod 64
+```
+
+Because `gcd(5,64)=1`, this preserves a global one-to-one P layer. Unlike a
+uniform role permutation, the destination source cell depends on the original
+role, so complete four-bit cell bundles are split. The model still receives no
+absolute cell identity; cell numbers are used only to construct the negative
+control.
+
+K1-BY5 must reuse the same seeds, 2048 validation rows per seed, 16 pairs, two
+compiled stages, taps, metrics and K1-BY4 thresholds. It runs locally on CPU
+with zero epochs and zero optimizer steps.
+
+- If the affine endpoint control changes both the multiset and pooled summary
+  at every seed/stage/tap, freeze it and preregister a same-budget neural gate
+  with only one new wrong-control training row per seed.
+- If any tap remains invariant, stop permutation neural attribution and audit
+  the representation contract itself; do not search more random permutations.
+
+Do not increase samples, pairs, epochs, width or seeds; do not launch remotely;
+do not add GIFT or another cipher before this control-level question is closed.
