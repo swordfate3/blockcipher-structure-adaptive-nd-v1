@@ -215,3 +215,12 @@ optimizer step ran. The run and monitor contracts now use short semantic log
 names (`git_revision.txt`, `started.marker`, `raw_ready.marker`, and similar),
 and compare the expected/actual commit as strings instead of reopening two long
 paths with `fc`. A regression rejects any `%LOG_DIR%\\<full run id>` filename.
+
+The fourth attempt passed source, Git, GPU and PyTorch checks and reached the
+remote readiness command. It then stopped before the started marker because the
+K1-BY13 runner imported lightweight JSON/CSV helpers through a Matplotlib-backed
+uKNIT module, while the remote training environment intentionally lacks
+Matplotlib. No optimizer step ran. The runner now owns standard-library JSONL,
+JSON, progress and history-CSV helpers; the separate plot command remains the
+only plotting dependency. A regression proves the training runner no longer
+imports `blockcipher_nd.evaluation.plots` or any uKNIT runner.

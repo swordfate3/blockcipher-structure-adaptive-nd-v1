@@ -13,6 +13,7 @@ from blockcipher_nd.cli.plot_runtime_spn_trainable_post_expert_adapter_k1by13 im
 from blockcipher_nd.cli.run_runtime_spn_trainable_post_expert_adapter_k1by13 import (
     main as run_main,
     training_argv,
+    write_history_csv,
 )
 from blockcipher_nd.engine.matrix_runner import parse_args as parse_train_args
 from blockcipher_nd.planning.matrix import build_tasks
@@ -308,6 +309,39 @@ def test_k1by13_remote_scripts_are_fail_closed_and_g_drive_only() -> None:
     assert "logs/${RUN_ID}_git_revision.txt" not in monitor_text
     assert "--expected-rows 8" in monitor_text
     assert "RAW FALLBACK RETRIEVAL" in monitor_text
+
+
+def test_k1by13_runner_does_not_import_plotting_stack(tmp_path: Path) -> None:
+    runner_path = (
+        k1by13.ROOT
+        / "src/blockcipher_nd/cli/"
+        "run_runtime_spn_trainable_post_expert_adapter_k1by13.py"
+    )
+    runner_text = runner_path.read_text(encoding="utf-8")
+    assert "blockcipher_nd.evaluation.plots" not in runner_text
+    assert "run_uknit_family_ctspn" not in runner_text
+
+    results = tmp_path / "results.jsonl"
+    results.write_text(
+        json.dumps(
+            {
+                "cipher": "present80",
+                "rounds": 7,
+                "model": "runtime_spn_k1by13_adapter_correct",
+                "seed": 2,
+                "samples_per_class": 2048,
+                "pairs_per_sample": 16,
+                "history": [{"epoch": 1, "val_auc": 0.6}],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    history = tmp_path / "history.csv"
+    write_history_csv(results, history)
+    assert "runtime_spn_k1by13_adapter_correct" in history.read_text(
+        encoding="utf-8"
+    )
 
 
 def _result_rows(

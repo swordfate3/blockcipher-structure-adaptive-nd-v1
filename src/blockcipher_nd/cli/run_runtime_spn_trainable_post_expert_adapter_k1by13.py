@@ -4,16 +4,11 @@ import argparse
 import csv
 import json
 from pathlib import Path
+import time
 from typing import Any, Mapping, Sequence
 
-from blockcipher_nd.cli.run_uknit_family_ctspn_k1m import (
-    progress,
-    read_jsonl,
-    write_json,
-)
 from blockcipher_nd.cli.train import main as train_main
 from blockcipher_nd.engine.matrix_runner import parse_args as parse_train_args
-from blockcipher_nd.evaluation.plots import write_history_csv
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.tasks.innovation1.runtime_spn_trainable_post_expert_adapter_k1by13 import (
     CONDITIONS,
@@ -232,6 +227,91 @@ def write_comparison_csv(
         writer.writerows(rows)
 
 
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows = [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    if not all(isinstance(row, dict) for row in rows):
+        raise ValueError(f"JSONL rows must be objects: {path}")
+    return rows
+
+
+def write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def progress(path: Path, event: str, **payload: Any) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {"event": event, "time": time.time(), **payload},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+
+def write_history_csv(results_path: Path, output_path: Path) -> None:
+    fields = (
+        "run_index",
+        "run_label",
+        "cipher",
+        "model",
+        "selected_model",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "pairs_per_sample",
+        "epoch",
+        "train_loss",
+        "train_eval_loss",
+        "train_accuracy",
+        "train_auc",
+        "val_loss",
+        "val_accuracy",
+        "val_auc",
+        "learning_rate",
+    )
+    records: list[dict[str, Any]] = []
+    for run_index, row in enumerate(read_jsonl(results_path), start=1):
+        label = (
+            f"run{run_index}: {row.get('cipher', '')} r{row.get('rounds', '')} "
+            f"{row.get('model', row.get('selected_model', ''))} "
+            f"seed{row.get('seed', '')}"
+        )
+        history = row.get("history", [])
+        if not isinstance(history, list):
+            continue
+        for item in history:
+            if not isinstance(item, dict):
+                continue
+            records.append(
+                {
+                    "run_index": run_index,
+                    "run_label": label,
+                    "cipher": row.get("cipher", ""),
+                    "model": row.get("model", ""),
+                    "selected_model": row.get("selected_model", ""),
+                    "rounds": row.get("rounds", ""),
+                    "seed": row.get("seed", ""),
+                    "samples_per_class": row.get("samples_per_class", ""),
+                    "pairs_per_sample": row.get("pairs_per_sample", ""),
+                    **item,
+                }
+            )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(records)
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
 
@@ -239,7 +319,11 @@ if __name__ == "__main__":
 __all__ = [
     "main",
     "parse_args",
+    "progress",
+    "read_jsonl",
     "require_fresh_output_root",
     "training_argv",
     "write_comparison_csv",
+    "write_history_csv",
+    "write_json",
 ]
