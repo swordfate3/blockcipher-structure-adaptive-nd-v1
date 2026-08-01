@@ -10,7 +10,7 @@ if not "%PHYSICAL_GPU%"=="0" if not "%PHYSICAL_GPU%"=="1" exit /b 3
 set REPO_URL=git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git
 set RUN_ID=i1_runtime_spn_trainable_post_expert_adapter_k1by13_present_r7_16pair_2048_seed2_seed3_20260801
 set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
-set SOURCE_ROOT=G:\lxy\bcnd-k1by13-src
+set SOURCE_ROOT=G:\lxy\bcnd-k1by13-src-lf
 set SCHEDULE_ROOT=G:\lxy\scheduled-runs
 set LAUNCH_LOG_DIR=%RUNS_ROOT%\launcher_logs
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
@@ -45,6 +45,8 @@ if exist "%SOURCE_ROOT%\.git" (
   git clone --no-checkout "%REPO_URL%" "%SOURCE_ROOT%" || exit /b 1
 )
 cd /d "%SOURCE_ROOT%" || exit /b 1
+git config core.autocrlf false || exit /b 1
+git config core.longpaths true || exit /b 1
 git checkout --detach "%EXPECTED_COMMIT%" || exit /b 1
 for /f "delims=" %%S in ('git status --porcelain') do exit /b 1
 for /f "delims=" %%H in ('git rev-parse HEAD') do set ACTUAL_COMMIT=%%H

@@ -224,3 +224,14 @@ Matplotlib. No optimizer step ran. The runner now owns standard-library JSONL,
 JSON, progress and history-CSV helpers; the separate plot command remains the
 only plotting dependency. A regression proves the training runner no longer
 imports `blockcipher_nd.evaluation.plots` or any uKNIT runner.
+
+The fifth attempt reached the dependency-free readiness implementation but
+failed its frozen-plan digest before model construction. The remote Git global
+configuration had `core.autocrlf=true`: the checked-out CSV hash was
+`67a65f744b39264cbde09e446b0cb306594645fed02b9c5b267adeba98e7a684`
+instead of the pushed LF hash
+`29bbcce189c4229e71b12e8568b2624f632f4178319edc3cb969d4d40bdf72a5`.
+No optimizer step ran. The launcher now creates a fresh short clone at
+`G:\\lxy\\bcnd-k1by13-src-lf` and sets repository-local
+`core.autocrlf=false` plus `core.longpaths=true` before the first checkout.
+Tests bind that ordering so byte-level plan/source digests remain portable.

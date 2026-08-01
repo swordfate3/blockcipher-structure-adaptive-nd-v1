@@ -8,7 +8,7 @@ if not "%PHYSICAL_GPU%"=="0" if not "%PHYSICAL_GPU%"=="1" exit /b 5
 set RUN_ID=i1_runtime_spn_trainable_post_expert_adapter_k1by13_present_r7_16pair_2048_seed2_seed3_20260801
 set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
 set RUN_ROOT=%RUNS_ROOT%\%RUN_ID%
-set SOURCE_ROOT=G:\lxy\bcnd-k1by13-src
+set SOURCE_ROOT=G:\lxy\bcnd-k1by13-src-lf
 set LOG_DIR=%RUN_ROOT%\logs
 set OUTPUT_ROOT=%RUN_ROOT%\output
 set READINESS_ROOT=%RUN_ROOT%\remote_readiness

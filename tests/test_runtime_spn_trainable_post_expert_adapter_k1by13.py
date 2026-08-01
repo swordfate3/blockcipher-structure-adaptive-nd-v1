@@ -283,9 +283,14 @@ def test_k1by13_remote_scripts_are_fail_closed_and_g_drive_only() -> None:
         assert "C:\\Users" not in text
     assert "cmd.exe /c" in launch_text
     assert "rmdir /s /q" not in launch_text
-    assert "set SOURCE_ROOT=G:\\lxy\\bcnd-k1by13-src" in launch_text
-    assert "set SOURCE_ROOT=G:\\lxy\\bcnd-k1by13-src" in run_text
+    assert "set SOURCE_ROOT=G:\\lxy\\bcnd-k1by13-src-lf" in launch_text
+    assert "set SOURCE_ROOT=G:\\lxy\\bcnd-k1by13-src-lf" in run_text
     assert "set RUN_CMD=%SOURCE_ROOT%\\configs\\remote\\generated" in launch_text
+    assert "git config core.autocrlf false" in launch_text
+    assert "git config core.longpaths true" in launch_text
+    assert launch_text.index("git config core.autocrlf false") < launch_text.index(
+        'git checkout --detach "%EXPECTED_COMMIT%"'
+    )
     assert "set SOURCE_ROOT=%RUN_ROOT%\\source" not in launch_text
     assert "set SOURCE_ROOT=%RUN_ROOT%\\source" not in run_text
     assert "%RUN_ID%\\source\\configs\\remote\\generated" not in launch_text
