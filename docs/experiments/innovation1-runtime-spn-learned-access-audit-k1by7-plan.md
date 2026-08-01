@@ -1,7 +1,7 @@
 # Innovation 1 Runtime SPN Learned-Access Audit K1-BY7
 
 **Date:** 2026-08-01
-**Status:** retry1 preregistered after protocol-invalid first execution
+**Status:** completed / audit pass / method remains hold
 **Execution:** local CPU, frozen checkpoints, zero neural training
 
 ## Research question
@@ -131,3 +131,78 @@ the source-metric replay implementation from raw logits to the exact
 the checkpoints, validation rows, hook taps, probe, thresholds or already
 frozen interpretation routes. The first execution's internal probe values are
 not used as evidence until retry1 passes the source-replay gate.
+
+## Retry1 completed result
+
+Retry1 passed every frozen source, checkpoint, hook, split, probe and artifact
+check. Correct source AUCs replayed exactly; affine replay error was zero on
+seed2 and `4.77e-7` on seed3, below the frozen `1e-6` tolerance. No source
+file changed, no neural training occurred and optimizer steps remained zero.
+
+The fixed odd-row probe AUCs and correct-minus-affine margins were:
+
+| Tap | seed2 correct / affine | seed2 margin | seed3 correct / affine | seed3 margin |
+|---|---:|---:|---:|---:|
+| Linear histogram | `0.708202 / 0.684700` | `+0.023502` | `0.692360 / 0.697807` | `-0.005447` |
+| Permutation expert | `0.692879 / 0.684353` | `+0.008526` | `0.717205 / 0.723637` | `-0.006432` |
+| Cell fusion | `0.682827 / 0.678555` | `+0.004272` | `0.727463 / 0.718857` | `+0.008606` |
+| Pooled stage summary | `0.703434 / 0.681049` | `+0.022385` | `0.727249 / 0.705395` | `+0.021854` |
+| Pre-classifier representation | `0.701580 / 0.656769` | `+0.044811` | `0.671665 / 0.682938` | `-0.011272` |
+
+Source model AUC margins remained:
+
+```text
+seed2 correct - affine = +0.039343357
+seed3 correct - affine = -0.026506424
+```
+
+The audit decision is:
+
+```text
+status        = pass
+method_status = hold
+decision      = innovation1_runtime_spn_k1by7_first_loss_linear_histogram_identified
+remote_scale  = no
+```
+
+Seed3 first falls below the `+0.005` correct-structure margin at the earliest
+linear histogram tap. The behavior is not monotonic: cell fusion and stage
+pooling temporarily restore a positive margin, but the pre-classifier
+representation reverses again. Seed2 first misses the strict margin at cell
+fusion by only `0.000728`, then recovers strongly before the classifier.
+
+## Interpretation
+
+The current failure cannot be blamed only on invariant cell pooling. On seed3,
+the affine wrong inverse-P transformation already exposes slightly stronger
+closed-form label association than the correct transformation before the
+learned permutation expert. Learned fusion can recover correct-structure
+association transiently, but the final residual representation does not retain
+it. This supports a representation/access diagnosis, not a formal model
+ceiling.
+
+The internal coordinates come from separately trained correct and affine
+checkpoints. Therefore their tap-by-tap differences are diagnostic but not a
+clean causal estimate of runtime structure: weight adaptation and runtime
+choice are still coupled. Immediately redesigning the histogram would risk
+repairing a between-checkpoint artifact.
+
+## Recommended next action
+
+Before changing the representation, preregister K1-BY8 as a zero-training
+same-checkpoint runtime swap on the same validation caches:
+
+```text
+correct learned parameters + correct runtime buffers
+correct learned parameters + affine runtime buffers
+affine learned parameters  + correct runtime buffers
+affine learned parameters  + affine runtime buffers
+```
+
+Only runtime buffers change within each weight row. Recompute source AUC and
+the same five internal probes. If both correct-weight seeds prefer the correct
+runtime, the main issue is independent-training variance and future attribution
+must use same-checkpoint controls. If seed3 still prefers the affine runtime at
+the linear histogram, change exactly the state-to-histogram representation to
+retain relative source-bundle incidence. In either route, do not add samples,
+pairs, epochs, width, seeds, ciphers or remote execution.
