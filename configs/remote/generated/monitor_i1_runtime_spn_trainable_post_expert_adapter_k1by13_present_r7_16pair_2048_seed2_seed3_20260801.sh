@@ -33,7 +33,7 @@ retrieve_raw() {
   scp -r "${REMOTE}:${RUNS_ROOT}/${RUN_ID}/logs" "${staging}/${RUN_ID}/" >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
   scp "${REMOTE}:${RUNS_ROOT}/${RUN_ID}/source_expected_commit.txt" "${staging}/${RUN_ID}/" >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
   local remote_revision
-  remote_revision="$(tr -d '\r\n' < "${staging}/${RUN_ID}/logs/${RUN_ID}_git_revision.txt")"
+  remote_revision="$(tr -d '\r\n' < "${staging}/${RUN_ID}/logs/git_revision.txt")"
   [[ "${remote_revision}" == "${SOURCE_COMMIT}" ]] || return 1
   UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
     --plan configs/experiment/innovation1/innovation1_runtime_spn_trainable_post_expert_adapter_k1by13_present_r7_16pair_2048_seed2_seed3.csv \
@@ -54,13 +54,13 @@ retrieve_raw() {
 while true; do
   echo "$(timestamp) sync" >> "${MONITOR_ROOT}/monitor.log"
   sync_logs
-  if compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*raw_ready.marker" > /dev/null; then
+  if [[ -f "${MONITOR_ROOT}/${RUN_ID}/logs/raw_ready.marker" ]]; then
     retrieve_raw || exit 3
     touch "${MONITOR_ROOT}/fallback_result_retrieved.marker"
     echo "$(timestamp) fallback_result_retrieved_validated_indexed_visual_qa_pending" >> "${MONITOR_ROOT}/monitor.log"
     exit 0
   fi
-  if compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*failed.marker" > /dev/null; then
+  if [[ -f "${MONITOR_ROOT}/${RUN_ID}/logs/failed.marker" ]]; then
     touch "${MONITOR_ROOT}/remote_failed.marker"
     echo "$(timestamp) remote_failed" >> "${MONITOR_ROOT}/monitor.log"
     exit 1

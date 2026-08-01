@@ -206,3 +206,12 @@ returned code `1` before readiness, the started marker or any optimizer step.
 The final repair binds both the clean clone and the scheduled `RUN_CMD` to the
 same short `SOURCE_ROOT`, with a regression test that rejects the stale long
 entrypoint. This second launch attempt is also infrastructure-only evidence.
+
+The correctly scheduled third attempt reached the run script but stopped at
+its file-based source-revision comparison. Both revision files contained the
+same SHA-256-identical commit; the failure was caused by the log path repeating
+the full run id and approaching the Windows legacy path limit. No readiness or
+optimizer step ran. The run and monitor contracts now use short semantic log
+names (`git_revision.txt`, `started.marker`, `raw_ready.marker`, and similar),
+and compare the expected/actual commit as strings instead of reopening two long
+paths with `fc`. A regression rejects any `%LOG_DIR%\\<full run id>` filename.

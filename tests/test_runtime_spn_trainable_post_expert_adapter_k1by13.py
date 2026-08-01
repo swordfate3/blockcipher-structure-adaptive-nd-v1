@@ -288,6 +288,13 @@ def test_k1by13_remote_scripts_are_fail_closed_and_g_drive_only() -> None:
     assert "set SOURCE_ROOT=%RUN_ROOT%\\source" not in launch_text
     assert "set SOURCE_ROOT=%RUN_ROOT%\\source" not in run_text
     assert "%RUN_ID%\\source\\configs\\remote\\generated" not in launch_text
+    assert f"%LOG_DIR%\\{k1by13.RUN_ID}" not in run_text
+    assert "fc /b" not in run_text.lower()
+    assert "set /p EXPECTED_COMMIT" in run_text
+    assert "%LOG_DIR%\\git_revision.txt" in run_text
+    assert "%LOG_DIR%\\started.marker" in run_text
+    assert "%LOG_DIR%\\raw_ready.marker" in run_text
+    assert "%LOG_DIR%\\failed.marker" in run_text
     assert "source_expected_commit.txt" in run_text
     assert "--output-root \"%OUTPUT_ROOT%\"" in run_text
     assert "--device cuda" in run_text
@@ -295,6 +302,10 @@ def test_k1by13_remote_scripts_are_fail_closed_and_g_drive_only() -> None:
     assert "gate.json" in run_text
     assert "visual_qa_pending.marker" in run_text
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "logs/git_revision.txt" in monitor_text
+    assert "logs/raw_ready.marker" in monitor_text
+    assert "logs/failed.marker" in monitor_text
+    assert "logs/${RUN_ID}_git_revision.txt" not in monitor_text
     assert "--expected-rows 8" in monitor_text
     assert "RAW FALLBACK RETRIEVAL" in monitor_text
 
