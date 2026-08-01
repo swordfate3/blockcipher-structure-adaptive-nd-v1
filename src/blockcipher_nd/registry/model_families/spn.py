@@ -115,6 +115,15 @@ from blockcipher_nd.models.structure.spn.topology_edge_residual import (
 from blockcipher_nd.models.structure.spn.exact_operator_composition import (
     FixedExactOperatorCompositionSpnProtocolAdapter,
 )
+from blockcipher_nd.models.structure.spn.ordered_primitive_conditioner import (
+    FixedOrderedPrimitiveConditionedSpnProtocolAdapter,
+    OrderedPrimitiveConditionerSpec,
+)
+from blockcipher_nd.models.structure.spn.ordered_primitive_program import (
+    compile_ordered_primitive_program,
+    permute_program_target_bindings,
+    rotate_program_stages,
+)
 from blockcipher_nd.models.structure.spn.position_histogram_residual import (
     FixedCompactInvariantHistogramResidualSpnProtocolAdapter,
     FixedCompactSboxTransitionResidualSpnProtocolAdapter,
@@ -165,6 +174,65 @@ def build_spn_model(
     pair_bits: int | None,
     options: dict[str, object],
 ) -> nn.Module | None:
+    ordered_primitive_models = {
+        "runtime_spn_k1by1_compiler_correct": "correct",
+        "runtime_spn_k1by1_compiler_wrong_order": "wrong_order",
+        "runtime_spn_k1by1_compiler_wrong_binding": "wrong_binding",
+        "runtime_spn_k1by1_no_compiler_conditioner": "no_conditioner",
+    }
+    if name in ordered_primitive_models:
+        descriptor_path = options.get("runtime_structure_path")
+        if not isinstance(descriptor_path, str) or not descriptor_path.strip():
+            raise ValueError(f"model {name} requires runtime_structure_path")
+        runtime_rounds = int_option(options, "runtime_rounds", 2)
+        runtime_round_start = int_option(options, "runtime_round_start", 0)
+        assert runtime_rounds is not None
+        assert runtime_round_start is not None
+        descriptor = load_runtime_spn_descriptor(
+            descriptor_path,
+            rounds=runtime_rounds,
+            round_start=runtime_round_start,
+        )
+        program = compile_ordered_primitive_program(descriptor.structure)
+        control = ordered_primitive_models[name]
+        if control == "wrong_order":
+            program = rotate_program_stages(program)
+        elif control == "wrong_binding":
+            wrong_binding_seed = int_option(options, "wrong_binding_seed", 11)
+            assert wrong_binding_seed is not None
+            program = permute_program_target_bindings(
+                program,
+                seed=wrong_binding_seed,
+            )
+        pair_embedding_dim = int_option(options, "pair_embedding_dim", 128)
+        primitive_hidden_dim = int_option(
+            options,
+            "primitive_hidden_dim",
+            hidden_bits,
+        )
+        assert pair_embedding_dim is not None
+        assert primitive_hidden_dim is not None
+        return FixedOrderedPrimitiveConditionedSpnProtocolAdapter(
+            input_bits=input_bits,
+            pair_bits=(
+                2 * descriptor.structure.block_bits if pair_bits is None else pair_bits
+            ),
+            program=program,
+            spec=OrderedPrimitiveConditionerSpec(
+                hidden_dim=primitive_hidden_dim,
+                pair_embedding_dim=pair_embedding_dim,
+                dropout=float(options.get("dropout", 0.0)),
+                initial_effective_gate=float(
+                    options.get("primitive_gate_initial_effective", 0.05)
+                ),
+            ),
+            descriptor_name=descriptor.name,
+            descriptor_path=str(descriptor.path),
+            descriptor_sha256=descriptor.sha256,
+            descriptor_round_start=descriptor.round_start,
+            descriptor_available_rounds=descriptor.available_rounds,
+            conditioner_enabled=control != "no_conditioner",
+        )
     position_histogram_models = {
         "runtime_spn_ct_k1t_position_histogram_true": "true",
         "runtime_spn_ct_k1t_position_histogram_wrong_sbox": "wrong_sbox",

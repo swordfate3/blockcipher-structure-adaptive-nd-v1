@@ -59,6 +59,15 @@ def model_metadata(model: Any) -> dict[str, Any]:
         "virtual_projection_slots",
         "virtual_projection_parameter",
         "virtual_projection_effective_weight_shape",
+        "compiled_program_semantic_sha256",
+        "compiled_program_expert_usage",
+        "primitive_expert_set",
+        "uses_cipher_identity",
+        "uses_absolute_cell_or_bit_identity",
+        "shared_experts_across_cells_and_stages",
+        "state_width_independent_parameter_shapes",
+        "ordered_stage_recurrence",
+        "primitive_conditioner_enabled",
     ):
         if hasattr(model, field):
             value = getattr(model, field)
