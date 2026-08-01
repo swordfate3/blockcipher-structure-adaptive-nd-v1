@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_runtime_spn_same_checkpoint_runtime_swap_k1by8_present_r7_seed2_seed3_20260801",
+  "experiment": "innovation1_runtime_spn_same_checkpoint_runtime_swap_k1by8",
+  "sources": {
+    "k1by7_root": "outputs/local_audit/i1_runtime_spn_learned_access_audit_k1by7_present_r7_seed2_seed3_retry1_20260801",
+    "k1by7_config": "configs/experiment/innovation1/innovation1_runtime_spn_learned_access_audit_k1by7_20260801.json",
+    "k1by7_digests": {
+      "config": "07c250050f175894074d80d33b3bec7c2574203dd2409afdea86ce4763ca188a",
+      "preflight.json": "ce1fc0054e863479c54556c0e341f4b9a4eba219b0f6fc80548a1f40243349a4",
+      "results.jsonl": "3df56d691625455e5b22d439a77bbba80688465e2351a8933df201c4cec91032",
+      "gate.json": "2f184f61925ebb21fe568414c36bc5adbbfea13985724f75259dc525c6bd8c60",
+      "validation.json": "db0d6c0198a489129d0fc96b6c3cf24a7d9bedb8555325b31f355e0cacd44ffd",
+      "summary.json": "e80d0c4847abe764bbdce33332938aae4fa7f94e906947f99bc34d040075553b"
+    }
+  },
+  "audit": {
+    "cipher": "PRESENT-80",
+    "rounds": 7,
+    "seeds": [2, 3],
+    "validation_rows_per_seed": 2048,
+    "pairs_per_sample": 16,
+    "input_bits": 2048,
+    "batch_size": 128,
+    "device": "cpu",
+    "neural_training_performed": false,
+    "optimizer_steps": 0,
+    "weight_sources": ["correct_weights", "affine_weights"],
+    "runtime_programs": ["correct_runtime", "affine_runtime"],
+    "parameter_transfer": "named_parameters_only",
+    "runtime_buffers_preserved_from_target_model": true,
+    "taps": [
+      "linear_histogram",
+      "linear_primitive_expert",
+      "cell_fusion",
+      "pooled_stage_summary",
+      "pre_classifier_representation"
+    ],
+    "tap_order": "forward_information_flow",
+    "discovery_rows": "even_validation_indices",
+    "evaluation_rows": "odd_validation_indices",
+    "discovery_rows_per_class": 512,
+    "evaluation_rows_per_class": 512,
+    "probe": "variance_normalized_class_mean_difference",
+    "probe_epsilon": 0.000001,
+    "diagonal_source_replay_tolerance": 0.000001
+  },
+  "gates": {
+    "correct_weight_correct_minus_affine_runtime_final_auc_min": 0.005,
+    "correct_weight_correct_minus_affine_runtime_linear_histogram_probe_auc_min": 0.005,
+    "require_both_seeds": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "new neural training or optimizer steps",
+    "changing checkpoints, data, labels, pairs, seeds, difference, taps or probe after observation",
+    "copying runtime buffers from the weight-source checkpoint into the target runtime model",
+    "adding capacity, epochs, samples, ciphers or remote execution",
+    "using the audit probe as a new distinguisher performance claim"
+  ]
+}
