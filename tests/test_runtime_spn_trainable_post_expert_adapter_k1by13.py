@@ -266,6 +266,33 @@ def test_k1by13_plot_contains_clear_chinese_labels(tmp_path: Path) -> None:
     assert "主指标为跨密钥验证 AUC" in svg
 
 
+def test_k1by13_remote_scripts_are_fail_closed_and_g_drive_only() -> None:
+    generated = k1by13.ROOT / "configs" / "remote" / "generated"
+    run_script = generated / f"run_{k1by13.RUN_ID}.cmd"
+    launch_script = generated / f"launch_{k1by13.RUN_ID}.cmd"
+    monitor_script = generated / f"monitor_{k1by13.RUN_ID}.sh"
+    run_text = run_script.read_text(encoding="utf-8")
+    launch_text = launch_script.read_text(encoding="utf-8")
+    monitor_text = monitor_script.read_text(encoding="utf-8")
+
+    for text in (run_text, launch_text):
+        assert "!" not in text
+        assert "cmd.exe /k" not in text.lower()
+        assert "G:\\lxy" in text
+        assert "C:\\Users" not in text
+    assert "cmd.exe /c" in launch_text
+    assert "rmdir /s /q" not in launch_text
+    assert "source_expected_commit.txt" in run_text
+    assert "--output-root \"%OUTPUT_ROOT%\"" in run_text
+    assert "--device cuda" in run_text
+    assert "results.jsonl" in run_text
+    assert "gate.json" in run_text
+    assert "visual_qa_pending.marker" in run_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "--expected-rows 8" in monitor_text
+    assert "RAW FALLBACK RETRIEVAL" in monitor_text
+
+
 def _result_rows(
     values: dict[int, tuple[float, float, float, float]],
 ) -> list[dict[str, object]]:
