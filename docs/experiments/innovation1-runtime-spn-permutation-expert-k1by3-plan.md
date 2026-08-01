@@ -1,7 +1,7 @@
 # Innovation 1 Runtime SPN Permutation Expert K1-BY3
 
 **Date:** 2026-08-01
-**Status:** preregistered / implementation and readiness pending
+**Status:** completed / hold
 **Execution:** local sub-medium diagnostic; local CUDA availability is checked and recorded before optimization
 
 ## Research question
@@ -147,3 +147,95 @@ checkpoints, results, validation, gate, summary, condition CSV, history CSV,
 Chinese SVG, plot report and rendered-pixel `visual-qa-redraw` evidence. Refresh
 both recent-result indexes and append the measured result and an executable next
 action here before reporting completion.
+
+## Completed result
+
+Readiness passed before optimization. Every model had `235780` trainable
+parameters and the compiled program used exactly:
+
+```text
+sbox4_table       = 32 calls
+linear_permutation= 32 calls
+linear_gf2        = 0 calls
+```
+
+All six rows completed, reused the frozen disk caches and passed plan/result
+validation.
+
+| Condition | seed2 AUC | seed3 AUC |
+|---|---:|---:|
+| correct permutation routing | `0.683736801` | `0.665543556` |
+| wrong target binding | `0.664277077` | `0.672483444` |
+| no compiler conditioner | `0.543799877` | `0.527235508` |
+
+The attribution margins were:
+
+| Margin | seed2 | seed3 |
+|---|---:|---:|
+| correct - wrong binding | `+0.019459724` | `-0.006939888` |
+| correct - no conditioner | `+0.139936924` | `+0.138308048` |
+
+Correct-route best validation accuracy was `0.636718750` for seed2 and
+`0.630371094` for seed3. AUC remains the preregistered primary metric; the raw
+`0.5` threshold accuracy for seed3 was uncalibrated and does not replace its
+best-threshold accuracy or AUC.
+
+The signal floor and no-conditioner margin passed on both seeds. The
+wrong-binding margin passed seed2 but failed seed3 because wrong binding was
+`0.006939888` AUC higher than correct binding. The frozen decision is:
+
+```text
+status       = hold
+decision     = innovation1_runtime_spn_k1by3_permutation_attribution_not_supported
+remote_scale = no
+```
+
+## Interpretation
+
+The strong and repeated correct-versus-no-conditioner margin supports a narrow
+claim: compiled PRESENT inverse-primitive features add substantial signal to
+the shared raw-pair backbone at this local budget. K1-BY3 does not support the
+stronger claim that the learned representation identifies the exact PRESENT
+target-cell binding.
+
+The failed control is mechanistically plausible. The network excludes absolute
+cell identity and aggregates cell tokens with attention, mean and maximum
+pooling. PRESENT applies the same S-box to all cells and repeats one P layer.
+Moving complete target-cell edge bundles can therefore preserve much of the
+multiset seen by the invariant aggregator even though the compiled program SHA
+and a random-fixture output differ. A nonzero fixture delta proved only that the
+control was not bit-exact; it did not prove that the control was statistically
+identifiable after invariant pooling.
+
+This does not invalidate the completed metrics. It limits their attribution and
+shows that the readiness identifiability check was too weak for a homogeneous
+permutation SPN.
+
+## Recommended next action
+
+Do not retrain, scale, add GIFT or weaken the gate. Preregister K1-BY4 as a
+zero-training representation-identifiability audit using the frozen K1-BY3
+cache and compiled programs. For both seeds, compare correct and wrong binding
+at these deterministic taps:
+
+```text
+inverse-linear per-cell difference histograms
+post-inverse-Sbox per-cell difference histograms
+cell-token multiset after sorting away cell order
+mean/max invariant summaries at each of the two stages
+```
+
+Also construct, without training, one within-cell source-role corruption that
+preserves one-to-one fan-in and `linear_permutation` routing but cannot be
+reduced to moving complete cell bundles. Require it to change the deterministic
+multiset and pooled summaries on both cached validation seeds.
+
+- If current wrong binding is multiset-equivalent while source-role corruption
+  is identifiable, reclassify wrong binding as an invalid attribution control
+  for homogeneous P layers and use the frozen role-corruption control in the
+  next same-budget neural gate.
+- If current wrong binding is already identifiable before pooling, inspect the
+  trained correct/wrong checkpoints tap by tap and redesign only the first
+  learned pooling stage where the distinction disappears.
+- If neither corruption is identifiable, hold the current permutation expert;
+  no further neural training or remote scale is justified.
