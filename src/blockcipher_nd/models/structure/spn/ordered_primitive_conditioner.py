@@ -26,6 +26,12 @@ LINEAR_HISTOGRAM_MODES = {
     LINEAR_HISTOGRAM_SOURCE_BUNDLE_MEAN,
     LINEAR_HISTOGRAM_EDGE_CONTEXT_COVARIANCE,
 }
+POST_EXPERT_RESIDUAL_NONE = "none"
+POST_EXPERT_RESIDUAL_EDGE_GATED_LAPLACIAN = "edge_gated_laplacian"
+POST_EXPERT_RESIDUAL_MODES = {
+    POST_EXPERT_RESIDUAL_NONE,
+    POST_EXPERT_RESIDUAL_EDGE_GATED_LAPLACIAN,
+}
 
 
 @dataclass(frozen=True)
@@ -35,6 +41,7 @@ class OrderedPrimitiveConditionerSpec:
     dropout: float = 0.0
     initial_effective_gate: float = 0.05
     linear_histogram_mode: str = LINEAR_HISTOGRAM_LOCAL
+    post_expert_residual_mode: str = POST_EXPERT_RESIDUAL_NONE
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim) <= 0:
@@ -47,6 +54,11 @@ class OrderedPrimitiveConditionerSpec:
             raise ValueError(
                 "ordered primitive linear histogram mode must be local, "
                 "source_bundle_mean, or edge_context_covariance"
+            )
+        if self.post_expert_residual_mode not in POST_EXPERT_RESIDUAL_MODES:
+            raise ValueError(
+                "ordered primitive post-expert residual mode must be none or "
+                "edge_gated_laplacian"
             )
 
 
@@ -105,6 +117,34 @@ class WidthIndependentRawPairBackbone(nn.Module):
         )
 
 
+class PostExpertStructuralResidual(nn.Module):
+    """Apply one zero-parameter runtime-edge residual after expert selection."""
+
+    def __init__(self, mode: str) -> None:
+        super().__init__()
+        if mode not in POST_EXPERT_RESIDUAL_MODES:
+            raise ValueError("unknown post-expert structural residual mode")
+        self.mode = mode
+
+    def forward(
+        self,
+        expert_output: torch.Tensor,
+        edge_role_embedding: torch.Tensor,
+        edge_source_cells: torch.Tensor | None,
+        edge_masks: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.mode == POST_EXPERT_RESIDUAL_NONE:
+            return expert_output
+        if edge_source_cells is None:
+            raise ValueError("post-expert edge residual requires source-cell bindings")
+        return post_expert_edge_gated_laplacian(
+            expert_output,
+            edge_role_embedding,
+            edge_source_cells,
+            edge_masks,
+        )
+
+
 class OrderedPrimitiveConditioner(nn.Module):
     """Execute compiled primitives and encode them with shared learned experts."""
 
@@ -139,6 +179,15 @@ class OrderedPrimitiveConditioner(nn.Module):
             edge_source_cells, edge_source_roles = _padded_edge_context(program)
             self.register_buffer("linear_edge_source_cells", edge_source_cells)
             self.register_buffer("linear_edge_source_roles", edge_source_roles)
+        if (
+            spec.post_expert_residual_mode
+            == POST_EXPERT_RESIDUAL_EDGE_GATED_LAPLACIAN
+        ):
+            edge_source_cells, _edge_source_roles = _padded_edge_context(program)
+            self.register_buffer(
+                "post_expert_edge_source_cells",
+                edge_source_cells,
+            )
 
         self.histogram_encoder = nn.Sequential(
             nn.Linear(16, hidden),
@@ -158,6 +207,9 @@ class OrderedPrimitiveConditioner(nn.Module):
         self.sbox_expert = _primitive_expert(hidden)
         self.permutation_expert = _primitive_expert(hidden)
         self.gf2_expert = _primitive_expert(hidden)
+        self.post_expert_structural_residual = PostExpertStructuralResidual(
+            spec.post_expert_residual_mode
+        )
         self.cell_fusion = nn.Sequential(
             nn.Linear(hidden * 2, hidden),
             nn.ReLU(),
@@ -231,6 +283,21 @@ class OrderedPrimitiveConditioner(nn.Module):
                 expert_types.reshape(1, -1, 1) == 0,
                 permutation,
                 gf2,
+            )
+            post_expert_source_cells = getattr(
+                self,
+                "post_expert_edge_source_cells",
+                None,
+            )
+            if post_expert_source_cells is not None:
+                post_expert_source_cells = post_expert_source_cells[stage_index].to(
+                    current.device
+                )
+            linear_encoded = self.post_expert_structural_residual(
+                linear_encoded,
+                edge_hidden,
+                post_expert_source_cells,
+                self.edge_masks[stage_index].to(current.device),
             )
 
             left = self.runtime_structure.apply_inverse_sboxes(
@@ -377,6 +444,7 @@ class FixedOrderedPrimitiveConditionedSpnProtocolAdapter(nn.Module):
         self.primitive_conditioner_enabled = self.conditioner_enabled
         self.primitive_gate_bounded = True
         self.linear_histogram_mode = spec.linear_histogram_mode
+        self.post_expert_residual_mode = spec.post_expert_residual_mode
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         runtime = features.reshape(
@@ -514,6 +582,45 @@ def edge_context_covariance_histogram(
     return histogram + residual
 
 
+def post_expert_edge_gated_laplacian(
+    expert_output: torch.Tensor,
+    edge_role_embedding: torch.Tensor,
+    edge_source_cells: torch.Tensor,
+    edge_masks: torch.Tensor,
+) -> torch.Tensor:
+    """Add a bounded edge-source contrast gated by the frozen role embedding."""
+
+    if expert_output.ndim != 3:
+        raise ValueError("expert output must have shape [batch, cells, hidden]")
+    batch, cells, hidden = expert_output.shape
+    if edge_role_embedding.shape != (cells, hidden):
+        raise ValueError("edge-role embedding must have shape [cells, hidden]")
+    if (
+        edge_source_cells.ndim != 2
+        or edge_masks.shape != edge_source_cells.shape
+        or edge_source_cells.shape[0] != cells
+    ):
+        raise ValueError("post-expert edge buffers must have shape [cells, edges]")
+    if edge_source_cells.numel() == 0 or not torch.all(
+        (edge_source_cells >= 0) & (edge_source_cells < cells)
+    ):
+        raise ValueError("post-expert source cell is out of range")
+    if not torch.all((edge_masks == 0) | (edge_masks == 1)) or not torch.all(
+        edge_masks.sum(dim=-1) > 0
+    ):
+        raise ValueError("post-expert masks must select at least one edge per cell")
+
+    gathered = expert_output[:, edge_source_cells, :]
+    mask = edge_masks.to(dtype=expert_output.dtype).reshape(1, cells, -1, 1)
+    source_mean = (gathered * mask).sum(dim=2) / mask.sum(dim=2)
+    residual = torch.tanh(source_mean - expert_output) * torch.tanh(
+        edge_role_embedding
+    ).reshape(1, cells, hidden)
+    if residual.shape != (batch, cells, hidden):
+        raise ValueError("post-expert residual geometry drifted")
+    return expert_output + residual
+
+
 def source_bundle_equivalence_matrices(
     program: CompiledSpnProgram,
 ) -> torch.Tensor:
@@ -549,7 +656,11 @@ __all__ = [
     "LINEAR_HISTOGRAM_SOURCE_BUNDLE_MEAN",
     "OrderedPrimitiveConditioner",
     "OrderedPrimitiveConditionerSpec",
+    "POST_EXPERT_RESIDUAL_EDGE_GATED_LAPLACIAN",
+    "POST_EXPERT_RESIDUAL_NONE",
+    "PostExpertStructuralResidual",
     "WidthIndependentRawPairBackbone",
     "edge_context_covariance_histogram",
+    "post_expert_edge_gated_laplacian",
     "source_bundle_equivalence_matrices",
 ]

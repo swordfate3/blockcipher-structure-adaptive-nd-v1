@@ -246,6 +246,9 @@ def build_spn_model(
                 linear_histogram_mode=str(
                     options.get("linear_histogram_mode", "local")
                 ),
+                post_expert_residual_mode=str(
+                    options.get("post_expert_residual_mode", "none")
+                ),
             ),
             descriptor_name=descriptor.name,
             descriptor_path=str(descriptor.path),
