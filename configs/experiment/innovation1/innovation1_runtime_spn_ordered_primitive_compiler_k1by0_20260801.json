@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_ordered_primitive_compiler_k1by0",
+  "run_id": "i1_runtime_spn_ordered_primitive_compiler_k1by0_20260801",
+  "source": {
+    "root": "outputs/local_diagnostic/i1_runtime_spn_target_cell_program_k1bx0_20260801",
+    "config": "configs/experiment/innovation1/innovation1_runtime_spn_target_cell_program_k1bx0_20260801.json",
+    "required_status": "hold",
+    "required_decision": "innovation1_runtime_spn_k1bx0_target_cell_program_not_ready",
+    "digests": {
+      "config": "be0dac0bcbc5dec4402f7881a4e1f63df57f5a00b66fcec3985e1b875932ce5b",
+      "gate.json": "524399c76357ecea4a2407e03e51fb958f56e30732f43fa28fa0b117c83900b5",
+      "results.jsonl": "f7d9e2996e559a792335736b64abac3800f4e84f236987d548a5e175456d654c",
+      "validation.json": "7aa94c9e2061aecb626afa1e38af797718cb51f31027fe43911044296822e94d"
+    }
+  },
+  "structures": {
+    "gift64": {"path": "configs/runtime/spn/gift64.json", "round_start": 0, "rounds": 2},
+    "present64": {"path": "configs/runtime/spn/present64.json", "round_start": 0, "rounds": 2},
+    "rectangle64": {"path": "configs/runtime/spn/rectangle64.json", "round_start": 0, "rounds": 2},
+    "skinny64": {"path": "configs/runtime/spn/skinny64.json", "round_start": 0, "rounds": 2},
+    "midori64": {"path": "configs/runtime/spn/midori64.json", "round_start": 0, "rounds": 2},
+    "uknit64": {"path": "configs/runtime/spn/uknit64.json", "round_start": 3, "rounds": 2},
+    "dialga128": {"path": "configs/runtime/spn/dialga128.json", "round_start": 2, "rounds": 2}
+  },
+  "audit": {
+    "control_seeds": [11, 23, 37, 53],
+    "training_steps": 0,
+    "ciphertext_rows": 0,
+    "device": "cpu",
+    "execution": "local_deterministic_compiler_audit"
+  },
+  "controls": [
+    "joint_cell_relabel",
+    "wrong_order_when_distinct",
+    "wrong_target_binding"
+  ],
+  "gates": {
+    "protocol_errors_max": 0,
+    "exact_replay_required": true,
+    "relabel_semantic_digest_required": true,
+    "applicable_wrong_order_rejected": true,
+    "wrong_target_binding_rejected": true,
+    "expert_contract_equal_across_structures": true,
+    "cipher_identity_input": false,
+    "remote_scale": "no"
+  }
+}
