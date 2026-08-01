@@ -1,7 +1,7 @@
 # Innovation 1 Runtime SPN Affine Neural Attribution K1-BY6
 
 **Date:** 2026-08-01
-**Status:** preregistered / not yet observed
+**Status:** completed / hold / learned-access audit required
 **Execution:** local CPU fallback, two-row sub-medium diagnostic
 
 ## Research question
@@ -144,3 +144,69 @@ i1_runtime_spn_affine_neural_attribution_k1by6_present_r7_16pair_2048_seed2_seed
 After observation, append exact AUC/accuracy values, per-seed margins, gate
 status, claim boundary and the executable next action here, then refresh both
 recent-result indexes.
+
+## Completed result
+
+All source, plan, model, device, training, cache and artifact protocol checks
+passed. Both new rows reused the exact K1-BY3 train and validation arrays; all
+12 cache files had identical SHA-256 digests before and after training. The
+historical correct and no-conditioner anchors were not retrained.
+
+| Seed | Correct AUC | Affine wrong AUC | Correct - affine | No-conditioner AUC | Gate |
+|---:|---:|---:|---:|---:|---|
+| 2 | `0.683736801` | `0.644393444` | `+0.039343357` | `0.543799877` | pass |
+| 3 | `0.665543556` | `0.692049980` | `-0.026506424` | `0.527235508` | fail |
+
+Supporting validation accuracies were:
+
+```text
+seed2 correct / affine / no-conditioner = 0.635254 / 0.593750 / 0.527832
+seed3 correct / affine / no-conditioner = 0.500488 / 0.548340 / 0.503418
+```
+
+The frozen decision is:
+
+```text
+status       = hold
+decision     = innovation1_runtime_spn_k1by6_permutation_attribution_not_supported
+remote_scale = no
+```
+
+Seed2 clears the preregistered `+0.005` routing margin by a wide amount, but
+seed3 reverses the ordering: the affine wrong program exceeds the correct
+program by `0.026506424` AUC. The two-seed gate therefore fails without
+averaging or rescue.
+
+## Interpretation and claim boundary
+
+K1-BY5 ruled out an invisible negative control, while K1-BY6 rules out the
+stronger claim that the present learned representation consistently prefers
+the exact PRESENT P layer. The conditioner still carries substantial structure
+signal relative to the no-conditioner anchor on both seeds, but that signal is
+not yet attributable to correct endpoint semantics.
+
+This is a valid local `2048/class` architecture diagnostic, not a formal-scale
+failure or ceiling. It does not authorize GIFT transfer, remote scaling,
+capacity growth or a universal permutation-expert claim.
+
+## Executable next action
+
+Preregister K1-BY7 as a zero-new-training learned-access audit over the frozen
+K1-BY3 correct checkpoints and K1-BY6 affine checkpoints. On the same K1-BY3
+validation caches, capture these five paired internal taps:
+
+```text
+linear histogram
+primitive expert output
+cell fusion output
+cell-order-invariant pooled summary
+final pair-set representation before the classifier
+```
+
+For each seed and tap, compare correct versus affine representations using a
+frozen magnitude metric and a frozen label-association probe. The audit must
+identify the first tap where seed3 loses or reverses correct-structure
+preference. If the distinction disappears before pooling, inspect primitive
+expert normalization/fusion; if it disappears only after pooling, redesign the
+invariant aggregation contract. Do not change data, model weights, samples,
+pairs, epochs, width, seeds or ciphers, and do not run remotely.
