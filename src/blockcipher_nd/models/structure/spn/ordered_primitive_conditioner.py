@@ -18,12 +18,21 @@ from blockcipher_nd.models.structure.spn.ordered_primitive_program import (
 )
 
 
+LINEAR_HISTOGRAM_LOCAL = "local"
+LINEAR_HISTOGRAM_SOURCE_BUNDLE_MEAN = "source_bundle_mean"
+LINEAR_HISTOGRAM_MODES = {
+    LINEAR_HISTOGRAM_LOCAL,
+    LINEAR_HISTOGRAM_SOURCE_BUNDLE_MEAN,
+}
+
+
 @dataclass(frozen=True)
 class OrderedPrimitiveConditionerSpec:
     hidden_dim: int = 32
     pair_embedding_dim: int = 128
     dropout: float = 0.0
     initial_effective_gate: float = 0.05
+    linear_histogram_mode: str = LINEAR_HISTOGRAM_LOCAL
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim) <= 0:
@@ -32,6 +41,11 @@ class OrderedPrimitiveConditionerSpec:
             raise ValueError("ordered primitive dropout must be in [0, 1)")
         if not -1.0 < self.initial_effective_gate < 1.0:
             raise ValueError("ordered primitive gate must be in (-1, 1)")
+        if self.linear_histogram_mode not in LINEAR_HISTOGRAM_MODES:
+            raise ValueError(
+                "ordered primitive linear histogram mode must be local or "
+                "source_bundle_mean"
+            )
 
 
 class WidthIndependentRawPairBackbone(nn.Module):
@@ -114,6 +128,11 @@ class OrderedPrimitiveConditioner(nn.Module):
         self.register_buffer("edge_tokens", edge_tokens)
         self.register_buffer("edge_masks", edge_masks)
         self.register_buffer("linear_expert_types", expert_types)
+        if spec.linear_histogram_mode == LINEAR_HISTOGRAM_SOURCE_BUNDLE_MEAN:
+            self.register_buffer(
+                "linear_source_bundle_equivalence",
+                source_bundle_equivalence_matrices(program),
+            )
 
         self.histogram_encoder = nn.Sequential(
             nn.Linear(16, hidden),
@@ -185,7 +204,10 @@ class OrderedPrimitiveConditioner(nn.Module):
                 self.inverse_linear_matrices[stage_index],
             )
             linear_state = linear_triplet[..., :2].permute(0, 1, 3, 2)
-            linear_histogram = self._difference_histogram(linear_state)
+            linear_histogram = self._difference_histogram(
+                linear_state,
+                stage_index=stage_index,
+            )
             linear_hidden = self.histogram_encoder(linear_histogram)
             edge_hidden = self._edge_embedding(stage_index, current.device)
             linear_inputs = torch.cat(
@@ -240,12 +262,28 @@ class OrderedPrimitiveConditioner(nn.Module):
             recurrent = self.stage_recurrence(stage, recurrent)
         return self.output_projection(recurrent)
 
-    def _difference_histogram(self, values: torch.Tensor) -> torch.Tensor:
+    def _difference_histogram(
+        self,
+        values: torch.Tensor,
+        *,
+        stage_index: int | None = None,
+    ) -> torch.Tensor:
         difference = torch.remainder(values[:, :, 0] + values[:, :, 1], 2.0)
         bits = difference[..., self.semantic_cell_bits.to(values.device)]
         weights = torch.tensor((8, 4, 2, 1), device=values.device, dtype=torch.long)
         cell_values = torch.sum(bits.to(torch.long) * weights, dim=-1)
-        return F.one_hot(cell_values, num_classes=16).to(values.dtype).mean(dim=1)
+        histogram = F.one_hot(cell_values, num_classes=16).to(values.dtype).mean(dim=1)
+        if (
+            stage_index is None
+            or self.spec.linear_histogram_mode == LINEAR_HISTOGRAM_LOCAL
+        ):
+            return histogram
+        bundle_mean = torch.einsum(
+            "ij,bjk->bik",
+            self.linear_source_bundle_equivalence[stage_index].to(values.device),
+            histogram,
+        )
+        return 0.5 * histogram + 0.5 * bundle_mean
 
     def _edge_embedding(self, stage_index: int, device: torch.device) -> torch.Tensor:
         encoded = self.edge_descriptor_encoder(self.edge_tokens[stage_index].to(device))
@@ -301,6 +339,7 @@ class FixedOrderedPrimitiveConditionedSpnProtocolAdapter(nn.Module):
         self.ordered_stage_recurrence = True
         self.primitive_conditioner_enabled = self.conditioner_enabled
         self.primitive_gate_bounded = True
+        self.linear_histogram_mode = spec.linear_histogram_mode
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         runtime = features.reshape(
@@ -360,9 +399,40 @@ def _padded_edge_descriptors(
     return tokens, masks, expert_types
 
 
+def source_bundle_equivalence_matrices(
+    program: CompiledSpnProgram,
+) -> torch.Tensor:
+    """Average cells whose incoming edges use the same source-cell set."""
+
+    matrices = torch.zeros(
+        program.rounds,
+        program.cells,
+        program.cells,
+        dtype=torch.float32,
+    )
+    for stage_index, stage in enumerate(program.stages):
+        signatures = tuple(
+            frozenset(
+                source_cell for _target_role, source_cell, _source_role in cell.edges
+            )
+            for cell in stage.linear_cells
+        )
+        for target_cell, signature in enumerate(signatures):
+            peers = [
+                peer_cell
+                for peer_cell, peer_signature in enumerate(signatures)
+                if peer_signature == signature
+            ]
+            matrices[stage_index, target_cell, peers] = 1.0 / len(peers)
+    return matrices
+
+
 __all__ = [
     "FixedOrderedPrimitiveConditionedSpnProtocolAdapter",
+    "LINEAR_HISTOGRAM_LOCAL",
+    "LINEAR_HISTOGRAM_SOURCE_BUNDLE_MEAN",
     "OrderedPrimitiveConditioner",
     "OrderedPrimitiveConditionerSpec",
     "WidthIndependentRawPairBackbone",
+    "source_bundle_equivalence_matrices",
 ]

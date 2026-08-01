@@ -243,6 +243,9 @@ def build_spn_model(
                 initial_effective_gate=float(
                     options.get("primitive_gate_initial_effective", 0.05)
                 ),
+                linear_histogram_mode=str(
+                    options.get("linear_histogram_mode", "local")
+                ),
             ),
             descriptor_name=descriptor.name,
             descriptor_path=str(descriptor.path),
