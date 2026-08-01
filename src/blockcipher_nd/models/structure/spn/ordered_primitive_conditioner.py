@@ -20,9 +20,11 @@ from blockcipher_nd.models.structure.spn.ordered_primitive_program import (
 
 LINEAR_HISTOGRAM_LOCAL = "local"
 LINEAR_HISTOGRAM_SOURCE_BUNDLE_MEAN = "source_bundle_mean"
+LINEAR_HISTOGRAM_EDGE_CONTEXT_COVARIANCE = "edge_context_covariance"
 LINEAR_HISTOGRAM_MODES = {
     LINEAR_HISTOGRAM_LOCAL,
     LINEAR_HISTOGRAM_SOURCE_BUNDLE_MEAN,
+    LINEAR_HISTOGRAM_EDGE_CONTEXT_COVARIANCE,
 }
 
 
@@ -43,8 +45,8 @@ class OrderedPrimitiveConditionerSpec:
             raise ValueError("ordered primitive gate must be in (-1, 1)")
         if self.linear_histogram_mode not in LINEAR_HISTOGRAM_MODES:
             raise ValueError(
-                "ordered primitive linear histogram mode must be local or "
-                "source_bundle_mean"
+                "ordered primitive linear histogram mode must be local, "
+                "source_bundle_mean, or edge_context_covariance"
             )
 
 
@@ -133,6 +135,10 @@ class OrderedPrimitiveConditioner(nn.Module):
                 "linear_source_bundle_equivalence",
                 source_bundle_equivalence_matrices(program),
             )
+        elif spec.linear_histogram_mode == LINEAR_HISTOGRAM_EDGE_CONTEXT_COVARIANCE:
+            edge_source_cells, edge_source_roles = _padded_edge_context(program)
+            self.register_buffer("linear_edge_source_cells", edge_source_cells)
+            self.register_buffer("linear_edge_source_roles", edge_source_roles)
 
         self.histogram_encoder = nn.Sequential(
             nn.Linear(16, hidden),
@@ -207,6 +213,7 @@ class OrderedPrimitiveConditioner(nn.Module):
             linear_histogram = self._difference_histogram(
                 linear_state,
                 stage_index=stage_index,
+                source_values=current,
             )
             linear_hidden = self.histogram_encoder(linear_histogram)
             edge_hidden = self._edge_embedding(stage_index, current.device)
@@ -267,6 +274,7 @@ class OrderedPrimitiveConditioner(nn.Module):
         values: torch.Tensor,
         *,
         stage_index: int | None = None,
+        source_values: torch.Tensor | None = None,
     ) -> torch.Tensor:
         difference = torch.remainder(values[:, :, 0] + values[:, :, 1], 2.0)
         bits = difference[..., self.semantic_cell_bits.to(values.device)]
@@ -278,6 +286,35 @@ class OrderedPrimitiveConditioner(nn.Module):
             or self.spec.linear_histogram_mode == LINEAR_HISTOGRAM_LOCAL
         ):
             return histogram
+        if (
+            self.spec.linear_histogram_mode
+            == LINEAR_HISTOGRAM_EDGE_CONTEXT_COVARIANCE
+        ):
+            if source_values is None:
+                raise ValueError(
+                    "edge-context covariance requires the pre-linear source state"
+                )
+            if (
+                source_values.ndim != 4
+                or source_values.shape[:2] != values.shape[:2]
+                or source_values.shape[2] != 2
+                or source_values.shape[3] != self.program.block_bits
+            ):
+                raise ValueError("edge-context source-state geometry drifted")
+            source_difference = torch.remainder(
+                source_values[:, :, 0] + source_values[:, :, 1],
+                2.0,
+            )
+            source_cell_bits = source_difference[
+                ..., self.semantic_cell_bits.to(values.device)
+            ]
+            return edge_context_covariance_histogram(
+                cell_values,
+                source_cell_bits,
+                self.linear_edge_source_cells[stage_index].to(values.device),
+                self.linear_edge_source_roles[stage_index].to(values.device),
+                self.edge_masks[stage_index].to(values.device),
+            )
         bundle_mean = torch.einsum(
             "ij,bjk->bik",
             self.linear_source_bundle_equivalence[stage_index].to(values.device),
@@ -399,6 +436,84 @@ def _padded_edge_descriptors(
     return tokens, masks, expert_types
 
 
+def _padded_edge_context(
+    program: CompiledSpnProgram,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    max_edges = max(
+        len(cell.edges) for stage in program.stages for cell in stage.linear_cells
+    )
+    source_cells = torch.zeros(
+        program.rounds,
+        program.cells,
+        max_edges,
+        dtype=torch.long,
+    )
+    source_roles = torch.zeros_like(source_cells)
+    for stage_index, stage in enumerate(program.stages):
+        for cell in stage.linear_cells:
+            for edge_index, (_target_role, source_cell, source_role) in enumerate(
+                cell.edges
+            ):
+                source_cells[stage_index, cell.target_cell, edge_index] = source_cell
+                source_roles[stage_index, cell.target_cell, edge_index] = source_role
+    return source_cells, source_roles
+
+
+def edge_context_covariance_histogram(
+    target_cell_values: torch.Tensor,
+    source_cell_bits: torch.Tensor,
+    edge_source_cells: torch.Tensor,
+    edge_source_roles: torch.Tensor,
+    edge_masks: torch.Tensor,
+) -> torch.Tensor:
+    """Add a zero-mass per-cell residual from non-transported source-bit parity."""
+
+    if target_cell_values.ndim != 3:
+        raise ValueError("target cell values must have shape [batch, pairs, cells]")
+    if source_cell_bits.shape != (*target_cell_values.shape, 4):
+        raise ValueError("source cell bits must have shape [batch, pairs, cells, 4]")
+    cells = target_cell_values.shape[-1]
+    if (
+        edge_source_cells.ndim != 2
+        or edge_source_roles.shape != edge_source_cells.shape
+        or edge_masks.shape != edge_source_cells.shape
+        or edge_source_cells.shape[0] != cells
+    ):
+        raise ValueError("edge-context buffers must have shape [cells, edges]")
+    if edge_source_cells.numel() == 0 or not torch.all(
+        (edge_source_cells >= 0) & (edge_source_cells < cells)
+    ):
+        raise ValueError("edge-context source cell is out of range")
+    if not torch.all((edge_source_roles >= 0) & (edge_source_roles < 4)):
+        raise ValueError("edge-context source role is out of range")
+    if not torch.all((edge_masks == 0) | (edge_masks == 1)) or not torch.all(
+        edge_masks.sum(dim=-1) > 0
+    ):
+        raise ValueError("edge-context masks must select at least one edge per cell")
+
+    selected_cells = source_cell_bits[:, :, edge_source_cells, :]
+    selected_roles = edge_source_roles.reshape(1, 1, cells, -1, 1).expand(
+        target_cell_values.shape[0],
+        target_cell_values.shape[1],
+        -1,
+        -1,
+        1,
+    )
+    transported = torch.gather(selected_cells, dim=-1, index=selected_roles).squeeze(-1)
+    other_parity = torch.remainder(selected_cells.sum(dim=-1) - transported, 2.0)
+    edge_sign = 1.0 - 2.0 * other_parity
+    mask = edge_masks.to(dtype=source_cell_bits.dtype).reshape(1, 1, cells, -1)
+    context = (edge_sign * mask).sum(dim=-1) / mask.sum(dim=-1)
+
+    indicator = F.one_hot(target_cell_values.to(torch.long), num_classes=16).to(
+        source_cell_bits.dtype
+    )
+    histogram = indicator.mean(dim=1)
+    joint = (indicator * context.unsqueeze(-1)).mean(dim=1)
+    residual = joint - histogram * context.mean(dim=1, keepdim=False).unsqueeze(-1)
+    return histogram + residual
+
+
 def source_bundle_equivalence_matrices(
     program: CompiledSpnProgram,
 ) -> torch.Tensor:
@@ -429,10 +544,12 @@ def source_bundle_equivalence_matrices(
 
 __all__ = [
     "FixedOrderedPrimitiveConditionedSpnProtocolAdapter",
+    "LINEAR_HISTOGRAM_EDGE_CONTEXT_COVARIANCE",
     "LINEAR_HISTOGRAM_LOCAL",
     "LINEAR_HISTOGRAM_SOURCE_BUNDLE_MEAN",
     "OrderedPrimitiveConditioner",
     "OrderedPrimitiveConditionerSpec",
     "WidthIndependentRawPairBackbone",
+    "edge_context_covariance_histogram",
     "source_bundle_equivalence_matrices",
 ]

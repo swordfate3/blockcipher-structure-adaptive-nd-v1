@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_runtime_spn_edge_context_covariance_k1by11_present_r7_seed2_seed3_20260801",
+  "experiment": "innovation1_runtime_spn_edge_context_covariance_k1by11",
+  "sources": {
+    "k1by8_root": "outputs/local_audit/i1_runtime_spn_same_checkpoint_runtime_swap_k1by8_present_r7_seed2_seed3_20260801",
+    "k1by8_config": "configs/experiment/innovation1/innovation1_runtime_spn_same_checkpoint_runtime_swap_k1by8_20260801.json",
+    "k1by8_digests": {
+      "config": "59f16610a530fd2e903cf74b25f4055f4282aaba39b50ce1da488f26a97d302f",
+      "preflight.json": "e2b9967531082763a549b9030e18585bf7abf6a2e39f40d56d29ddc9a7a61961",
+      "results.jsonl": "54af296f551d86d2af239d800b3c4ef52e86f074ac9b9b86806e2397be7aad79",
+      "gate.json": "995fc8302cd28d33b2a493ebc0dfc45aaffeb0f6a23d50ad541dce654734aa27",
+      "validation.json": "7c4b9d533db37958b47a1be39eb9e52c94b7a9d8fa7b484f158645cb74f7998c",
+      "summary.json": "9115b9eeb15f09577ac5a178f6437ba0829b9bdf2b905076b2cdc02bbc56d8dd",
+      "model_metadata.json": "304deaff28aceef9154be195ea377df5062565ec3cc5efa2f9845f537a7c95f4"
+    },
+    "k1by10_root": "outputs/local_audit/i1_runtime_spn_source_bundle_collision_k1by10_present_r7_seed2_seed3_20260801",
+    "k1by10_config": "configs/experiment/innovation1/innovation1_runtime_spn_source_bundle_collision_k1by10_20260801.json",
+    "k1by10_digests": {
+      "config": "6e4be10367a62498fb4d29efdc3713e482d0ac59f719ded19bca2cbe47e0311e",
+      "preflight.json": "2a801c31b56663bd598d26f85e0de3e804a5ffc0cb0ab18b387b588a0b7d17e3",
+      "results.jsonl": "e2e5981bcfbd50f7668262423054b9f83a5a15d6d482bb137d0d25d1f06f2667",
+      "gate.json": "bc344f586a909336e3312c5c6feebe46326b58ffc8f3ab3189465b0f5fbb153b",
+      "validation.json": "2add71e073829955e8f7868e485418bdea1525592ea0a573ee2b7234cf3fe44d",
+      "summary.json": "7f684dc205a9a5ec72bd12da4c5d7094f83256639a23c08b546bc300198ed543",
+      "partition_summary.json": "5bed68466ac23d43bcdbd984a82790f8368310194e979ee1132857ce8baf1087"
+    }
+  },
+  "audit": {
+    "cipher": "PRESENT-80",
+    "rounds": 7,
+    "seeds": [2, 3],
+    "validation_rows_per_seed": 2048,
+    "pairs_per_sample": 16,
+    "input_bits": 2048,
+    "batch_size": 128,
+    "device": "cpu",
+    "neural_training_performed": false,
+    "optimizer_steps": 0,
+    "parameter_source": "k1by3_correct_checkpoint_only",
+    "conditions": [
+      "anchor_local__correct_runtime",
+      "anchor_local__affine_runtime",
+      "candidate_edge_covariance__correct_runtime",
+      "candidate_edge_covariance__affine_runtime",
+      "candidate_edge_covariance__correct_state_shuffled_edges"
+    ],
+    "parameter_transfer": "named_parameters_only",
+    "runtime_buffers_preserved_from_target_model": true,
+    "candidate_scope": "linear_histogram_only",
+    "sbox_histogram_mode": "local_unchanged",
+    "edge_context_source": "compiled_ordered_edge_triples",
+    "edge_context_sign": "minus_one_power_xor_of_three_nontransported_source_difference_roles",
+    "edge_context_aggregation": "masked_mean_over_incoming_edges_per_target_cell",
+    "edge_context_residual": "bin_indicator_edge_context_covariance",
+    "candidate_formula": "local_histogram_plus_zero_sum_edge_context_covariance",
+    "shuffled_source_cell_formula": "(7*source_cell+3)%16",
+    "shuffled_control_changes_inverse_state": false,
+    "uses_cipher_identity": false,
+    "uses_absolute_cell_or_bit_identity_as_feature": false,
+    "taps": [
+      "linear_histogram",
+      "linear_primitive_expert",
+      "cell_fusion",
+      "pooled_stage_summary",
+      "pre_classifier_representation"
+    ],
+    "tap_order": "forward_information_flow",
+    "discovery_rows": "even_validation_indices",
+    "evaluation_rows": "odd_validation_indices",
+    "discovery_rows_per_class": 512,
+    "evaluation_rows_per_class": 512,
+    "probe": "variance_normalized_class_mean_difference",
+    "probe_epsilon": 0.000001,
+    "anchor_replay_tolerance": 0.000001,
+    "mass_preservation_tolerance": 0.000001,
+    "joint_cell_relabel_tolerance": 0.000001
+  },
+  "gates": {
+    "candidate_correct_minus_affine_probe_auc_min_each_tap": 0.005,
+    "candidate_correct_minus_shuffled_probe_auc_min_each_tap": 0.005,
+    "candidate_correct_minus_affine_final_auc_min": 0.005,
+    "candidate_correct_minus_shuffled_final_auc_min": 0.005,
+    "candidate_correct_final_auc_min_relative_to_anchor": -0.005,
+    "require_both_seeds": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "new neural training or optimizer steps",
+    "changing checkpoints, data, labels, pairs, seeds, difference, taps or probe after observation",
+    "tuning or scaling the covariance residual",
+    "using absolute source-cell, target-cell, bit or cipher identifiers as model features",
+    "averaging histograms or residuals across target cells or equality classes",
+    "changing the S-box histogram or any learned expert, pooler or classifier",
+    "adding capacity, epochs, samples, ciphers or remote execution",
+    "using the audit probe as a new distinguisher performance claim"
+  ]
+}
