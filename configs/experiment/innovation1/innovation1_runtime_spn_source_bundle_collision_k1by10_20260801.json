@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_runtime_spn_source_bundle_collision_k1by10_present_r7_seed2_seed3_20260801",
+  "experiment": "innovation1_runtime_spn_source_bundle_collision_k1by10",
+  "sources": {
+    "k1by9_root": "outputs/local_audit/i1_runtime_spn_source_bundle_histogram_k1by9_present_r7_seed2_seed3_20260801",
+    "k1by9_config": "configs/experiment/innovation1/innovation1_runtime_spn_source_bundle_histogram_k1by9_20260801.json",
+    "k1by9_digests": {
+      "config": "046d843cf219c20978c53d6e3cd346df3239342fe3d238bb0f7618e29252d4a0",
+      "preflight.json": "48b95d111ffa8c47b2412c5895c7a6359d808519f9061dcf9076490a26c24ee1",
+      "results.jsonl": "18c250a7f845c9ac9735c505974de716b5b65547b4b65d6177dbbc4312cf349b",
+      "gate.json": "3d48e8c7f953f257c58367b6d5f9882059005e38cb817f3d88950b7d8e4cadd3",
+      "validation.json": "cf3807fcecd9a51fe7a13be54dbc283c1efb732743c09440167c9d46190270e2",
+      "summary.json": "04f3f2bddff683b33f185f32fc71e6120faf4a7badbe1800106111b93d36e641",
+      "model_metadata.json": "3338f45f5f6fbbf5b1dce19b3724b86bd66af51a87ac4cce70d58f20c24a9689"
+    }
+  },
+  "audit": {
+    "cipher": "PRESENT-80",
+    "rounds": 7,
+    "seeds": [2, 3],
+    "validation_rows_per_seed": 2048,
+    "pairs_per_sample": 16,
+    "input_bits": 2048,
+    "batch_size": 128,
+    "device": "cpu",
+    "neural_training_performed": false,
+    "optimizer_steps": 0,
+    "parameter_source": "k1by3_correct_checkpoint_only",
+    "representations": ["anchor_local", "candidate_source_bundle_mean"],
+    "runtime_programs": ["correct_runtime", "affine_runtime"],
+    "stages": [0, 1],
+    "stage_order": "forward_capture_reverse_program",
+    "target_cells": 16,
+    "cell_taps": [
+      "linear_histogram",
+      "linear_primitive_expert",
+      "cell_fusion"
+    ],
+    "discovery_rows": "even_validation_indices",
+    "evaluation_rows": "odd_validation_indices",
+    "discovery_rows_per_class": 512,
+    "evaluation_rows_per_class": 512,
+    "probe": "variance_normalized_class_mean_difference",
+    "probe_epsilon": 0.000001,
+    "partition_measurements": [
+      "class_membership",
+      "correct_affine_intersection_size",
+      "changed_peer_pairs",
+      "per_cell_probe_auc",
+      "candidate_minus_anchor_runtime_margin"
+    ],
+    "uses_cell_identity_for_model_input": false,
+    "uses_probe_for_model_selection": false
+  },
+  "gates": {
+    "seed2_candidate_minus_anchor_margin_max": -0.005,
+    "seed3_candidate_minus_anchor_margin_min": 0.0,
+    "required_taps": ["linear_primitive_expert", "cell_fusion"],
+    "require_same_target_cell_both_stages": true,
+    "require_correct_affine_class_intersection_sizes": [1, 2],
+    "require_changed_peer_count_min": 4,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "new neural training or optimizer steps",
+    "changing checkpoints, data, labels, pairs, seeds, probe or split",
+    "tuning or sweeping the K1-BY9 blend weights",
+    "using target-cell identity as a learned feature",
+    "selecting a model or checkpoint from the per-cell probe",
+    "adding samples, capacity, ciphers or remote execution",
+    "using internal probe AUC as distinguisher performance evidence"
+  ]
+}
