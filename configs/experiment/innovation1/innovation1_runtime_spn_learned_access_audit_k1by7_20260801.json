@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_id": "i1_runtime_spn_learned_access_audit_k1by7_present_r7_seed2_seed3_20260801",
+  "run_id": "i1_runtime_spn_learned_access_audit_k1by7_present_r7_seed2_seed3_retry1_20260801",
   "experiment": "innovation1_runtime_spn_learned_access_audit_k1by7",
   "sources": {
     "k1by3_root": "outputs/local_diagnostic/i1_runtime_spn_permutation_expert_k1by3_present_r7_16pair_2048_seed2_seed3_20260801",

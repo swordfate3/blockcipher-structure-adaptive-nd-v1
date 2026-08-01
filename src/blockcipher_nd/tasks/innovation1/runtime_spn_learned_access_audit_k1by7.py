@@ -16,13 +16,16 @@ from blockcipher_nd.training.metrics import binary_auc
 
 
 ROOT = Path(__file__).resolve().parents[4]
-RUN_ID = "i1_runtime_spn_learned_access_audit_k1by7_present_r7_seed2_seed3_20260801"
+RUN_ID = (
+    "i1_runtime_spn_learned_access_audit_k1by7_present_r7_"
+    "seed2_seed3_retry1_20260801"
+)
 CONFIG_PATH = ROOT / (
     "configs/experiment/innovation1/"
     "innovation1_runtime_spn_learned_access_audit_k1by7_20260801.json"
 )
 EXPECTED_CONFIG_SHA256 = (
-    "c332d73c83b4cc4538792001e8d28c3832e040c00b4162bcad09398151feed62"
+    "07c250050f175894074d80d33b3bec7c2574203dd2409afdea86ce4763ca188a"
 )
 TAPS = (
     "linear_histogram",
@@ -250,7 +253,8 @@ def evaluate(config: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dict[str,
                         captured[tap].numpy(force=True)
                     )
                 with torch.inference_mode():
-                    logits[condition].append(model(batch).flatten().numpy(force=True))
+                    probabilities = torch.sigmoid(model(batch).flatten())
+                    logits[condition].append(probabilities.numpy(force=True))
         replay[str(seed)] = {}
         for condition in CONDITIONS:
             logit_array = np.concatenate(logits[condition])

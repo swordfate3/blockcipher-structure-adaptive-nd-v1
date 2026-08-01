@@ -1,7 +1,7 @@
 # Innovation 1 Runtime SPN Learned-Access Audit K1-BY7
 
 **Date:** 2026-08-01
-**Status:** preregistered / not yet observed
+**Status:** retry1 preregistered after protocol-invalid first execution
 **Execution:** local CPU, frozen checkpoints, zero neural training
 
 ## Research question
@@ -105,3 +105,29 @@ i1_runtime_spn_learned_access_audit_k1by7_present_r7_seed2_seed3_20260801/
   curves.svg
   visual_qa_render_report.json
 ```
+
+## First execution: protocol invalid
+
+The first zero-training execution completed all 20 internal probe rows, but its
+fail-closed source-replay gate rejected one row:
+
+```text
+seed3 correct source AUC = 0.665543556
+seed3 direct-logit replay = 0.665541649
+absolute error            = 0.000001907 > 0.000001
+```
+
+All source digests, checkpoints, hook shapes, probe rows and balanced splits
+passed. The mismatch came from replaying AUC on raw logits while the project
+training evaluator records AUC on `float32 sigmoid(logit)` probabilities.
+Although sigmoid is monotonic, float32 conversion creates a small number of
+ties and therefore changes the rank-based AUC by about two millionths. A
+diagnostic replay through the exact evaluator probability path reproduced the
+source AUC with zero error.
+
+The invalid first output remains preserved and indexed. Retry1 changes only
+the source-metric replay implementation from raw logits to the exact
+`float32 sigmoid(logit)` values and assigns a new run id. It does not change
+the checkpoints, validation rows, hook taps, probe, thresholds or already
+frozen interpretation routes. The first execution's internal probe values are
+not used as evidence until retry1 passes the source-replay gate.
