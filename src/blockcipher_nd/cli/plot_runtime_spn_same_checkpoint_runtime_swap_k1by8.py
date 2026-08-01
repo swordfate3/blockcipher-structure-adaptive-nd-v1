@@ -117,7 +117,7 @@ def render_k1by8_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
             _decision_text(gate),
             ha="left",
             fontsize=10.8,
-            color=_decision_color(str(gate.get("status", ""))),
+            color=_decision_color(gate),
             fontweight="bold",
         )
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -165,10 +165,14 @@ def _margin_panel(
             label=f"seed{seed}",
         )
         for x, value in zip(positions, margins, strict=True):
+            if value < 0:
+                label_offset = -13 if index == 0 else -19
+            else:
+                label_offset = 7 if index == 0 else 18
             axis.annotate(
                 f"{value:+.3f}",
                 (x, value),
-                xytext=(0, 7 if value >= 0 else -13),
+                xytext=(0, label_offset),
                 textcoords="offset points",
                 ha="center",
                 fontsize=8.1,
@@ -243,8 +247,12 @@ def _decision_text(gate: Mapping[str, Any]) -> str:
     return "裁决：线性直方图保留结构优势，但下游或最终输出再次丢失；按首个失败接口继续定位。"
 
 
-def _decision_color(status: str) -> str:
-    return {"pass": "#047857", "invalid": "#B91C1C"}.get(status, "#374151")
+def _decision_color(gate: Mapping[str, Any]) -> str:
+    if gate.get("status") == "invalid":
+        return "#B91C1C"
+    if gate.get("research_gate_passed") is False:
+        return "#B45309"
+    return "#047857"
 
 
 if __name__ == "__main__":
