@@ -1,8 +1,8 @@
 # Innovation 1 Runtime SPN Trainable Post-Expert Adapter K1-BY13
 
 **Date:** 2026-08-01
-**Status:** zero-training readiness passed / remote diagnostic pending exact
-published commit
+**Status:** completed remotely / raw-fallback retrieved / locally validated /
+hold / adapter signal-or-retention gate failed
 **Execution:** zero-training readiness locally; local CUDA unavailable, so a
 successful readiness is handed to the remote A6000 as a device-availability
 exception at local diagnostic scale
@@ -235,3 +235,88 @@ No optimizer step ran. The launcher now creates a fresh short clone at
 `G:\\lxy\\bcnd-k1by13-src-lf` and sets repository-local
 `core.autocrlf=false` plus `core.longpaths=true` before the first checkout.
 Tests bind that ordering so byte-level plan/source digests remain portable.
+
+## Completed Remote Result
+
+The sixth launch used exact pushed commit
+`e0286949808631cb268fc52efcf6487ff44be3d6`. Remote readiness passed, all
+eight frozen rows completed on physical GPU1 / RTX A6000, and the run produced
+four durable dataset caches, twelve parameter-matched reuses, eight restored
+checkpoints and `80` epoch-history rows. The remote archive branch was not
+available, so the established monitor retrieved the complete raw result from
+the approved `G:\\lxy` run root and marked it as fallback evidence.
+
+Local plan/result validation passed exactly `8/8` rows with no missing keys,
+field mismatches or errors. The route-specific protocol gate also passed every
+check, including recomputation of all three adapter output-projection norms
+from the restored checkpoints. The learned norms were strictly nonzero, so the
+result is not an unchanged zero-initialization artifact.
+
+Measured cross-key validation AUCs were:
+
+| Seed | Correct anchor | Correct-edge adapter | Affine-edge adapter | Shuffled-edge adapter |
+|---:|---:|---:|---:|---:|
+| 2 | `0.679944515` | `0.671112061` | `0.629477501` | `0.655421734` |
+| 3 | `0.646229744` | `0.667944908` | `0.700119019` | `0.685429096` |
+
+The preregistered margins were:
+
+| Seed | Correct - anchor | Correct - affine | Correct - shuffled |
+|---:|---:|---:|---:|
+| 2 | `-0.008832455` | `+0.041634560` | `+0.015690327` |
+| 3 | `+0.021715164` | `-0.032174110` | `-0.017484188` |
+
+Both correct-edge adapters retained an absolute AUC above `0.55`, and all
+adapter output projections moved. However, seed2 missed the frozen `-0.005`
+anchor-retention floor, while seed3 preferred both wrong-edge controls. The
+failure is therefore not lack of trainable capacity; it is lack of stable
+correct-edge identification under the ordinary independent MSE objective.
+
+Final adjudication:
+
+```text
+status       = hold
+decision     = innovation1_runtime_spn_k1by13_signal_or_retention_failed
+protocol     = pass
+remote_scale = no
+```
+
+The Chinese result figure was rendered to `1800 x 1080` pixels. The first
+render exposed an internal machine decision identifier in the user-facing
+footer. After replacing all decision identifiers with explicit Chinese
+verdicts, `visual-qa-redraw` found no overlap, clipping, missing glyphs,
+ambiguous title, unreadable labels, incomplete legend or misleading scale.
+
+Artifacts:
+
+```text
+outputs/remote_results_incomplete/
+i1_runtime_spn_trainable_post_expert_adapter_k1by13_present_r7_16pair_2048_seed2_seed3_20260801/
+```
+
+## Evidence-Backed Next Action
+
+Discard this adapter route. Do not tune its bottleneck, add depth, increase
+pairs/samples/epochs/seeds or launch a medium-scale version. K1-BY8 already
+proved that one frozen correct checkpoint responds more favorably to the
+correct runtime than to the affine runtime at final output, while K1-BY13 shows
+that independent ordinary-MSE training does not preserve that preference.
+
+The next bounded question is therefore objective-level rather than another
+representation or adapter change:
+
+> Can the unchanged K1-BY3/K1-BY8 architecture retain its existing signal when
+> trained with a paired correct-versus-counterfactual runtime objective, and
+> does the real PRESENT orientation beat a swapped-orientation placebo?
+
+Preregister a local-scale K1-BY14 comparison that changes only the training
+objective. Keep PRESENT r7, the official 16-pair MCND data, seeds 2/3,
+`2048/class`, encrypted-random-plaintext negatives, architecture, parameters,
+epochs and optimizer fixed. Compare the ordinary-MSE correct anchor against a
+correct-oriented paired objective and an equal-budget swapped-orientation
+placebo. Evaluate every restored checkpoint under correct, affine and a fresh
+held-out shuffled runtime. Advance only if both seeds retain the anchor within
+`-0.005`, the correct orientation beats the swapped orientation by `+0.005`,
+and the same correct checkpoint beats every held-out wrong runtime by `+0.005`.
+If those clauses fail, stop supervised topology-preference objectives for this
+surface and retain deterministic primitive routing as the supported method.

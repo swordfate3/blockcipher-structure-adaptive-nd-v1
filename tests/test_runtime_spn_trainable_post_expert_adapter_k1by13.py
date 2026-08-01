@@ -265,6 +265,8 @@ def test_k1by13_plot_contains_clear_chinese_labels(tmp_path: Path) -> None:
     assert "可训练适配器：仿射错误边" in svg
     assert "结构优势门槛" in svg
     assert "主指标为跨密钥验证 AUC" in svg
+    assert "通过：正确边适配器获得稳定结构优势" in svg
+    assert "innovation1_runtime_spn_k1by13_trainable_adapter_supported" not in svg
 
 
 def test_k1by13_remote_scripts_are_fail_closed_and_g_drive_only() -> None:

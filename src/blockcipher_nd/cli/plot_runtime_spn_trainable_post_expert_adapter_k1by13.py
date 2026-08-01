@@ -24,6 +24,20 @@ CONDITION_COLORS = {
     "adapter_affine": "#D55E00",
     "adapter_shuffled": "#009E73",
 }
+DECISION_LABELS = {
+    "innovation1_runtime_spn_k1by13_trainable_adapter_supported": (
+        "通过：正确边适配器获得稳定结构优势"
+    ),
+    "innovation1_runtime_spn_k1by13_capacity_without_edge_use": (
+        "暂缓：适配器增加容量，但未稳定使用正确结构边"
+    ),
+    "innovation1_runtime_spn_k1by13_signal_or_retention_failed": (
+        "暂缓：适配器未稳定保留锚点信号，返回原结构锚点"
+    ),
+    "innovation1_runtime_spn_k1by13_protocol_invalid": (
+        "无效：实验协议检查未通过，不解释指标"
+    ),
+}
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -146,6 +160,8 @@ def render_k1by13_svg(
             f'正确-仿射 {float(values.get("adapter_affine", 0.0)):+.6f}，'
             f'正确-打乱 {float(values.get("adapter_shuffled", 0.0)):+.6f}'
         )
+    decision = str(gate.get("decision", ""))
+    decision_label = DECISION_LABELS.get(decision, "尚未形成有效裁决")
     elements.extend(
         [
             f'<text x="140" y="900" class="note">结构优势门槛：正确-仿射和正确-打乱均需 '
@@ -153,7 +169,7 @@ def render_k1by13_svg(
             f'<text x="140" y="938" class="note">{escape(margins[0])}</text>',
             f'<text x="140" y="976" class="note">{escape(margins[1])}</text>',
             f'<text x="140" y="1026" class="decision">裁决：'
-            f'{escape(str(gate.get("decision", "尚未裁决")))}</text>',
+            f'{escape(decision_label)}</text>',
             '</svg>',
         ]
     )
