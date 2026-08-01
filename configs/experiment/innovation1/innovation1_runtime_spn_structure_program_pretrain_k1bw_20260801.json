@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_structure_program_pretrain_k1bw",
+  "run_id": "i1_runtime_spn_structure_program_pretrain_k1bw_20260801",
+  "structures": {
+    "gift64": {"path": "configs/runtime/spn/gift64.json", "round_start": 0, "rounds": 2},
+    "present64": {"path": "configs/runtime/spn/present64.json", "round_start": 0, "rounds": 2},
+    "rectangle64": {"path": "configs/runtime/spn/rectangle64.json", "round_start": 0, "rounds": 2},
+    "skinny64": {"path": "configs/runtime/spn/skinny64.json", "round_start": 0, "rounds": 2},
+    "midori64": {"path": "configs/runtime/spn/midori64.json", "round_start": 0, "rounds": 2},
+    "uknit64": {"path": "configs/runtime/spn/uknit64.json", "round_start": 3, "rounds": 2},
+    "dialga128": {"path": "configs/runtime/spn/dialga128.json", "round_start": 2, "rounds": 2}
+  },
+  "training": {
+    "train_ciphers": ["gift64", "present64", "rectangle64", "skinny64", "midori64", "uknit64"],
+    "holdout_ciphers": ["dialga128"],
+    "seeds": [0, 1],
+    "corruption_seeds": [11, 23, 37, 53],
+    "epochs": 160,
+    "learning_rate": 0.001,
+    "weight_decay": 0.00001,
+    "triplet_margin": 0.12,
+    "device": "cpu",
+    "execution": "local_structure_only_diagnostic"
+  },
+  "model": {
+    "hidden_dim": 48,
+    "embedding_dim": 64,
+    "dropout": 0.0,
+    "cipher_name_input": false,
+    "cipher_id_input": false,
+    "actual_gf2_edges": true,
+    "sbox_truth_tables": true,
+    "transition_order": true
+  },
+  "gates": {
+    "protocol_errors_max": 0,
+    "relabel_cosine_min": 0.999999,
+    "holdout_correct_minus_wrong_cosine_distance_min": 0.02,
+    "holdout_margin_gain_over_initial_min": 0.005,
+    "all_structure_parameter_geometry_equal": true,
+    "remote_scale": "no"
+  }
+}
