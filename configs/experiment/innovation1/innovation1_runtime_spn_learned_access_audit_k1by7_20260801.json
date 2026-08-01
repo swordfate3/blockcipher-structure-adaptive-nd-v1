@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_runtime_spn_learned_access_audit_k1by7_present_r7_seed2_seed3_20260801",
+  "experiment": "innovation1_runtime_spn_learned_access_audit_k1by7",
+  "sources": {
+    "k1by3_root": "outputs/local_diagnostic/i1_runtime_spn_permutation_expert_k1by3_present_r7_16pair_2048_seed2_seed3_20260801",
+    "k1by3_plan": "configs/experiment/innovation1/innovation1_runtime_spn_permutation_expert_k1by3_present_r7_16pair_2048_seed2_seed3.csv",
+    "k1by3_digests": {
+      "plan": "68c35c24b3416a13856d7eecfb8c360081a2e7924750ce140689e2c51ab978a2",
+      "results.jsonl": "54d06976024662b274981b195eb36756c4bbdf43f5a2b8f16de407f75052dc94",
+      "gate.json": "62b6c44e9c36153b903cc7131eb9c4717badd6843d406b064568db0f1cb99c68",
+      "validation.json": "de27d159224762aa4dc08ec04fb948d14a42ac9d79524b6396e5d0269e178875",
+      "correct_seed2_checkpoint": "78db175df0fbc33457492b3a16f147eede453cf9513ca15dee8186d0bba1691b",
+      "correct_seed3_checkpoint": "965ba7aaf984f5c57490efe5c46d4c5883140c2abef6de8dff5098231605de28"
+    },
+    "k1by6_root": "outputs/local_diagnostic/i1_runtime_spn_affine_neural_attribution_k1by6_present_r7_16pair_2048_seed2_seed3_20260801",
+    "k1by6_plan": "configs/experiment/innovation1/innovation1_runtime_spn_affine_neural_attribution_k1by6_present_r7_16pair_2048_seed2_seed3.csv",
+    "k1by6_digests": {
+      "plan": "cd343d570c957c057fe05cc06cf0db6b58fe1a2b9fbbc321eae2d77a07eef40c",
+      "results.jsonl": "a7cbd1ded105c15bc636026c49a1ae9c85ebcbf6cb72dc6894e49f09e3bccb1b",
+      "gate.json": "2227b3dc75655865fe919295e3e3c72f32b41a62654c746d3aa179ca0c8f86f4",
+      "preflight.json": "93006604590ad10c6c6f04df3f72f6b9fc7f24e55b62e45ae7aa0dbcfea9f176",
+      "validation.json": "2cf8d6db1a4d8300442c09bbcf676bbeb7cae7dfb56d8b1a21b6847660106741",
+      "affine_seed2_checkpoint": "5d0a8c8c43a054acc0cb9a764a7de0f4b87568bff7205ad20e10c1168efbabf7",
+      "affine_seed3_checkpoint": "177fd8b938d9cdbb1b47c2411fcbd25b8de8d9b09981da3334b4b9257a1cb51b"
+    }
+  },
+  "audit": {
+    "cipher": "PRESENT-80",
+    "rounds": 7,
+    "seeds": [2, 3],
+    "validation_rows_per_seed": 2048,
+    "pairs_per_sample": 16,
+    "input_bits": 2048,
+    "batch_size": 128,
+    "device": "cpu",
+    "neural_training_performed": false,
+    "optimizer_steps": 0,
+    "conditions": ["correct", "affine_wrong_endpoint"],
+    "taps": [
+      "linear_histogram",
+      "linear_primitive_expert",
+      "cell_fusion",
+      "pooled_stage_summary",
+      "pre_classifier_representation"
+    ],
+    "tap_order": "forward_information_flow",
+    "discovery_rows": "even_validation_indices",
+    "evaluation_rows": "odd_validation_indices",
+    "discovery_rows_per_class": 512,
+    "evaluation_rows_per_class": 512,
+    "probe": "variance_normalized_class_mean_difference",
+    "probe_epsilon": 0.000001,
+    "source_logit_replay_tolerance": 0.000001
+  },
+  "gates": {
+    "correct_minus_affine_probe_auc_min": 0.005,
+    "require_every_source_logit_replay": true,
+    "require_first_loss_localization_for_seed3": true,
+    "remote_scale": "no"
+  },
+  "blocked_actions": [
+    "new neural training or optimizer steps",
+    "changing checkpoints, data, labels, pairs, seeds, difference, taps or probe after observation",
+    "adding capacity, epochs, samples, ciphers or remote execution",
+    "using the audit probe as a new distinguisher performance claim"
+  ]
+}
