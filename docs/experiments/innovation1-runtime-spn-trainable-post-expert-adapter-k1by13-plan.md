@@ -198,3 +198,11 @@ and staged source evidence remain under the original `G:\\lxy` run root. The
 launcher still checks out one exact pushed commit, rejects a dirty clone and
 verifies all frozen source evidence. The plan, eight training rows, models,
 keys, samples, pairs, seeds, epochs, controls and research gates are unchanged.
+
+The first repaired launcher then exposed one remaining stale reference: it
+created the scheduled task successfully but generated a schedule command that
+still called the run script under `<long run root>\\source`. Task Scheduler
+returned code `1` before readiness, the started marker or any optimizer step.
+The final repair binds both the clean clone and the scheduled `RUN_CMD` to the
+same short `SOURCE_ROOT`, with a regression test that rejects the stale long
+entrypoint. This second launch attempt is also infrastructure-only evidence.

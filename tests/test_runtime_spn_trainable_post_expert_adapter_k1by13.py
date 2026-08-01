@@ -284,8 +284,10 @@ def test_k1by13_remote_scripts_are_fail_closed_and_g_drive_only() -> None:
     assert "rmdir /s /q" not in launch_text
     assert "set SOURCE_ROOT=G:\\lxy\\bcnd-k1by13-src" in launch_text
     assert "set SOURCE_ROOT=G:\\lxy\\bcnd-k1by13-src" in run_text
+    assert "set RUN_CMD=%SOURCE_ROOT%\\configs\\remote\\generated" in launch_text
     assert "set SOURCE_ROOT=%RUN_ROOT%\\source" not in launch_text
     assert "set SOURCE_ROOT=%RUN_ROOT%\\source" not in run_text
+    assert "%RUN_ID%\\source\\configs\\remote\\generated" not in launch_text
     assert "source_expected_commit.txt" in run_text
     assert "--output-root \"%OUTPUT_ROOT%\"" in run_text
     assert "--device cuda" in run_text

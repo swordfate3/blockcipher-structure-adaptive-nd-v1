@@ -23,7 +23,7 @@ if not exist "%SCHEDULE_ROOT%" mkdir "%SCHEDULE_ROOT%"
 if not exist "%LAUNCH_LOG_DIR%" mkdir "%LAUNCH_LOG_DIR%"
 call :prepare_source "%SOURCE_COMMIT%" || exit /b 1
 call :stage_source_evidence || exit /b 1
-set RUN_CMD=%RUNS_ROOT%\%RUN_ID%\source\configs\remote\generated\run_%RUN_ID%.cmd
+set RUN_CMD=%SOURCE_ROOT%\configs\remote\generated\run_%RUN_ID%.cmd
 >"%SCHEDULE_CMD%" echo @echo off
 >>"%SCHEDULE_CMD%" echo call "%RUN_CMD%" %PHYSICAL_GPU%
 schtasks /Create /TN "%TASK_NAME%" /SC ONCE /ST 23:59 /RU SYSTEM /RL HIGHEST /TR "cmd.exe /c %SCHEDULE_CMD%" /F > "%LAUNCH_LOG_DIR%\%RUN_ID%_schedule_create.txt" 2>&1 || exit /b 1
