@@ -183,3 +183,18 @@ the exact scoped source commit, audit the generated Windows launch for
 `G:\\lxy` paths and durable cache/progress output, then execute the frozen
 eight-row matrix on the remote A6000. Do not change the adapter, controls,
 budget or gate before that run.
+
+## First remote launch repair
+
+The first launcher invocation on 2026-08-01 cloned and checked out the pinned
+source commit successfully, but stopped before readiness or training. Staging
+the six frozen K1-BY3/K1-BY12 evidence files under
+`<long run root>\\source\\outputs\\...` exceeded the Windows path-length limit.
+No optimizer step ran and this is not model or data evidence.
+
+The repair changes only the remote source layout: the run-owned clean clone is
+placed at `G:\\lxy\\bcnd-k1by13-src`, while caches, checkpoints, logs, results
+and staged source evidence remain under the original `G:\\lxy` run root. The
+launcher still checks out one exact pushed commit, rejects a dirty clone and
+verifies all frozen source evidence. The plan, eight training rows, models,
+keys, samples, pairs, seeds, epochs, controls and research gates are unchanged.
