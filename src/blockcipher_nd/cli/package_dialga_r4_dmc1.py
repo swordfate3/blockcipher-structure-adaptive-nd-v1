@@ -111,7 +111,17 @@ def package_archive(
         ):
             raise ValueError("cache generation settings drifted")
         relative = metadata_path.parent.relative_to(cache_root)
-        split = "validation" if "validation" in relative.parts else "train"
+        split = next(
+            (
+                part
+                for part in relative.parts
+                if part in {"train", "validation"}
+                or part.startswith("final_test_")
+            ),
+            "unknown",
+        )
+        if split == "unknown":
+            raise ValueError(f"cache split is not recognized: {relative}")
         cache_entries.append(
             {
                 "index": index,
