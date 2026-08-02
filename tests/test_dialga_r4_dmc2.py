@@ -122,6 +122,9 @@ def test_dmc2_launch_gate_and_generated_assets_are_fail_closed() -> None:
     assert "scripts/gate-dialga-r4-dmc2" in monitor
     assert "scripts/index-results" in monitor
     assert "visual_qa_pending.marker" in monitor
+    assert "verified_result_incomplete_trying_raw_fallback" in monitor
+    assert "if retrieve_archive raw" in monitor
+    assert "unavailable or incomplete" in monitor
 
     archive_log_path = (
         "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"

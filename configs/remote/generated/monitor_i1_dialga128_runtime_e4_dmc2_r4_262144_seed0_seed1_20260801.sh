@@ -50,7 +50,7 @@ retrieve_archive() {
   cp -a "${staging}/${RUN_ID}" "${destination}" || return 1
   touch "${destination}/${marker}"
   if [[ "${mode}" == "raw" ]]; then
-    printf '%s\n' "RAW FALLBACK RETRIEVAL: the remote archive was retrieved directly because its result branch was unavailable." "Treat this as fallback-retrieved evidence until local gates pass." > "${destination}/RAW_RETRIEVAL_NOTICE.txt"
+    printf '%s\n' "RAW FALLBACK RETRIEVAL: the remote archive was retrieved directly because its result branch was unavailable or incomplete." "Treat this as fallback-retrieved evidence until local gates pass." > "${destination}/RAW_RETRIEVAL_NOTICE.txt"
   fi
   UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results --plan "${destination}/plan.csv" --results "${destination}/results.jsonl" --expected-rows 6 --output "${destination}/validation.local.json" >> "${MONITOR_ROOT}/readjudication.log" 2>> "${MONITOR_ROOT}/readjudication_stderr.log" || return 1
   mkdir -p "${destination}/local_adjudication"
@@ -65,10 +65,18 @@ while true; do
   echo "$(timestamp) sync" >> "${MONITOR_ROOT}/monitor.log"
   sync_logs
   if compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*result_branch_pushed.marker" > /dev/null; then
-    retrieve_archive verified || exit 2
-    touch "${MONITOR_ROOT}/result_retrieved.marker"
-    echo "$(timestamp) verified_result_retrieved_readjudicated_indexed_visual_qa_pending" >> "${MONITOR_ROOT}/monitor.log"
-    exit 0
+    if retrieve_archive verified; then
+      touch "${MONITOR_ROOT}/result_retrieved.marker"
+      echo "$(timestamp) verified_result_retrieved_readjudicated_indexed_visual_qa_pending" >> "${MONITOR_ROOT}/monitor.log"
+      exit 0
+    fi
+    echo "$(timestamp) verified_result_incomplete_trying_raw_fallback" >> "${MONITOR_ROOT}/monitor.log"
+    if retrieve_archive raw; then
+      touch "${MONITOR_ROOT}/fallback_result_retrieved.marker"
+      echo "$(timestamp) fallback_result_retrieved_readjudicated_indexed_visual_qa_pending" >> "${MONITOR_ROOT}/monitor.log"
+      exit 0
+    fi
+    exit 2
   fi
   if compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*raw_ready.marker" > /dev/null; then
     retrieve_archive raw || exit 3
