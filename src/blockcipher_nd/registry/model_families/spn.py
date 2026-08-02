@@ -81,8 +81,10 @@ from blockcipher_nd.models.structure import (
     PresentTrailMixerPairSetDistinguisher,
     PresentZhangWangKerasMCNDDistinguisher,
     SpnCellPairSetDBitNetDistinguisher,
+    SpnLiuCase3Conv2DAdapterDistinguisher,
     SpnNibbleConvPairSetDistinguisher,
     SpnTokenMixerPairSetDistinguisher,
+    SpnZhangWangMCNDAdapterDistinguisher,
 )
 from blockcipher_nd.models.structure.spn.runtime_parameterized import (
     FixedRuntimeSpnProtocolAdapter,
@@ -1388,6 +1390,32 @@ def build_spn_model(
                 options, "initial_kernel_sizes", (1, 2, 4)
             ),
             residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
+        )
+    if name == "spn_zhang_wang_mcnd_adapter":
+        return SpnZhangWangMCNDAdapterDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            blocks=int_option(options, "blocks", 5) or 5,
+            activation=str(options.get("activation", "relu")),
+            dropout=float(options.get("dropout", 0.0)),
+            initial_kernel_sizes=int_tuple_option(
+                options, "initial_kernel_sizes", (1, 2, 4)
+            ),
+            residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
+            cell_bits=int_option(options, "cell_bits", 4) or 4,
+        )
+    if name == "spn_liu_case3_conv2d_adapter":
+        return SpnLiuCase3Conv2DAdapterDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            cell_bits=int_option(options, "cell_bits", 4) or 4,
+            conv_depth=int_option(options, "conv_depth", 3),
+            kernel_size=int_option(options, "kernel_size", 3),
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "batchnorm2d")),
+            dropout=float(options.get("dropout", 0.0)),
         )
     if name == "present_nibble_paligned_mcnd":
         return PresentNibblePAlignedMCNDDistinguisher(

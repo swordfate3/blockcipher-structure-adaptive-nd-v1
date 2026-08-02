@@ -80,6 +80,10 @@ from blockcipher_nd.models.structure.spn.present_inception_mcnd import (
 )
 from blockcipher_nd.models.structure.spn.present_zhang_wang_keras import (
     PresentZhangWangKerasMCNDDistinguisher,
+    SpnZhangWangMCNDAdapterDistinguisher,
+)
+from blockcipher_nd.models.structure.spn.published_architecture_adapters import (
+    SpnLiuCase3Conv2DAdapterDistinguisher,
 )
 from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
     PresentNibbleDDTGraphDistinguisher,
@@ -211,6 +215,8 @@ __all__ = [
     "PresentInceptionMCNDMatrixDistinguisher",
     "PresentInceptionMCNDPairStackMatrixDistinguisher",
     "PresentZhangWangKerasMCNDDistinguisher",
+    "SpnZhangWangMCNDAdapterDistinguisher",
+    "SpnLiuCase3Conv2DAdapterDistinguisher",
     "PresentNibbleDDTGraphDistinguisher",
     "PresentNibbleDeltaOnlySpnOnlyDistinguisher",
     "PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher",

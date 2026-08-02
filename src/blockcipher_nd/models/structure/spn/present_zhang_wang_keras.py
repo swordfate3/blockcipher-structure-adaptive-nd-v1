@@ -5,8 +5,8 @@ import torch.nn.functional as F
 from torch import nn
 
 
-class PresentZhangWangKerasMCNDDistinguisher(nn.Module):
-    """PyTorch port of Zhang/Wang 2022 PRESENT MCND Keras ResNet."""
+class SpnZhangWangMCNDAdapterDistinguisher(nn.Module):
+    """Block-size-adaptive Zhang/Wang 2022 MCND-style ResNet."""
 
     def __init__(
         self,
@@ -18,18 +18,23 @@ class PresentZhangWangKerasMCNDDistinguisher(nn.Module):
         dropout: float = 0.0,
         initial_kernel_sizes: tuple[int, ...] = (1, 2, 4),
         residual_kernel_size: int = 3,
+        cell_bits: int = 4,
     ) -> None:
         super().__init__()
-        if pair_bits != 128:
-            raise ValueError("Zhang/Wang PRESENT Keras MCND expects 128 bits per ciphertext pair")
         if input_bits % pair_bits != 0:
             raise ValueError("input_bits must be a multiple of pair_bits")
+        if pair_bits <= 0 or pair_bits % 2 != 0:
+            raise ValueError("pair_bits must contain two equal-width ciphertexts")
+        if cell_bits <= 0 or (pair_bits // 2) % cell_bits != 0:
+            raise ValueError("each ciphertext must contain an integer number of cells")
         if blocks < 1:
             raise ValueError("blocks must be >= 1")
         self.input_bits = input_bits
         self.pair_bits = pair_bits
         self.pairs_per_sample = input_bits // pair_bits
-        self.word_size = 32
+        self.cell_bits = cell_bits
+        self.cells_per_state = pair_bits // 2 // cell_bits
+        self.input_channels = 2 * cell_bits
         self.num_filters = base_channels
         self.channels = base_channels * len(initial_kernel_sizes)
         self.blocks = blocks
@@ -37,7 +42,12 @@ class PresentZhangWangKerasMCNDDistinguisher(nn.Module):
         self.dropout = dropout
 
         self.initial_branches = nn.ModuleList(
-            [_GroupedSameLengthConv1d(8, base_channels, kernel_size) for kernel_size in initial_kernel_sizes]
+            [
+                _GroupedSameLengthConv1d(
+                    self.input_channels, base_channels, kernel_size
+                )
+                for kernel_size in initial_kernel_sizes
+            ]
         )
         self.initial_norm = _GroupedBatchNorm1d(self.channels)
         self.initial_activation = _activation(activation)
@@ -67,13 +77,31 @@ class PresentZhangWangKerasMCNDDistinguisher(nn.Module):
     def encode(self, features: torch.Tensor) -> torch.Tensor:
         if features.ndim != 2 or features.shape[1] != self.input_bits:
             raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
-        hidden = features.float().reshape(features.shape[0], self.pairs_per_sample, 8, 16)
+        hidden = features.float().reshape(
+            features.shape[0],
+            self.pairs_per_sample,
+            self.input_channels,
+            self.cells_per_state,
+        )
         hidden = hidden.permute(0, 1, 3, 2)
         hidden = torch.cat([branch(hidden) for branch in self.initial_branches], dim=-1)
         hidden = self.initial_activation(self.initial_norm(hidden))
         for block in self.residual_blocks:
             hidden = block(hidden)
         return hidden.mean(dim=(1, 2))
+
+
+class PresentZhangWangKerasMCNDDistinguisher(
+    SpnZhangWangMCNDAdapterDistinguisher
+):
+    """Backward-compatible PRESENT-only Zhang/Wang Keras MCND port."""
+
+    def __init__(self, *args, pair_bits: int = 128, **kwargs) -> None:
+        if pair_bits != 128:
+            raise ValueError(
+                "Zhang/Wang PRESENT Keras MCND expects 128 bits per ciphertext pair"
+            )
+        super().__init__(*args, pair_bits=pair_bits, cell_bits=4, **kwargs)
 
 
 class _ZhangWangResidualBlock(nn.Module):
