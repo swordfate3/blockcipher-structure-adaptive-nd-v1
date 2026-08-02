@@ -8,6 +8,7 @@ import sys
 
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.cli.package_dialga_r4_dmc2 import SOURCE_FILES, main as package_main
+from blockcipher_nd.cli.plot_dialga_r4_dmc1 import render_dmc1_svg
 from blockcipher_nd.tasks.innovation1.dialga_r4_dmc2 import (
     ARCHITECTURES,
     EXPECTED_PARAMETER_COUNTS,
@@ -125,7 +126,7 @@ def test_dmc2_launch_gate_and_generated_assets_are_fail_closed() -> None:
     assert "verified_result_incomplete_trying_raw_fallback" in monitor
     assert "if retrieve_archive raw" in monitor
     assert "unavailable or incomplete" in monitor
-    assert f"results_archive/${{RUN_ID}}/." not in monitor
+    assert "results_archive/${RUN_ID}/." not in monitor
     assert 'results_archive/${RUN_ID}" "${staging}/"' in monitor
 
     archive_log_path = (
@@ -228,6 +229,27 @@ def test_dmc2_remote_postprocessing_does_not_import_plotting_modules() -> None:
             check=False,
         )
         assert completed.returncode == 0, completed.stderr
+
+
+def test_dmc2_plot_uses_scale_specific_chinese_labels(tmp_path: Path) -> None:
+    gate = adjudicate(
+        tasks=read_tasks(PLAN),
+        result_rows=_result_rows(),
+        progress_events=_progress_events(),
+        source_checks={
+            "source_revision_matches_launch_pin": True,
+            "six_nonempty_checkpoints_present": True,
+        },
+    )
+    output = tmp_path / "dmc2.svg"
+    report = render_dmc1_svg(gate, output)
+    svg = output.read_text(encoding="utf-8")
+    assert report["panels"] == 2
+    assert "创新1 DMC2" in svg
+    assert "262144/class" in svg
+    assert "65536/class" in svg
+    assert "正式规模 DFC1" in svg
+    assert "创新1 DMC1" not in svg
 
 
 def _result_rows() -> list[dict[str, object]]:

@@ -5,7 +5,7 @@ Date: 2026-08-01
 ## Status
 
 ```text
-phase = running remotely; completion and gate pending
+phase = completed remotely; raw-fallback retrieved; locally re-adjudicated; pass
 scale = 262144/class scale confirmation, not formal evidence
 paper role = last scale gate before DFC1 formal preregistration
 ```
@@ -22,7 +22,7 @@ remote_run_root   = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_dialga128_r
 launch_gate       = pass / innovation1_dialga_dmc2_remote_launch_authorized
 durable_start     = source_expected_commit.txt, readiness.txt, started.marker, progress.jsonl
 local_monitor     = tmux:i1_dialga_dmc2_262k_monitor
-retrieval_status  = running; no result archive or result claim yet
+retrieval_status  = fallback-retrieved after incomplete result-branch archive
 ```
 
 The historical standard clone at
@@ -118,3 +118,62 @@ Run focused plan/gate/package/readiness tests, commit and push the exact assets,
 execute the fail-closed launch gate against GitHub `main`, launch the clean
 run-owned clone on physical GPU0 using `cmd.exe /c`, confirm one durable start
 artifact, and leave completion/retrieval to the local tmux watcher.
+
+## Completed Result And Local Re-adjudication (2026-08-02)
+
+The remote A6000 completed all six rows at the frozen source commit. The first
+result branch contained the textual evidence and checksum manifest but omitted
+the six checkpoint payloads, so it was not accepted as a verified result-branch
+archive. The local watcher then retrieved the named raw archive from the
+project-owned `G:\lxy` run root. All files listed by the CRLF-normalized
+`SHA256SUMS`, including six checkpoints, passed verification before the archive
+was exposed under `outputs/remote_results_incomplete/`.
+
+| seed | correct AUC | corrupted AUC | AutoND AUC | correct-corrupted | correct-AutoND |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.984964147 | 0.967530599 | 0.502369641 | +0.017433548 | +0.482594506 |
+| 1 | 0.984212034 | 0.967087931 | 0.501357568 | +0.017124103 | +0.482854466 |
+
+The local gate passed all protocol checks: exact six-row matrix, frozen source
+revision, four disk-cache creations, eight parameter-matched reuses, six
+nonempty checkpoints, fixed data sizes, keys, difference, negative definition,
+optimizer and ten complete epochs. Every preregistered research threshold also
+passed independently on seed0 and seed1.
+
+```text
+status       = pass
+decision     = innovation1_dialga_dmc2_scale_topology_supported
+formal_scale = authorized_dfc1_preregistration
+claim_scope  = two-seed remote 262144/class prefix-r4 scale confirmation
+```
+
+The Chinese comparison SVG was rendered at 1920 x 1053 pixels and inspected
+with `visual-qa-redraw`. After increasing the upper margin-axis headroom, the
+legend no longer occludes the seed1 AutoND-margin annotation; the final title,
+protocol text, thresholds, heatmap values, bars, labels and export bounds have
+no overlap, clipping, missing glyphs or ambiguity.
+
+## Frozen DFC1 Next Action
+
+Preregister DFC1 as the only allowed Dialga scale continuation:
+
+```text
+cipher / rounds      = Dialga-128 parent / encrypted prefix-r4
+models               = correct Runtime-E4, corrupted Runtime-E4, AutoND
+seeds                = 0, 1
+train                = 1000000/class = 2000000 total rows/model/seed
+cross-key validation = 250000/class = 500000 total rows/model/seed
+fresh final test     = 5 repeats x 1000000 total rows/model/seed
+train / val / test key = 0x00 / 0x11 / 0x22 repeated 32 bytes
+pairs / epochs       = 4 / 10
+negative mode        = encrypted_random_plaintexts
+single variable      = DMC2 to DFC1 data scale plus preregistered final test
+execution            = remote A6000 with disk cache, progress and reuse
+```
+
+DFC1 must retain the DMC2 validation thresholds on each seed and require every
+fresh final-test repeat to satisfy the same correct AUC and two control margins.
+A pass permits one formal *project* result row for this exact Dialga prefix-r4
+protocol. It still does not imply a full-round result, key recovery, SOTA, a
+universal SPN network, or superiority over deterministic cryptanalysis. A hold
+or invalid result stops mechanical scaling. Dialga prefix-r5 remains blocked.

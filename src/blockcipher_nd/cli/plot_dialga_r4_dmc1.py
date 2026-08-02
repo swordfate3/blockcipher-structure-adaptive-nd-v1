@@ -17,7 +17,7 @@ ROWS = (
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Render the Chinese Dialga DMC1 result.")
+    parser = argparse.ArgumentParser(description="Render the Chinese Dialga DMC result.")
     parser.add_argument("--gate", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--report", type=Path)
@@ -57,6 +57,7 @@ def render_dmc1_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         float(seed_results[seed]["correct_minus_autond"])
         for seed in ("0", "1")
     ]
+    title, protocol = _figure_text(gate)
     with plt.rc_context(
         {
             "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
@@ -72,7 +73,7 @@ def render_dmc1_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
             left=0.16, right=0.96, top=0.65, bottom=0.14, wspace=0.35
         )
         figure.suptitle(
-            "创新1 DMC1：Dialga 第4轮异构拓扑中等规模验证",
+            title,
             x=0.05,
             y=0.95,
             ha="left",
@@ -82,7 +83,7 @@ def render_dmc1_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         figure.text(
             0.05,
             0.88,
-            "每个模型训练 65536/class，跨密钥验证 16384/class；每条样本含4对密文。",
+            protocol,
             ha="left",
             color="#4B5563",
         )
@@ -130,7 +131,7 @@ def render_dmc1_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         axes[1].legend(frameon=False, loc="upper right", fontsize=9)
         all_margins = topology_margins + autond_margins
         span = max(0.04, max(abs(value) for value in all_margins) * 1.35)
-        axes[1].set_ylim(min(-0.02, min(all_margins) - span * 0.15), max(0.04, max(all_margins) + span * 0.2))
+        axes[1].set_ylim(min(-0.02, min(all_margins) - span * 0.15), max(0.04, max(all_margins) + span * 0.4))
         for bars, margins in ((bars_topology, topology_margins), (bars_autond, autond_margins)):
             for bar, margin in zip(bars, margins, strict=True):
                 axes[1].text(bar.get_x() + bar.get_width() / 2, margin + span * 0.035, f"{margin:+.4f}", ha="center", va="bottom", fontsize=9, fontweight="bold")
@@ -147,11 +148,26 @@ def render_dmc1_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
     }
 
 
+def _figure_text(gate: Mapping[str, Any]) -> tuple[str, str]:
+    if "dmc2" in str(gate.get("run_id", "")).lower():
+        return (
+            "创新1 DMC2：Dialga 第4轮异构拓扑扩样确认",
+            "每个模型训练 262144/class，跨密钥验证 65536/class；每条样本含4对密文。",
+        )
+    return (
+        "创新1 DMC1：Dialga 第4轮异构拓扑中等规模验证",
+        "每个模型训练 65536/class，跨密钥验证 16384/class；每条样本含4对密文。",
+    )
+
+
 def _decision(gate: Mapping[str, Any]) -> str:
     return {
         "innovation1_dialga_dmc1_medium_topology_supported": "裁决：两颗 seed 全部门槛通过，允许进入 262144/class。",
         "innovation1_dialga_dmc1_medium_topology_not_supported": "裁决：至少一项门槛未通过，停止机械放大并检查训练动态。",
         "innovation1_dialga_dmc1_medium_protocol_invalid": "裁决：计划、缓存、检查点或结果绑定无效，本次指标不可解释。",
+        "innovation1_dialga_dmc2_scale_topology_supported": "裁决：两颗 seed 全部门槛通过，允许预注册正式规模 DFC1。",
+        "innovation1_dialga_dmc2_scale_topology_not_supported": "裁决：至少一项门槛未通过，停止机械放大并检查训练动态。",
+        "innovation1_dialga_dmc2_scale_protocol_invalid": "裁决：计划、缓存、检查点或结果绑定无效，本次指标不可解释。",
     }.get(str(gate.get("decision")), f"裁决：{gate.get('decision', '')}")
 
 
