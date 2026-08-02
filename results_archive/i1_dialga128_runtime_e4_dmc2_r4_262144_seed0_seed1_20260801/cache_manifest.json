@@ -1,0 +1,53 @@
+{
+  "caches": [
+    {
+      "cache_path": "cache/dialga128/r4/train/seed-0_3c743f6664cca80b",
+      "features_bytes": 536871040,
+      "features_sha256": "cced06b234b2d3efc2dcd5f70e1801f947e960c8c740a161bd602f0053d54a87",
+      "index": 0,
+      "input_bits": 1024,
+      "labels_bytes": 524416,
+      "labels_sha256": "21a195a98b3801141c6cb1b01a00e572dc8ce3fbe9c4f5d871e0902a00ec598a",
+      "metadata_sha256": "1edad2d5d32c39700478e171741fe9bbfa1bce54bb842f74e41e1b4b2545218a",
+      "split": "train",
+      "total_rows": 524288
+    },
+    {
+      "cache_path": "cache/dialga128/r4/train/seed-1_12dadf9bcf9cf390",
+      "features_bytes": 536871040,
+      "features_sha256": "38090b0031efe9bf809e5b4b2abd23ddc0515af80dfb15cafe4e563fd2137a39",
+      "index": 1,
+      "input_bits": 1024,
+      "labels_bytes": 524416,
+      "labels_sha256": "21a195a98b3801141c6cb1b01a00e572dc8ce3fbe9c4f5d871e0902a00ec598a",
+      "metadata_sha256": "d13c89adb713de2ecd86bd690b54547b7ca779e01ca181a44aef70a8e1bf3455",
+      "split": "train",
+      "total_rows": 524288
+    },
+    {
+      "cache_path": "cache/dialga128/r4/validation/seed-10000_7bda818ccdecca38",
+      "features_bytes": 134217856,
+      "features_sha256": "e03a5d4a2b9c79e64a1af8a14e7dc3d81434e044a04fe18c6da24c36867143be",
+      "index": 2,
+      "input_bits": 1024,
+      "labels_bytes": 131200,
+      "labels_sha256": "071db3af09eb83cfdb053d35591d7c5faa97eadcd76fe6c109946bc77fda800c",
+      "metadata_sha256": "44c1c5eec1c624a87120649bae71712793fa3efe8629f363ffb41fd1a275f465",
+      "split": "validation",
+      "total_rows": 131072
+    },
+    {
+      "cache_path": "cache/dialga128/r4/validation/seed-10001_5b3fe11c882432d2",
+      "features_bytes": 134217856,
+      "features_sha256": "eb578311156e7010518b9ab8477d821cb9e7ba2e2e15fd71f49d7a265c98546f",
+      "index": 3,
+      "input_bits": 1024,
+      "labels_bytes": 131200,
+      "labels_sha256": "071db3af09eb83cfdb053d35591d7c5faa97eadcd76fe6c109946bc77fda800c",
+      "metadata_sha256": "9c315d28ae337250f4f3ffd6ca20643f032a33393f4d094cdbe408b6ff9b0371",
+      "split": "validation",
+      "total_rows": 131072
+    }
+  ],
+  "count": 4
+}

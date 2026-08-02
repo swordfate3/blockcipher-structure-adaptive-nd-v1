@@ -1,0 +1,27 @@
+{
+  "claim_scope": "two-seed remote 262144/class Dialga prefix-r4 scale confirmation; not formal, paper-scale, full-round, attack, SOTA, or universal-SPN evidence",
+  "decision": "innovation1_dialga_dmc2_scale_topology_supported",
+  "next_action": "preregister Dialga DFC1 at at least 1000000/class with multiple seeds and frozen-checkpoint independent final tests",
+  "run_id": "i1_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1_20260801",
+  "seed_results": {
+    "0": {
+      "auc_by_architecture": {
+        "autond": 0.5023696406278759,
+        "correct": 0.9849641470937058,
+        "corrupted": 0.9675305993296206
+      },
+      "correct_minus_autond": 0.4825945064658299,
+      "correct_minus_corrupted": 0.017433547764085233
+    },
+    "1": {
+      "auc_by_architecture": {
+        "autond": 0.5013575680786744,
+        "correct": 0.9842120340326801,
+        "corrupted": 0.9670879313489422
+      },
+      "correct_minus_autond": 0.4828544659540057,
+      "correct_minus_corrupted": 0.017124102683737874
+    }
+  },
+  "status": "pass"
+}

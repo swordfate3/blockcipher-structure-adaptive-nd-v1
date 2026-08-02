@@ -1,0 +1,7 @@
+[1/6] Dialga-128 r=4 model=runtime_spn_e4_equivariant_true seed=0 pairs=4
+[2/6] Dialga-128 r=4 model=runtime_spn_e4_equivariant_corrupted seed=0 pairs=4
+[3/6] Dialga-128 r=4 model=autond_dbitnet2023 seed=0 pairs=4
+[4/6] Dialga-128 r=4 model=runtime_spn_e4_equivariant_true seed=1 pairs=4
+[5/6] Dialga-128 r=4 model=runtime_spn_e4_equivariant_corrupted seed=1 pairs=4
+[6/6] Dialga-128 r=4 model=autond_dbitnet2023 seed=1 pairs=4
+wrote 6 rows to G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1_20260801\results\results.jsonl

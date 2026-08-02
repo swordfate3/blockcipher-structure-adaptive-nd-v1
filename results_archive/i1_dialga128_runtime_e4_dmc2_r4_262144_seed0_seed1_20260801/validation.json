@@ -1,0 +1,18 @@
+{
+  "checks": {
+    "eight_parameter_matched_cache_reuses": true,
+    "four_disk_caches_created": true,
+    "result_protocol_frozen": true,
+    "six_frozen_tasks_exact": true,
+    "six_nonempty_checkpoints_present": true,
+    "six_result_rows_exact": true,
+    "source_revision_matches_launch_pin": true
+  },
+  "errors": [],
+  "expected_result_rows": 6,
+  "expected_source_commit": "9168cbd8881c539c3db9b5da9a96f83a5c25dc5b",
+  "result_rows": 6,
+  "run_id": "i1_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1_20260801",
+  "source_commit": "9168cbd8881c539c3db9b5da9a96f83a5c25dc5b",
+  "status": "pass"
+}

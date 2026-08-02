@@ -1,0 +1,62 @@
+{
+  "blocked_actions": [
+    "calling 262144/class formal or paper-scale evidence",
+    "advancing to DFC1 unless both seeds pass every frozen gate",
+    "mechanically scaling Dialga r5"
+  ],
+  "claim_scope": "two-seed remote 262144/class Dialga prefix-r4 scale confirmation; not formal, paper-scale, full-round, attack, SOTA, or universal-SPN evidence",
+  "decision": "innovation1_dialga_dmc2_scale_topology_supported",
+  "failed_protocol_checks": [],
+  "failed_research_checks": [],
+  "formal_scale": "authorized_dfc1_preregistration",
+  "next_action": "preregister Dialga DFC1 at at least 1000000/class with multiple seeds and frozen-checkpoint independent final tests",
+  "parameter_counts": {
+    "autond": 797633,
+    "correct": 442466,
+    "corrupted": 442466
+  },
+  "protocol_checks": {
+    "eight_parameter_matched_cache_reuses": true,
+    "four_disk_caches_created": true,
+    "result_protocol_frozen": true,
+    "six_frozen_tasks_exact": true,
+    "six_nonempty_checkpoints_present": true,
+    "six_result_rows_exact": true,
+    "source_revision_matches_launch_pin": true
+  },
+  "research_checks": {
+    "seed0_autond_margin": true,
+    "seed0_correct_auc": true,
+    "seed0_topology_margin": true,
+    "seed1_autond_margin": true,
+    "seed1_correct_auc": true,
+    "seed1_topology_margin": true
+  },
+  "run_id": "i1_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1_20260801",
+  "seed_results": {
+    "0": {
+      "auc_by_architecture": {
+        "autond": 0.5023696406278759,
+        "correct": 0.9849641470937058,
+        "corrupted": 0.9675305993296206
+      },
+      "correct_minus_autond": 0.4825945064658299,
+      "correct_minus_corrupted": 0.017433547764085233
+    },
+    "1": {
+      "auc_by_architecture": {
+        "autond": 0.5013575680786744,
+        "correct": 0.9842120340326801,
+        "corrupted": 0.9670879313489422
+      },
+      "correct_minus_autond": 0.4828544659540057,
+      "correct_minus_corrupted": 0.017124102683737874
+    }
+  },
+  "status": "pass",
+  "thresholds": {
+    "correct_auc": 0.9,
+    "correct_minus_autond": 0.01,
+    "correct_minus_corrupted": 0.005
+  }
+}

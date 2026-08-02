@@ -1,0 +1,21 @@
+{
+  "checked_invariants": [
+    "plan_exists",
+    "expected_rows_matches_plan",
+    "run_id_task_archive_alignment",
+    "github_ssh_repo",
+    "cmd_exe_c_only_policy",
+    "g_lxy_artifact_policy",
+    "training_protocol_matches_plan",
+    "medium_scale_dataset_cache"
+  ],
+  "config": "configs\\remote\\innovation1_dialga_dmc2_r4_scale_262144_seed0_seed1_gpu0_20260801.json",
+  "errors": [],
+  "expected_rows": 6,
+  "max_samples_per_class": 262144,
+  "plan": "configs\\experiment\\innovation1\\innovation1_spn_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1.csv",
+  "plan_rows": 6,
+  "run_id": "i1_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1_20260801",
+  "status": "pass",
+  "warnings": []
+}

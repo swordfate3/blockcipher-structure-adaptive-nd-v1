@@ -1,0 +1,9 @@
+{
+  "cache_count": 4,
+  "checkpoint_count": 6,
+  "claim_scope": "remote 262144/class Dialga prefix-r4 scale confirmation; not formal or paper-scale evidence",
+  "result_rows": 6,
+  "result_sync": "verified_result_branch_with_local_raw_fallback",
+  "run_id": "i1_dialga128_runtime_e4_dmc2_r4_262144_seed0_seed1_20260801",
+  "source_commit": "9168cbd8881c539c3db9b5da9a96f83a5c25dc5b"
+}
