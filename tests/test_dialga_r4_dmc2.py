@@ -125,6 +125,8 @@ def test_dmc2_launch_gate_and_generated_assets_are_fail_closed() -> None:
     assert "verified_result_incomplete_trying_raw_fallback" in monitor
     assert "if retrieve_archive raw" in monitor
     assert "unavailable or incomplete" in monitor
+    assert f"results_archive/${{RUN_ID}}/." not in monitor
+    assert 'results_archive/${RUN_ID}" "${staging}/"' in monitor
 
     archive_log_path = (
         "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"

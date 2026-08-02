@@ -38,12 +38,13 @@ retrieve_archive() {
   fi
   local destination="${destination_root}/${RUN_ID}"
   [[ ! -e "${destination}" ]] || return 1
-  mkdir -p "${staging}/${RUN_ID}"
+  mkdir -p "${staging}"
   if [[ "${mode}" == "verified" ]]; then
+    mkdir -p "${staging}/${RUN_ID}"
     git fetch --force origin "refs/heads/results/${RUN_ID}:${result_ref}" >> "${MONITOR_ROOT}/branch.log" 2>> "${MONITOR_ROOT}/branch_stderr.log" || return 1
     git archive "${result_ref}" "results_archive/${RUN_ID}" | tar -x -C "${staging}/${RUN_ID}" --strip-components=2 >> "${MONITOR_ROOT}/branch.log" 2>> "${MONITOR_ROOT}/branch_stderr.log" || return 1
   else
-    scp -r "${REMOTE}:${RUNS_ROOT}/${RUN_ID}/source/results_archive/${RUN_ID}/." "${staging}/${RUN_ID}/" >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
+    scp -r "${REMOTE}:${RUNS_ROOT}/${RUN_ID}/source/results_archive/${RUN_ID}" "${staging}/" >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
   fi
   (cd "${staging}/${RUN_ID}" && sed 's/\r$//' SHA256SUMS | sha256sum -c -) >> "${MONITOR_ROOT}/sha256.log" 2>> "${MONITOR_ROOT}/sha256_stderr.log" || return 1
   [[ "$(tr -d '\r\n' < "${staging}/${RUN_ID}/git_revision.txt")" == "${SOURCE_COMMIT}" ]] || return 1
