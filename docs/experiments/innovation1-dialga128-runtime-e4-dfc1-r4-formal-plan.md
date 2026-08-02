@@ -5,10 +5,36 @@ Date: 2026-08-02
 ## Status
 
 ```text
-phase = preregistered; local readiness and publication gate pending
+phase = running remotely; durable start confirmed; watcher active
 scale = project-formal prefix-r4 evaluation
 paper role = formal Dialga prefix-r4 performance and topology-attribution row
 ```
+
+## Remote Launch Record
+
+```text
+launched_at       = 2026-08-02 12:54 CST
+source_commit     = b48a13039e373211c83a9d721ec43258512fa351
+github_main       = exact SHA match verified before launch
+launch_gate       = pass / innovation1_dialga_dfc1_remote_launch_authorized
+remote_host       = lxy-a6000 / DESKTOP-BBLPACJ
+physical_gpu      = 0
+remote_run_root   = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_dialga128_runtime_e4_dfc1_r4_1000000_seed0_seed1_20260802
+source_mode       = clean run-owned clone, detached at the exact pushed commit
+durable_start     = source_expected_commit.txt, readiness.txt, started.marker
+local_monitor     = tmux:i1_dialga_dfc1_1m_monitor
+result_status     = running; no result or publication claim yet
+```
+
+The bounded prelaunch audit found GPU0 without a compute training process and
+the new run root absent. The historical standard clone was on an old branch,
+behind its upstream and heavily modified, so it was left untouched. A committed
+bootstrap launcher under `G:\lxy\scheduled-runs` created the clean run-owned
+clone directly from GitHub. The first and only post-launch remote confirmation
+found the exact source pin, readiness evidence and `started.marker`; the
+progress file was not yet present at that instant. The main task must not SSH
+poll the run. Completion, archive retrieval, local re-adjudication and result
+indexing are delegated to the local watcher.
 
 ## Research Question
 
@@ -164,8 +190,9 @@ Until the remote archive is retrieved and locally re-adjudicated, DFC1 remains
 
 ## Executable Next Action
 
-Run the focused DMC1/DMC2/DFC1 tests, static checks, and zero-training readiness;
-commit and push only DFC1-scoped assets; execute the local launch gate against
-the exact GitHub `main` SHA; then perform one bounded GPU0/run-root check,
-launch the run-owned clean clone, confirm durable start, and hand off completion
-and retrieval to the local tmux watcher.
+Allow the local tmux watcher to wait for a terminal artifact. On completion it
+must prefer a complete verified result branch, use the named raw fallback only
+when necessary, verify the CRLF-normalized checksum manifest, replay the DFC1
+gate locally, refresh `outputs/00_RECENT_RESULTS.*`, and leave visual QA pending
+for a separate rendered-pixel inspection. Do not SSH-poll, change the frozen
+protocol, launch Dialga prefix-r5, or call the running job a completed result.
