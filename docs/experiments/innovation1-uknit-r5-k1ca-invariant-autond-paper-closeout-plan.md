@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT K1-CA Invariant/AutoND Paper Closeout Plan
 
 **Date:** 2026-08-03
-**Status:** running remotely; bounded start confirmed; tmux retrieval active; result pending
+**Status:** running remotely; bounded start confirmed; tmux retrieval active; result pending; K1-CB published-network comparison authorized after valid completion
 **Run ID:** `i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803`
 
 ## 1. Research Question
@@ -14,6 +14,13 @@ pair 数的前提下，K1-U 选出的“正确 S 盒语义 + 位置不变聚合�
 归因，并且位置不变分支在 seed 3/4 上分别达到 `0.977201/0.974682` AUC，略优
 于原生位置分支。因此 K1-CA 不重复 wrong-S-box，不重新搜索位置表示，也不把
 AutoND 项目协议比较写成其公开代码的精确复现。
+
+2026-08-03 作者进一步明确：K1-CA 的四行矩阵只完成候选与 AutoND 的主规模
+锚定，不能以 K1-BZ 的小规模筛选代替论文主表中的同规模公开网络比较。因此
+K1-CA 本身仍按已启动提交和四行协议原样完成，不增加或重启任何行；协议有效
+完成后允许执行一次独立 K1-CB，复用 K1-CA 的四份训练/验证缓存，只训练
+Zhang/Wang MCND、Liu raw Case-3 Conv2D 和 Gohr-style ResNet 三种公开架构
+适配器。K1-CB 不改变 K1-CA 的结果或 gate，仅与其结果合并形成论文比较表。
 
 ## 2. Same-Budget Anchor And One Variable
 
@@ -93,9 +100,11 @@ invariant candidate AUC - AutoND AUC >= +0.100
 `262144/class` 预算下保持显著优势”。任一研究门未通过但协议完整时，状态为
 `hold`，如实报告结果，不把 K1-U 的机制归因外推为规模性能优势。
 
-无论 `pass` 或 `hold`，K1-CA 完成后论文实验阶段均封板。只有协议无效时才允许
-修复同一四行矩阵的证据绑定；协议有效但研究门未通过，不能通过新增模型、seed、
-数据、epoch、pair、轮数、最终测试或超参数搜索救门。
+无论 `pass` 或 `hold`，K1-CA 的候选/AutoND 性能确认阶段均封板。只有协议无效
+时才允许修复同一四行矩阵的证据绑定；协议有效但研究门未通过，不能通过新增
+seed、数据、epoch、pair、轮数、最终测试或超参数搜索救门。作者随后授权的
+K1-CB 是独立的论文公开网络比较，不是救门：它无论 K1-CA 数值高低都使用同一
+冻结协议，只复用缓存并报告三种公开架构的实际结果。
 
 ## 6. Execution And Retrieval
 
@@ -123,9 +132,10 @@ invariant candidate AUC - AutoND AUC >= +0.100
 - `outputs/00_RECENT_RESULTS.md`
 - `outputs/00_RECENT_RESULTS.json`
 
-推荐下一动作固定为论文定稿：整理 K1-CA 表格与视觉检查通过的图，保留“项目协议、
-双 seed、非精确 AutoND 复现、非百万正式规模、非统一网络通吃所有 SPN”的证据
-边界，不再启动新的 Innovation 1 训练。
+K1-CA 完成后的下一动作更新为 K1-CB 公开网络同规模比较；该比较必须先验证 K1-CA
+四份缓存完整且参数匹配，并在缺失时失败关闭而非重新生成。K1-CB 完成后再整理
+合并表格与视觉检查通过的图，保留“项目协议、双 seed、公开架构适配而非精确
+复现、非百万正式规模、非统一网络通吃所有 SPN”的证据边界，并封板转入论文定稿。
 
 ## 8. Launch Record
 

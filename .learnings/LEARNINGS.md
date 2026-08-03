@@ -51,6 +51,60 @@ variants even though they use the verified full-cipher round trace.
 
 ---
 
+## [LRN-20260803-003] correction
+
+**Logged**: 2026-08-03T15:10:00+08:00
+**Priority**: high
+**Status**: in_progress
+**Area**: research
+
+### Summary
+
+Do not substitute a small-scale architecture promotion screen for the
+same-scale published-network comparison required by a paper's main result
+table.
+
+### Details
+
+The uKNIT K1-BZ experiment used `2048/class` to decide whether MCND and Liu
+Conv2D adapters deserved automatic scale-up. Treating that failed promotion
+gate as sufficient paper comparison evidence was incorrect. A screening gate
+answers which route to continue during research; a paper comparison table
+answers how the proposed method compares with representative published neural
+architectures under the same primary protocol and evidence scale.
+
+The author's bounded resource decision remains in force: at most
+`262144/class`, seeds 3/4, four pairs, ten epochs, no repeated final tests and no
+million-scale work. Within that ceiling, however, the paper needs a direct
+same-data comparison against more than AutoND. The minimal correction is to
+reuse the four K1-CA train/validation caches and train the already implemented
+Zhang/Wang MCND, Liu raw Case-3 Conv2D and Gohr-style ResNet adapters at the
+same scale. Missing or mismatched source caches must stop the follow-up instead
+of regenerating data.
+
+### Suggested Action
+
+Keep research screens and paper comparisons as separate labeled stages. Before
+closing a paper experiment stage, check that the primary comparison table
+contains the proposed method, the strongest generic baseline and at least two
+representative published architecture families on the same cipher, difference,
+pair count, keys, train/validation rows, seeds and epoch budget. Reuse exact
+datasets across all rows and report architecture adaptation and tuning limits
+without calling them exact reproductions.
+
+### Metadata
+
+- Source: user_feedback, author_scope_correction
+- Related Files: paper/chinese-core-innovation1/codex_manuscript.md, docs/experiments/innovation1-uknit-r5-k1ca-invariant-autond-paper-closeout-plan.md, docs/experiments/innovation1-uknit-r5-published-architecture-baselines-k1bz-plan.md
+- Tags: innovation1, paper-comparison, baseline-coverage, screening, same-scale, dataset-reuse
+- See Also: LRN-20260803-002
+- Pattern-Key: paper.comparison.same_scale_published_baselines_not_screening_substitute
+- Recurrence-Count: 1
+- First-Seen: 2026-08-03
+- Last-Seen: 2026-08-03
+
+---
+
 ## [LRN-20260731-002] correction
 
 **Logged**: 2026-07-31T23:19:38+08:00

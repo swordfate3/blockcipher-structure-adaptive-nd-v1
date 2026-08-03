@@ -100,7 +100,8 @@ def test_k1ca_gate_requires_both_seed_floors_and_autond_margins() -> None:
     )
     assert held["status"] == "hold"
     assert held["experiment_stage_after_valid_result"] == "closed"
-    assert "without adding data" in held["next_action"]
+    assert "cache-reusing K1-CB" in held["next_action"]
+    assert "without changing K1-CA" in held["next_action"]
 
 
 def test_k1ca_cache_gate_rejects_extra_final_test_or_missing_reuse() -> None:

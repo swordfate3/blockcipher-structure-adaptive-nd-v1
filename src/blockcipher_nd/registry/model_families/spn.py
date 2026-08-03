@@ -1355,7 +1355,10 @@ def build_spn_model(
             hidden_bits=int_option(options, "lstm_hidden_bits", 128) or 128,
             classifier_bits=int_option(options, "classifier_bits", 128) or 128,
         )
-    if name == "gift64_gohr_style_resnet_pairset":
+    if name in {
+        "gift64_gohr_style_resnet_pairset",
+        "spn_gohr_style_resnet_pairset_adapter",
+    }:
         return Gift64GohrStyleResNetPairSetDistinguisher(
             input_bits=input_bits,
             pair_bits=128 if pair_bits is None else pair_bits,

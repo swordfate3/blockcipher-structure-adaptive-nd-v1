@@ -128,13 +128,13 @@ Dialga 说明书给出非连续 `cell_membership`、cell 内 `bit_role`、S 盒�
 
 ### 5.1 公共设置
 
-全部实验均针对公开算法的离线约化轮区分。优化器为 Adam，损失函数为均方误差，训练 10 个 epoch；每项比较冻结设备、数据协议、负样本定义与优化预算，不在同预算比较中途切换设备。表中 `samples/class` 表示每类样本数，总训练行数为其两倍。K1-BS/K1-BZ 的 2048/class 用于公开架构筛选，K1-U 和 DMC1 的 65536/class 用于机制确认，DMC2 的 262144/class 构成本文最高规模的双 seed 主结果。实验规模由本文的结构归因问题和必要控制共同确定。除报告 accuracy 外，裁决优先使用不依赖固定阈值的 AUC。
+全部实验均针对公开算法的离线约化轮区分。优化器为 Adam，损失函数为均方误差，训练 10 个 epoch；每项比较冻结设备、数据协议、负样本定义与优化预算，不在同预算比较中途切换设备。表中 `samples/class` 表示每类样本数，总训练行数为其两倍。K1-BS/K1-BZ 的 2048/class 用于先导架构比较，K1-U 和 DMC1 的 65536/class 用于机制确认，DMC2 的 262144/class 是当前已完成的最高规模双 seed 主结果；uKNIT K1-CA/K1-CB 以相同 `262144/class` 预算补齐候选、AutoND、MCND、Liu Conv2D 和 Gohr-style ResNet 的论文主表。实验规模由本文的结构归因问题和必要控制共同确定。除报告 accuracy 外，裁决优先使用不依赖固定阈值的 AUC。
 
 ### 5.2 uKNIT 协议
 
 K1-BS 使用 uKNIT-BC r5、16 pairs/sample、2048/class 训练和 1024/class 跨密钥验证，seed 为 3、4；比较结构专家、AutoND/DBitNet 与两个项目内部通用 SPN 网络。K1-BZ 逐项复用 K1-BS 的差分、密钥、数据缓存、负样本、优化器和验证集，只新增 Zhang/Wang MCND 与 Liu raw Case-3 Conv2D 两个适配器。MCND 适配器含 650177 个参数；Conv2D 适配器含 130945 个参数。由于本机 CUDA 不可用，该极小诊断按预注册例外在 CPU 上执行，未把中等规模训练转移到本地 CPU。
 
-K1-BZ 的晋级门要求同一适配器在两个 seed 上均满足 AUC 不低于 0.550，且相对对应 AutoND/DBitNet 至少提高 0.010。该筛选用于从公开架构中选择值得扩大预算的强基线；未通过筛选的适配器不再机械扩样。
+K1-BZ 的晋级门要求同一适配器在两个 seed 上均满足 AUC 不低于 0.550，且相对对应 AutoND/DBitNet 至少提高 0.010。该门只回答研究阶段的路线晋级问题，不能代替论文主表的同规模比较。为避免只在最高预算下比较 AutoND，K1-CA 原样训练位置不变结构专家和 AutoND；其完成后，K1-CB 在不生成新数据的前提下复用同一四份训练/验证缓存，补训 Zhang/Wang MCND、Liu raw Case-3 Conv2D 和 Gohr-style ResNet。K1-CA/K1-CB 均使用 uKNIT-BC r5、4 pairs/sample、262144/class 训练、65536/class 跨密钥验证、seed 3/4 和 10 个 epoch。K1-CB 不设置有利于本文方法的性能淘汰门，协议有效时全部模型和 seed 均进入主表。
 
 K1-U 使用 uKNIT-BC r5、4 pairs/sample、65536/class 训练和 32768/class 跨密钥验证，seed 为 3、4。它比较正确 S 盒加原生位置、错误 S 盒加原生位置和正确 S 盒加位置不变聚合，分别检验非线性语义与精确位置身份。K1-BV 使用 uKNIT-BC r6，训练 2048/class，跨密钥验证 1024/class，seed 为 3、4；比较 exact 4-pair、exact 16-pair 与 wrong-S-box 16-pair。K1-BV 是远程小规模边界诊断，不用于估计 r6 的方法上限。
 
@@ -149,6 +149,8 @@ D1 使用 Dialga-128 prefix-r4，4 pairs/sample，训练 2048/class，验证 102
 | K1-BS | uKNIT-BC r5 | 16 | 2048 | 1024 | 3、4 | AutoND、两个内部通用 SPN 网络 | 本地完整闭环，gate=`pass` |
 | K1-BZ | uKNIT-BC r5 | 16 | 2048 | 1024 | 3、4 | MCND、raw Case-3 Conv2D | 本地完整闭环，gate=`hold` |
 | K1-U | uKNIT-BC r5 | 4 | 65536 | 32768 | 3、4 | wrong-S-box、位置不变 | 原始回收，语义门通过；位置门选择位置不变表示 |
+| K1-CA | uKNIT-BC r5 | 4 | 262144 | 65536 | 3、4 | 位置不变结构专家、AutoND | 远程运行中，结果待回收 |
+| K1-CB | uKNIT-BC r5 | 4 | 262144 | 65536 | 3、4 | MCND、raw Case-3 Conv2D、Gohr-style ResNet | 已冻结；等待 K1-CA 完成并复用其缓存 |
 | K1-BV | uKNIT-BC r6 | 4/16 | 2048 | 1024 | 3、4 | wrong-S-box | 远程 gate=`hold`，归档待闭环 |
 | D1 | Dialga-128 prefix-r4 | 4 | 2048 | 1024 | 0、1 | 扰动/无拓扑 | 本地完整闭环，gate=`pass` |
 | D2 | Dialga-128 prefix-r4 | 4 | 不再训练 | 复用 D1 协议 | 0、1 | 同检查点替换说明书 | 本地完整闭环 |
@@ -177,7 +179,7 @@ D1 使用 Dialga-128 prefix-r4，4 pairs/sample，训练 2048/class，验证 102
 
 MCND 在两个 seed 上均低于 AutoND。Liu Conv2D 在 seed 3 高 0.015421，但 seed 4 低 0.020493，且两颗 seed 的 AUC 都未达到 0.550。预注册门要求同一适配器在两颗 seed 上同时达到 AUC 0.550，并相对 AutoND 至少提高 0.010，因此 gate 状态为 `hold`，决策为 `innovation1_uknit_k1bz_no_published_adapter_local_promotion`，不进入远程扩样。
 
-在冻结的同协议筛选中，五阶段位置直方图结构专家相对 AutoND/DBitNet 提高 0.391480/0.406116 AUC，并在两个 seed 上同时保持优势。MCND 与 Liu Conv2D 作为公开架构适配器扩展了基线覆盖，其中 AutoND/DBitNet 仍是三种外部基线中的最强筛选对象，因此后续规模比较优先保留该基线。表 3 比较的是统一 uKNIT 可观测量下的架构适配效果，原论文完整协议的差异集中列入第 8 节。
+在冻结的同协议先导比较中，五阶段位置直方图结构专家相对 AutoND/DBitNet 提高 0.391480/0.406116 AUC，并在两个 seed 上同时保持优势。MCND 与 Liu Conv2D 扩展了公开网络几何覆盖，但 2048/class 结果只能说明先导协议下的训练表现，不能据此宣称本文方法在主规模全面优于这些网络。为形成论文直接比较，K1-CB 已冻结为与 K1-CA 相同的 262144/class、4 pairs、双 seed、10 epoch 协议，并增加 Gohr-style ResNet；五模型合并主表将在 K1-CA/K1-CB 结果完整回收后填入。各行仍属于统一 uKNIT 可观测量下的架构适配，不是原论文完整协议复现。
 
 ### 6.2 uKNIT K1-U：正确 S 盒形成稳定优势，位置不变表示进一步简化模型
 
@@ -293,7 +295,7 @@ uKNIT 与 Dialga 提供了两条互补的结构证据链。前者检验“阶段
 
 ### 7.2 结构基线与通用基线的不同作用
 
-AutoND/DBitNet 衡量通用网络在同数据、同优化预算下的表现；MCND 与 Case-3 Conv2D 适配器扩展公开网络几何的覆盖；wrong-S-box、位置不变、扰动拓扑和无拓扑控制则定位结构专家的有效信息来源。三类基线共同回答“优势是否存在、是否来自正确结构、能否被更简单表示保留”。K1-BZ 确认结构专家在公开架构筛选中保持领先，K1-U 将增益定位到正确 S 盒语义并得到更简洁的位置不变表示，Dialga D2/DMC2 则把拓扑优势推进到同检查点功能归因和双 seed 规模确认。
+AutoND/DBitNet 衡量通用网络在同数据、同优化预算下的表现；MCND、Case-3 Conv2D 和 Gohr-style ResNet 扩展公开网络几何的覆盖；wrong-S-box、位置不变、扰动拓扑和无拓扑控制则定位结构专家的有效信息来源。三类基线分别回答“相对已有网络优势是否存在、优势是否来自正确结构、能否被更简单表示保留”。K1-BZ 仅提供先导架构比较，K1-CA/K1-CB 才承担 uKNIT 主规模的公开网络直接比较；K1-U 将增益定位到正确 S 盒语义并得到更简洁的位置不变表示，Dialga D2/DMC2 则把拓扑优势推进到同检查点功能归因和双 seed 规模确认。
 
 ### 7.3 成功窗口与失败边界应同时报告
 
@@ -311,7 +313,7 @@ K1-BS 在 r5 uKNIT 的小样本协议中显示可学习信号，K1-U 则在 6553
 
 第二，本文采用两个随机种子，最高训练规模为 262144/class。uKNIT 的语义差值达到 0.46 以上，Dialga 的拓扑差值在两个 seed 上方向一致，并有同检查点反事实作为独立支撑，因此该预算能够回答本文的结构归因问题。更多随机种子、独立最终测试和置信区间可用于进一步估计方差，但不作为当前方法结论的前置条件。
 
-第三，比较并非完全容量匹配。K1-BS/K1-BZ 中结构专家、AutoND/DBitNet、MCND 和 Liu Conv2D 适配器的参数量分别为 214316、985985、650177 和 130945；Dialga Runtime-E4 与 AutoND/DBitNet 分别为 442466 和 797633。公开架构适配器也采用统一冻结超参数，而非逐篇复现其原始数据构造和搜索空间。本文通过同预算和结构反事实突出归纳偏置的作用，参数量匹配比较仍可作为后续补充。
+第三，比较并非完全容量匹配。K1-CA/K1-CB 中结构专家、AutoND/DBitNet、MCND、Liu Conv2D 和 Gohr-style ResNet 的参数量分别为 214316、636513、650177、130945 和 191937；Dialga Runtime-E4 与 AutoND/DBitNet 分别为 442466 和 797633。公开架构适配器采用统一冻结数据和优化预算，而非逐篇复现其原始数据构造和完整超参数搜索空间。本文通过同预算比较和结构反事实突出归纳偏置的作用，参数量匹配及逐模型预算匹配仍可作为后续补充。
 
 第四，当前结论对应 uKNIT r5、Dialga prefix-r4 及其冻结差分协议。把说明书接口扩展到其他 SPN 仍需为目标结构配置相应专家和控制；训练时间、推理吞吐、显存占用及校准误差也有待在统一硬件条件下补充。
 
@@ -370,6 +372,8 @@ K1-BS 在 r5 uKNIT 的小样本协议中显示可学习信号，K1-U 则在 6553
 | uKNIT K1-BS | `docs/experiments/innovation1-uknit-r5-neural-architecture-ablation-k1bs-plan.md`；`outputs/local_diagnostic/i1_uknit_r5_neural_architecture_ablation_k1bs_16pair_2048_seed3_seed4_20260731/` | 本地完整闭环；小样本架构诊断 |
 | uKNIT K1-BZ | `docs/experiments/innovation1-uknit-r5-published-architecture-baselines-k1bz-plan.md`；`outputs/local_diagnostic/i1_uknit_r5_published_architecture_baselines_k1bz_16pair_2048_seed3_seed4_20260802/` | 本地完整闭环，gate=`hold`；架构适配而非原论文复现 |
 | uKNIT K1-U | `docs/experiments/innovation1-uknit-family-ctspn-position-residual-k1u-medium-plan.md`；`outputs/remote_results_incomplete/i1_uknit_family_ctspn_position_residual_k1u_medium_65536_seed3_seed4_20260728/` | 原始回收、校验与协议检查通过；正确 S 盒语义门通过，并选择更简洁的位置不变表示 |
+| uKNIT K1-CA | `docs/experiments/innovation1-uknit-r5-k1ca-invariant-autond-paper-closeout-plan.md`；`configs/experiment/innovation1/innovation1_uknit_r5_k1ca_invariant_autond_closeout_262144_seed3_seed4.csv` | 远程运行中；仅在回收并重裁决后填入数值 |
+| uKNIT K1-CB | `docs/experiments/innovation1-uknit-r5-k1cb-published-network-paper-comparison-plan.md`；`configs/experiment/innovation1/innovation1_uknit_r5_k1cb_published_comparison_262144_seed3_seed4.csv` | 已冻结；等待 K1-CA 协议有效完成和四缓存只读复用 |
 | uKNIT K1-BV | `docs/experiments/innovation1-uknit-r6-pair-amplification-k1bv-plan.md`；`outputs/remote_results_incomplete/i1_uknit_r6_pair_amplification_k1bv_2048_seed3_seed4_20260731_monitor/` | 远程 gate=`hold`；待整理为统一归档 |
 | Dialga D1 | `docs/experiments/innovation1-dialga128-runtime-e4-d1-r4-2048-plan.md`；`outputs/local_diagnostic/i1_dialga128_runtime_e4_d1_r4_2048_seed0_seed1_20260725/results.jsonl` | 本地完整闭环 |
 | Dialga D2 | `docs/experiments/innovation1-dialga128-runtime-e4-d2-same-checkpoint-plan.md`；`outputs/local_audits/i1_dialga128_runtime_e4_d2_same_checkpoint_20260725/results.jsonl` | 本地完整闭环 |

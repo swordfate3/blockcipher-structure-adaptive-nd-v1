@@ -343,15 +343,17 @@ def adjudicate(
         status = "pass"
         decision = "innovation1_uknit_k1ca_invariant_advantage_supported"
         next_action = (
-            "close the paper experiment stage and integrate the two-seed K1-CA "
-            "metrics, provenance boundary, table, and visually checked figure"
+            "close the K1-CA candidate-versus-AutoND stage, then run the frozen "
+            "cache-reusing K1-CB published-network paper comparison before final "
+            "table and figure integration"
         )
     else:
         status = "hold"
         decision = "innovation1_uknit_k1ca_invariant_advantage_not_supported"
         next_action = (
-            "close the paper experiment stage and report the frozen K1-CA result "
-            "without adding data, models, seeds, epochs, pairs, rounds, or tests"
+            "close the K1-CA candidate-versus-AutoND stage, report its frozen "
+            "result, and still run the independently preregistered cache-reusing "
+            "K1-CB paper comparison without changing K1-CA"
         )
     return {
         "run_id": RUN_ID,
@@ -380,9 +382,9 @@ def adjudicate(
             "SOTA claim, or universal-SPN network claim"
         ),
         "blocked_actions": [
-            "more than four model-seed rows",
-            "wrong-S-box, MCND, Liu Conv2D, or another model family",
-            "additional seeds, rounds, pairs, epochs, differences, or keys",
+            "changing or adding any K1-CA model-seed row",
+            "using K1-CB to rescue or retune the K1-CA gate",
+            "additional seeds, data, rounds, pairs, epochs, differences, or keys",
             "final-test repeats or final-test caches",
             "million-scale or later mechanical scale-up",
         ],
