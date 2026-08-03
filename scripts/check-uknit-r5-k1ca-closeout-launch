@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.check_uknit_r5_k1ca_closeout_launch import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
