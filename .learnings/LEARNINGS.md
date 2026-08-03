@@ -9246,3 +9246,59 @@ confirmation as not run. Do not describe these three states collectively as
 - **Notes**: Corrected the user-facing scale inventory against the result index and the K1-U, K1-BR and K1-BT gates.
 
 ---
+
+## [LRN-20260803-002] correction
+
+**Logged**: 2026-08-03T10:53:19+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Do not make a million-sample experiment a paper-completion prerequisite when
+the author chooses a bounded structure-mechanism claim supported at
+`262144/class`.
+
+### Details
+
+The Dialga DMC2 gate authorized a separate `1000000/class` DFC1 benchmark, and
+the workflow treated that authorization as the next automatic scale step. The
+author clarified that the current Chinese-core paper is not intended as an
+AutoND-scale reproduction or universal formal benchmark. Its contribution is
+the runtime structure description and counterfactual attribution, for which
+the completed two-seed DMC2 result at `262144/class`, together with D1/D2 and
+the uKNIT K1-U semantic control, is the chosen evidence ceiling.
+
+DFC1 was therefore stopped after one of six rows. A completed candidate row
+without the corrupted-topology and AutoND controls or the second seed cannot be
+reported, even descriptively, as evidence for the matrix.
+
+### Suggested Action
+
+Separate an experiment gate's permission to scale from the author's paper
+scope. Before starting a costly optional scale tier, confirm whether the paper
+needs a formal benchmark claim or a bounded mechanism claim. For this paper,
+use DMC2 as the highest-scale project evidence, retain its raw-fallback and
+no-independent-final-test limitations, exclude partial DFC1 metrics, and do not
+resume or replace the million-scale run unless the author explicitly changes
+scope.
+
+### Metadata
+
+- Source: user_feedback, author_scope_decision
+- Related Files: paper/chinese-core-innovation1/codex_manuscript.md, docs/experiments/innovation1-dialga128-runtime-e4-dfc1-r4-formal-plan.md, docs/experiments/innovation1-dialga128-runtime-e4-dmc2-r4-262144-plan.md
+- Tags: innovation1, paper-scope, experiment-scale, dmc2, dfc1, cancellation, claim-strength
+- See Also: LRN-20260803-001
+- Pattern-Key: paper.scope.bounded_mechanism_claim_does_not_require_million_scale
+- Recurrence-Count: 1
+- First-Seen: 2026-08-03
+- Last-Seen: 2026-08-03
+
+### Resolution
+
+- **Resolved**: 2026-08-03T10:53:19+08:00
+- **Commit/PR**: pending
+- **Notes**: Stopped and disabled the DFC1 task, stopped its local watcher, preserved partial artifacts, and revised the manuscript ceiling to DMC2 at 262144/class.
+
+---

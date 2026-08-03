@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1094.4pt" height="590.4pt" viewBox="0 0 1094.4 590.4" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-08-03T11:09:26.580305</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 590.4
+L 1094.4 590.4
+L 1094.4 0
+L 0 0
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 196.992 507.744
+L 496.256577 507.744
+L 496.256577 188.928
+L 196.992 188.928
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g clip-path="url(#p4185fdcc11)">
+    <image xlink:href="data:image/png;base64,
+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" id="image0b7dddd85f" transform="scale(1 -1) translate(0 -318.96)" x="197.28" y="-188.64" width="298.8" height="318.96"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1"/>
+     <g id="text_1">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(257.364902 524.984)">seed3</text>
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(245.558144 535.484)">跨密钥验证</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2"/>
+     <g id="text_2">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(406.997191 524.984)">seed4</text>
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(395.190433 535.484)">跨密钥验证</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_3"/>
+     <g id="text_3">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: end; fill: #374151" x="188.992" y="246.684" transform="rotate(-0 188.992 246.684)">正确结构 + 保留位置</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_4"/>
+     <g id="text_4">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: end; fill: #374151" x="188.992" y="352.956" transform="rotate(-0 188.992 352.956)">错误 S盒 + 保留位置</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_5"/>
+     <g id="text_5">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: end; fill: #374151" x="188.992" y="459.228" transform="rotate(-0 188.992 459.228)">正确结构 + 抹除位置</text>
+     </g>
+    </g>
+   </g>
+   <g id="patch_3">
+    <path d="M 196.992 507.744
+L 196.992 188.928
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 496.256577 507.744
+L 496.256577 188.928
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 196.992 507.744
+L 496.256577 507.744
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 196.992 188.928
+L 496.256577 188.928
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="271.808144" y="245.864" transform="rotate(-0 271.808144 245.864)">0.9745</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="421.440433" y="245.864" transform="rotate(-0 421.440433 245.864)">0.9679</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="271.808144" y="352.136" transform="rotate(-0 271.808144 352.136)">0.5039</text>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="421.440433" y="352.136" transform="rotate(-0 421.440433 352.136)">0.5058</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="271.808144" y="458.408" transform="rotate(-0 271.808144 458.408)">0.9772</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="421.440433" y="458.408" transform="rotate(-0 421.440433 458.408)">0.9747</text>
+   </g>
+   <g id="text_12">
+    <text style="font-weight: 700; font-size: 12.6px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #111827" x="196.992" y="174.928" transform="rotate(-0 196.992 174.928)">跨密钥 AUC（正确位置残差门槛 ≥ 0.600）</text>
+   </g>
+  </g>
+  <g id="axes_2">
+   <g id="patch_7">
+    <path d="M 668.481049 507.744
+L 967.745626 507.744
+L 967.745626 188.928
+L 668.481049 188.928
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g clip-path="url(#p7b420d0ec4)">
+    <image xlink:href="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAAaAAAAG7CAYAAACFJ0EBAAAGe0lEQVR4nO3WSw2AQBAFQT4HVCELeVjbxQOXDqFKwbtMetYx7rkA78xRL4DP2uoBAPyTAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQGI9rnPWI+Crtt0PB2+5HgASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiAhQAAkBAiAhAABkBAgABICBEBCgABICBAACQECICFAACQECICEAAGQECAAEgIEQEKAAEgIEAAJAQIgIUAAJAQIgIQAAZAQIAASAgRAQoAASAgQAAkBAiDxAL+GCum1KCwUAAAAAElFTkSuQmCC" id="imageef72618db2" transform="scale(1 -1) translate(0 -318.96)" x="668.16" y="-188.64" width="299.52" height="318.96"/>
+   </g>
+   <g id="matplotlib.axis_3">
+    <g id="xtick_3">
+     <g id="line2d_6"/>
+     <g id="text_13">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(728.853951 524.984)">seed3</text>
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(717.047193 535.484)">跨密钥验证</text>
+     </g>
+    </g>
+    <g id="xtick_4">
+     <g id="line2d_7"/>
+     <g id="text_14">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(878.48624 524.984)">seed4</text>
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(866.679482 535.484)">跨密钥验证</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_4">
+    <g id="ytick_4">
+     <g id="line2d_8"/>
+     <g id="text_15">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(599.371049 268.002)">对比错误 S盒</text>
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(605.072221 278.502)">门槛 +0.010</text>
+     </g>
+    </g>
+    <g id="ytick_5">
+     <g id="line2d_9"/>
+     <g id="text_16">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(597.481049 427.41)">对比位置抹除</text>
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; fill: #374151" transform="translate(605.072221 437.91)">门槛 +0.030</text>
+     </g>
+    </g>
+   </g>
+   <g id="patch_8">
+    <path d="M 668.481049 507.744
+L 668.481049 188.928
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 967.745626 507.744
+L 967.745626 188.928
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 668.481049 507.744
+L 967.745626 507.744
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 668.481049 188.928
+L 967.745626 188.928
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="text_17">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="743.297193" y="272.432" transform="rotate(-0 743.297193 272.432)">+0.4706</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="892.929482" y="272.432" transform="rotate(-0 892.929482 272.432)">+0.4620</text>
+   </g>
+   <g id="text_19">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="743.297193" y="431.84" transform="rotate(-0 743.297193 431.84)">-0.0027</text>
+   </g>
+   <g id="text_20">
+    <text style="font-size: 10px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: middle; fill: #111827" x="892.929482" y="431.84" transform="rotate(-0 892.929482 431.84)">-0.0068</text>
+   </g>
+   <g id="text_21">
+    <text style="font-weight: 700; font-size: 12.6px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #111827" x="668.481049" y="174.928" transform="rotate(-0 668.481049 174.928)">正确位置残差的归因净优势（正值表示候选更好）</text>
+   </g>
+  </g>
+  <g id="axes_3">
+   <g id="patch_12">
+    <path d="M 509.353495 498.950557
+L 524.414951 498.950557
+L 524.414951 197.721443
+L 509.353495 197.721443
+z
+" style="fill: #ffffff"/>
+   </g>
+   <image xlink:href="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABUAAAGiCAYAAAAIr43vAAACC0lEQVR4nO2c0Y2EQAxDM5BarvMrE9gm7I8nOwVEfjjxjBC753/+vhHXpW44M7OXoa2lKQefo3Svo29Kwo92n6M0HJ+jdM/RJwoHn6O0+PqmHHyOUhJ+71Lq4uC7lOpnas9NOaKPBd/Q1IQfbhQG37GmNUpfewzRj8JPVgoyqoEib8rB51wmLHnKMWqvzqm6XHNKwZ/okdq5KYEymJGybBQH37FRqEChbJQpUDhGUZSmG8W59Db55U2b/PKqURil2W97HMlPylPMwVej5E05SmuUvmqUBZ/iPuerznCj4jcqGZ+jNNwolPvZRh2MURylNUpdHKWk6LPgR7vPUQqa03NueVOSUZ1TdXHwOUpJ+NEjRTIqWul+mB9cft+rb/oamprwh6LU8UzD8UkbhTHKgc8ZqfCN2m8eeVMOPmejGij6aqBQlDqeKQm/gaIu10bJ/6qTNKcOfJPSsRiFwfe8RODgc5RmG2VY0xqlr3Cl4Uc0yX3MpTfdKJDSJr+4OEr30fcsvqH2xSh9PMkv72nD1zfljJTFfRO+/twDjRRqoxoo4uoRra/wkdrXwM/B54wUCj86UDh3qcdwl0LhY5RaNgp0k7bgJ7vfQNEXSalh+ElHdPTuo/AdTUH4yUrDbyic6APhc14ffw6jHE1J+Jg5TTcqGp+jNByfozQ8+sLd5ygNx+cobaAk43OU/gAyqV/vfWoTVAAAAABJRU5ErkJggg==" id="imagedc9845a701" transform="scale(1 -1) translate(0 -300.96)" x="509.04" y="-197.28" width="15.12" height="300.96"/>
+   <g id="matplotlib.axis_5"/>
+   <g id="matplotlib.axis_6">
+    <g id="ytick_6">
+     <g id="line2d_10">
+      <defs>
+       <path id="m3981b3c557" d="M 0 0
+L 3.5 0
+" style="stroke: #374151; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#m3981b3c557" x="524.414951" y="471.919973" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_22">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="531.414951" y="476.539973" transform="rotate(-0 531.414951 476.539973)">0.5</text>
+     </g>
+    </g>
+    <g id="ytick_7">
+     <g id="line2d_11">
+      <g>
+       <use xlink:href="#m3981b3c557" x="524.414951" y="417.858803" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_23">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="531.414951" y="422.478803" transform="rotate(-0 531.414951 422.478803)">0.6</text>
+     </g>
+    </g>
+    <g id="ytick_8">
+     <g id="line2d_12">
+      <g>
+       <use xlink:href="#m3981b3c557" x="524.414951" y="363.797633" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_24">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="531.414951" y="368.417633" transform="rotate(-0 531.414951 368.417633)">0.7</text>
+     </g>
+    </g>
+    <g id="ytick_9">
+     <g id="line2d_13">
+      <g>
+       <use xlink:href="#m3981b3c557" x="524.414951" y="309.736464" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_25">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="531.414951" y="314.356464" transform="rotate(-0 531.414951 314.356464)">0.8</text>
+     </g>
+    </g>
+    <g id="ytick_10">
+     <g id="line2d_14">
+      <g>
+       <use xlink:href="#m3981b3c557" x="524.414951" y="255.675294" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_26">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="531.414951" y="260.295294" transform="rotate(-0 531.414951 260.295294)">0.9</text>
+     </g>
+    </g>
+    <g id="ytick_11">
+     <g id="line2d_15">
+      <g>
+       <use xlink:href="#m3981b3c557" x="524.414951" y="201.614124" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_27">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="531.414951" y="206.234124" transform="rotate(-0 531.414951 206.234124)">1.0</text>
+     </g>
+    </g>
+   </g>
+   <g id="LineCollection_1"/>
+   <g id="patch_13">
+    <path d="M 509.353495 498.950557
+L 516.884223 498.950557
+L 524.414951 498.950557
+L 524.414951 197.721443
+L 516.884223 197.721443
+L 509.353495 197.721443
+L 509.353495 498.950557
+z
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+  </g>
+  <g id="axes_4">
+   <g id="patch_14">
+    <path d="M 980.842544 498.950557
+L 995.904 498.950557
+L 995.904 197.721443
+L 980.842544 197.721443
+z
+" style="fill: #ffffff"/>
+   </g>
+   <image xlink:href="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABUAAAGiCAYAAAAIr43vAAACC0lEQVR4nO2c0Y2EQAxDM5BarvMrE9gm7I8nOwVEfjjxjBC753/+vhHXpW44M7OXoa2lKQefo3Svo29Kwo92n6M0HJ+jdM/RJwoHn6O0+PqmHHyOUhJ+71Lq4uC7lOpnas9NOaKPBd/Q1IQfbhQG37GmNUpfewzRj8JPVgoyqoEib8rB51wmLHnKMWqvzqm6XHNKwZ/okdq5KYEymJGybBQH37FRqEChbJQpUDhGUZSmG8W59Db55U2b/PKqURil2W97HMlPylPMwVej5E05SmuUvmqUBZ/iPuerznCj4jcqGZ+jNNwolPvZRh2MURylNUpdHKWk6LPgR7vPUQqa03NueVOSUZ1TdXHwOUpJ+NEjRTIqWul+mB9cft+rb/oamprwh6LU8UzD8UkbhTHKgc8ZqfCN2m8eeVMOPmejGij6aqBQlDqeKQm/gaIu10bJ/6qTNKcOfJPSsRiFwfe8RODgc5RmG2VY0xqlr3Cl4Uc0yX3MpTfdKJDSJr+4OEr30fcsvqH2xSh9PMkv72nD1zfljJTFfRO+/twDjRRqoxoo4uoRra/wkdrXwM/B54wUCj86UDh3qcdwl0LhY5RaNgp0k7bgJ7vfQNEXSalh+ElHdPTuo/AdTUH4yUrDbyic6APhc14ffw6jHE1J+Jg5TTcqGp+jNByfozQ8+sLd5ygNx+cobaAk43OU/gAyqV/vfWoTVAAAAABJRU5ErkJggg==" id="image1b087aa594" transform="scale(1 -1) translate(0 -300.96)" x="980.64" y="-197.28" width="15.12" height="300.96"/>
+   <g id="matplotlib.axis_7"/>
+   <g id="matplotlib.axis_8">
+    <g id="ytick_12">
+     <g id="line2d_16">
+      <g>
+       <use xlink:href="#m3981b3c557" x="995.904" y="468.673662" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_28">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="1002.904" y="473.293662" transform="rotate(-0 1002.904 473.293662)">−0.4</text>
+     </g>
+    </g>
+    <g id="ytick_13">
+     <g id="line2d_17">
+      <g>
+       <use xlink:href="#m3981b3c557" x="995.904" y="408.504831" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_29">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="1002.904" y="413.124831" transform="rotate(-0 1002.904 413.124831)">−0.2</text>
+     </g>
+    </g>
+    <g id="ytick_14">
+     <g id="line2d_18">
+      <g>
+       <use xlink:href="#m3981b3c557" x="995.904" y="348.336" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_30">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="1002.904" y="352.956" transform="rotate(-0 1002.904 352.956)">0.0</text>
+     </g>
+    </g>
+    <g id="ytick_15">
+     <g id="line2d_19">
+      <g>
+       <use xlink:href="#m3981b3c557" x="995.904" y="288.167169" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_31">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="1002.904" y="292.787169" transform="rotate(-0 1002.904 292.787169)">0.2</text>
+     </g>
+    </g>
+    <g id="ytick_16">
+     <g id="line2d_20">
+      <g>
+       <use xlink:href="#m3981b3c557" x="995.904" y="227.998338" style="fill: #374151; stroke: #374151; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_32">
+      <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #374151" x="1002.904" y="232.618338" transform="rotate(-0 1002.904 232.618338)">0.4</text>
+     </g>
+    </g>
+   </g>
+   <g id="LineCollection_2"/>
+   <g id="patch_15">
+    <path d="M 980.842544 498.950557
+L 988.373272 498.950557
+L 995.904 498.950557
+L 995.904 197.721443
+L 988.373272 197.721443
+L 980.842544 197.721443
+L 980.842544 498.950557
+z
+" style="fill: none; stroke: #cbd5e1; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+  </g>
+  <g id="text_33">
+   <text style="font-weight: 700; font-size: 17px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #111827" x="54.72" y="44.48" transform="rotate(-0 54.72 44.48)">创新1 K1-U：uKNIT 第5轮位置残差在中型数据规模是否仍成立</text>
+  </g>
+  <g id="text_34">
+   <text style="font-size: 10.8px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #4b5563" x="54.72" y="67.896" transform="rotate(-0 54.72 67.896)">每颗 seed 使用 65536/class 训练、32768/class 跨密钥验证、每样本4对密文和10轮训练；只扩大数据量。</text>
+  </g>
+  <g id="text_35">
+   <text style="font-weight: 700; font-size: 11.2px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #b45309" x="54.72" y="109.224" transform="rotate(-0 54.72 109.224)">裁决：有信号，但保留原生位置没有稳定优于位置抹除。</text>
+  </g>
+  <g id="text_36">
+   <text style="font-size: 10.2px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #4b5563" x="54.72" y="144.648" transform="rotate(-0 54.72 144.648)">左图回答能否区分，右图回答优势是否确实依赖正确 S盒语义和原生 cell 位置。</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p4185fdcc11">
+   <rect x="196.992" y="188.928" width="299.264577" height="318.816"/>
+  </clipPath>
+  <clipPath id="p7b420d0ec4">
+   <rect x="668.481049" y="188.928" width="299.264577" height="318.816"/>
+  </clipPath>
+ </defs>
+</svg>

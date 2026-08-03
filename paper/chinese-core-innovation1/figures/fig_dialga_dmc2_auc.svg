@@ -502,7 +502,7 @@ z
    <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #4b5563" x="55.8" y="73.44" transform="rotate(-0 55.8 73.44)">每个模型训练 262144/class，跨密钥验证 65536/class；每条样本含4对密文。</text>
   </g>
   <g id="text_41">
-   <text style="font-weight: 700; font-size: 11.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #047857" x="55.8" y="116.28" transform="rotate(-0 55.8 116.28)">裁决：两颗 seed 全部门槛通过，允许预注册正式规模 DFC1。</text>
+   <text style="font-weight: 700; font-size: 11.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #047857" x="55.8" y="116.28" transform="rotate(-0 55.8 116.28)">裁决：两颗 seed 全部门槛通过；本文以 262144/class 为最高规模结果。</text>
   </g>
   <g id="text_42">
    <text style="font-size: 10.5px; font-family: 'Noto Sans CJK SC', 'DejaVu Sans'; text-anchor: start; fill: #4b5563" x="55.8" y="156.06" transform="rotate(-0 55.8 156.06)">门槛：正确拓扑 AUC≥0.900，且分别领先扰动拓扑 +0.005、AutoND +0.010。</text>

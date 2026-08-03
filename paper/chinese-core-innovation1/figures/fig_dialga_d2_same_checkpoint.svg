@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520">
+<rect width="100%" height="100%" fill="white"/>
+<text x="490.0" y="35" text-anchor="middle" font-size="22" font-family="Arial, Noto Sans CJK SC">Dialga-128 r4 D2：同一检查点替换结构说明书（2048/class）</text>
+<text x="25" y="245.0" transform="rotate(-90 25 245.0)" text-anchor="middle" font-size="15" font-family="Arial">AUC</text>
+<line x1="80" y1="420.0" x2="950" y2="420.0" stroke="#ddd"/>
+<text x="70" y="425.0" text-anchor="end" font-size="12" font-family="Arial">0.00</text>
+<line x1="80" y1="350.0" x2="950" y2="350.0" stroke="#ddd"/>
+<text x="70" y="355.0" text-anchor="end" font-size="12" font-family="Arial">0.21</text>
+<line x1="80" y1="280.0" x2="950" y2="280.0" stroke="#ddd"/>
+<text x="70" y="285.0" text-anchor="end" font-size="12" font-family="Arial">0.42</text>
+<line x1="80" y1="210.0" x2="950" y2="210.0" stroke="#ddd"/>
+<text x="70" y="215.0" text-anchor="end" font-size="12" font-family="Arial">0.63</text>
+<line x1="80" y1="140.0" x2="950" y2="140.0" stroke="#ddd"/>
+<text x="70" y="145.0" text-anchor="end" font-size="12" font-family="Arial">0.84</text>
+<line x1="80" y1="70.0" x2="950" y2="70.0" stroke="#ddd"/>
+<text x="70" y="75.0" text-anchor="end" font-size="12" font-family="Arial">1.05</text>
+<line x1="80" y1="420" x2="950" y2="420" stroke="#222"/>
+<line x1="80" y1="70" x2="80" y2="420" stroke="#222"/>
+<line x1="80" y1="253.3" x2="950" y2="253.3" stroke="#111" stroke-dasharray="6,5"/>
+<rect x="104.7" y="100.5" width="95.7" height="319.5" fill="#31a354"/>
+<text x="152.5" y="92.5" text-anchor="middle" font-size="13" font-family="Arial">0.9584</text>
+<text x="152.5" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">Correct</text>
+<text x="152.5" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">s0</text>
+<rect x="249.7" y="111.6" width="95.7" height="308.4" fill="#fd8d3c"/>
+<text x="297.5" y="103.6" text-anchor="middle" font-size="13" font-family="Arial">0.9253</text>
+<text x="297.5" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">Corrupt</text>
+<text x="297.5" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">s0</text>
+<rect x="394.6" y="247.5" width="95.7" height="172.5" fill="#9ecae1"/>
+<text x="442.5" y="239.5" text-anchor="middle" font-size="13" font-family="Arial">0.5174</text>
+<text x="442.5" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">NoTopo</text>
+<text x="442.5" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">s0</text>
+<rect x="539.6" y="100.4" width="95.7" height="319.6" fill="#31a354"/>
+<text x="587.5" y="92.4" text-anchor="middle" font-size="13" font-family="Arial">0.9587</text>
+<text x="587.5" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">Correct</text>
+<text x="587.5" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">s1</text>
+<rect x="684.6" y="113.9" width="95.7" height="306.1" fill="#fd8d3c"/>
+<text x="732.5" y="105.9" text-anchor="middle" font-size="13" font-family="Arial">0.9184</text>
+<text x="732.5" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">Corrupt</text>
+<text x="732.5" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">s1</text>
+<rect x="829.6" y="244.5" width="95.7" height="175.5" fill="#9ecae1"/>
+<text x="877.5" y="236.5" text-anchor="middle" font-size="13" font-family="Arial">0.5264</text>
+<text x="877.5" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">NoTopo</text>
+<text x="877.5" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">s1</text>
+</svg>

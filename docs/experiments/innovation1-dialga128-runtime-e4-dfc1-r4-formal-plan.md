@@ -1,13 +1,13 @@
 # Innovation 1 Dialga-128 Runtime-E4 DFC1 R4 Formal Plan
 
-Date: 2026-08-02
+Date: 2026-08-02; cancelled 2026-08-03 by author scope decision
 
 ## Status
 
 ```text
-phase = running remotely; durable start confirmed; watcher active
-scale = project-formal prefix-r4 evaluation
-paper role = formal Dialga prefix-r4 performance and topology-attribution row
+phase = user-cancelled; remote task ended and disabled; watcher stopped
+scale = incomplete 1000000/class attempt, excluded from evidence
+paper role = none; DMC2 262144/class is the manuscript scale ceiling
 ```
 
 ## Remote Launch Record
@@ -22,8 +22,8 @@ physical_gpu      = 0
 remote_run_root   = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_dialga128_runtime_e4_dfc1_r4_1000000_seed0_seed1_20260802
 source_mode       = clean run-owned clone, detached at the exact pushed commit
 durable_start     = source_expected_commit.txt, readiness.txt, started.marker
-local_monitor     = tmux:i1_dialga_dfc1_1m_monitor
-result_status     = running; no result or publication claim yet
+local_monitor     = stopped; tmux:i1_dialga_dfc1_1m_monitor removed
+result_status     = user-cancelled; 1/6 rows complete; no comparison claim
 ```
 
 The bounded prelaunch audit found GPU0 without a compute training process and
@@ -35,6 +35,31 @@ found the exact source pin, readiness evidence and `started.marker`; the
 progress file was not yet present at that instant. The main task must not SSH
 poll the run. Completion, archive retrieval, local re-adjudication and result
 indexing are delegated to the local watcher.
+
+## Cancellation Record
+
+The author stopped DFC1 on 2026-08-03 because the manuscript is scoped as a
+structure-mechanism and attribution study whose experiment ceiling is
+`262144/class`. The stop targeted only scheduled task
+`I1_DIALGA_DFC1_S0S1_GPU0` and this run id. The existing run directory, cache,
+checkpoint and logs were retained.
+
+```text
+verified_at         = 2026-08-03T10:53:19+08:00
+scheduled_task      = Disabled; Enabled=false
+matching_python     = NO_MATCH for the exact DFC1 run id
+local_watcher       = stopped
+completed_rows      = 1 of 6 (correct topology, seed 0)
+interrupted_row     = row 2, corrupted topology seed 0, validation start at epoch 6
+unstarted_rows      = rows 3 through 6
+publication_status  = excluded; incomplete controls prevent adjudication
+```
+
+One completed candidate row and five fresh-test repeats exist in the retained
+progress log, but the corrupted-topology and AutoND controls and the second
+seed are incomplete. These values must not be reported as a DFC1 result, used
+to strengthen DMC2, indexed as a completed experiment, or resumed
+automatically.
 
 ## Research Question
 
@@ -185,14 +210,14 @@ A passing DFC1 result supports only this project's two-seed, three-model,
 third-key tests. It is not evidence for full 16/20-round Dialga, key recovery,
 SOTA, an exact reproduction of another paper's protocol, a single shared-weight
 network that handles all SPNs, or superiority over deterministic cryptanalysis.
-Until the remote archive is retrieved and locally re-adjudicated, DFC1 remains
-`planned` or `running`, not a completed manuscript result.
+Because the six-row matrix was cancelled after one completed row, DFC1 is not a
+completed manuscript result and has no publication claim. Its partial files
+are retained only for an audit trail.
 
 ## Executable Next Action
 
-Allow the local tmux watcher to wait for a terminal artifact. On completion it
-must prefer a complete verified result branch, use the named raw fallback only
-when necessary, verify the CRLF-normalized checksum manifest, replay the DFC1
-gate locally, refresh `outputs/00_RECENT_RESULTS.*`, and leave visual QA pending
-for a separate rendered-pixel inspection. Do not SSH-poll, change the frozen
-protocol, launch Dialga prefix-r5, or call the running job a completed result.
+Do not resume, relaunch, repackage or index DFC1. Preserve its remote and local
+logs as cancelled-run audit material. Use the completed DMC2 two-seed
+`262144/class` result as the manuscript's highest-scale Dialga evidence, retain
+its raw-fallback and no-independent-final-test qualifications, and continue
+paper synthesis without additional mechanical scale-up.

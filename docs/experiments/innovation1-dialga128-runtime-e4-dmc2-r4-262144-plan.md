@@ -7,7 +7,7 @@ Date: 2026-08-01
 ```text
 phase = completed remotely; raw-fallback retrieved; locally re-adjudicated; pass
 scale = 262144/class scale confirmation, not formal evidence
-paper role = last scale gate before DFC1 formal preregistration
+paper role = highest-scale Dialga result in the bounded mechanism manuscript
 ```
 
 ## Remote Launch Record
@@ -95,7 +95,7 @@ six-row plan, four disk caches, eight cache reuses, six checkpoints, exact row
 counts, fixed keys/difference/negatives, and no independent-final-test fields.
 A seed cannot be rescued by averaging.
 
-## Decisions
+## Preregistered Decisions (Historical)
 
 - Pass: preregister DFC1 at at least `1000000/class`, multiple seeds, and five
   fresh independent final-test repeats under a third fixed key.
@@ -108,16 +108,18 @@ A seed cannot be rescued by averaging.
 
 DMC2 is a two-seed `262144/class` scale confirmation. It is not formal or
 paper-scale evidence, not a full-round Dialga result, not a key-recovery result,
-not a SOTA claim, and not evidence for a single universal SPN network. Only a
-subsequent DFC1 run with at least `1000000/class` and independent final tests can
-serve as the formal Dialga performance row in the manuscript.
+not a SOTA claim, and not evidence for a single universal SPN network. Under the
+original gate terminology, a subsequent DFC1 run with at least
+`1000000/class` and independent final tests would have been required for a
+formal project-scale row. The author has instead capped the paper at DMC2 and
+removed that stronger claim from scope.
 
 ## Executable Next Action
 
-Run focused plan/gate/package/readiness tests, commit and push the exact assets,
-execute the fail-closed launch gate against GitHub `main`, launch the clean
-run-owned clone on physical GPU0 using `cmd.exe /c`, confirm one durable start
-artifact, and leave completion/retrieval to the local tmux watcher.
+Use DMC2 as the manuscript's highest-scale Dialga evidence, retain its
+raw-fallback and no-independent-final-test qualifications, and perform no
+further mechanical data scale-up. The historical DFC1 launch was cancelled on
+2026-08-03 and must not be resumed automatically.
 
 ## Completed Result And Local Re-adjudication (2026-08-02)
 
@@ -153,9 +155,9 @@ legend no longer occludes the seed1 AutoND-margin annotation; the final title,
 protocol text, thresholds, heatmap values, bars, labels and export bounds have
 no overlap, clipping, missing glyphs or ambiguity.
 
-## Frozen DFC1 Next Action
+## Superseded DFC1 Scale Action
 
-Preregister DFC1 as the only allowed Dialga scale continuation:
+The original gate authorized DFC1 as the only mechanical scale continuation:
 
 ```text
 cipher / rounds      = Dialga-128 parent / encrypted prefix-r4
@@ -177,3 +179,18 @@ A pass permits one formal *project* result row for this exact Dialga prefix-r4
 protocol. It still does not imply a full-round result, key recovery, SOTA, a
 universal SPN network, or superiority over deterministic cryptanalysis. A hold
 or invalid result stops mechanical scaling. Dialga prefix-r5 remains blocked.
+
+## Author Scope Decision (2026-08-03)
+
+The author capped the current paper at `262144/class` and cancelled the running
+DFC1 matrix after one of six rows. DFC1 is therefore excluded from all result
+claims. DMC2 remains non-formal, non-paper-scale evidence under the original
+gate terminology, but it is sufficient for the manuscript's narrower claim:
+within this two-seed Dialga prefix-r4 protocol, correct topology consistently
+beats the deterministic corrupted-topology control and the same-budget AutoND
+baseline through `262144/class`.
+
+The executable next action is manuscript synthesis and evidence audit, not
+additional scale-up. Preserve the fallback-retrieval qualification, state that
+`final_test_repeats=0`, and do not relabel DMC2 as an AutoND reproduction,
+universal-SPN result, full-round attack, SOTA result or formal scale benchmark.
