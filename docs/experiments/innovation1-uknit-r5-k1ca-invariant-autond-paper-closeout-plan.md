@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT K1-CA Invariant/AutoND Paper Closeout Plan
 
 **Date:** 2026-08-03
-**Status:** prepared; local readiness required; remote A6000 only
+**Status:** running remotely; bounded start confirmed; tmux retrieval active; result pending
 **Run ID:** `i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803`
 
 ## 1. Research Question
@@ -126,3 +126,42 @@ invariant candidate AUC - AutoND AUC >= +0.100
 推荐下一动作固定为论文定稿：整理 K1-CA 表格与视觉检查通过的图，保留“项目协议、
 双 seed、非精确 AutoND 复现、非百万正式规模、非统一网络通吃所有 SPN”的证据
 边界，不再启动新的 Innovation 1 训练。
+
+## 8. Launch Record
+
+2026-08-03 已从 GitHub `main` 上精确提交
+`ad8581a7b790d138de5f270725a872441e4f29e3` 启动。独立 launch gate 为
+`pass`，其上游 K1-U SHA、位置不变选择、论文资源合同、四行计划、remote
+readiness、source assets、受保护工作区和 GitHub 远端 SHA 检查全部通过。
+
+远程使用物理 GPU0，启动前没有 Python 训练进程，目标 run root 和同名计划任务
+均不存在。由于历史约定项目路径及名为 `v1-clean` 的目录都不是 Git 仓库，未对
+其执行 pull、reset 或覆盖；改为从 GitHub 建立本次专用干净启动克隆：
+
+```text
+G:\lxy\blockcipher-structure-adaptive-nd-k1ca-launch-ad8581a7
+```
+
+该克隆 detach 到精确提交后，通过已提交的 `cmd.exe /c` 启动器创建 run-owned
+source 和训练根：
+
+```text
+G:\lxy\blockcipher-structure-adaptive-nd-runs\
+  i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803
+```
+
+唯一一次启动后远程确认显示 Git revision、Git status、GPU 和 torch 日志已经
+创建，Windows 计划任务结果 `0x41301` 表示任务正在运行；确认时 started marker、
+readiness 和 progress 尚未生成，因此状态只能记为 `running / pre-readiness`，
+不能记为结果完成或训练行已经开始。
+
+本地 tmux 会话 `i1_uknit_k1ca_closeout_monitor` 已接管后续等待和回收，监视根为：
+
+```text
+outputs/remote_results_incomplete/
+  i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803_monitor/
+```
+
+主线程不再 SSH 轮询。下一动作是由 monitor 等待 verified result branch 或 raw
+fallback archive，随后自动校验清单、重裁决四行结果并刷新 recent-results 索引。
+在完整结果回收前不生成论文数值、图表或优势结论，也不启动任何额外实验。
