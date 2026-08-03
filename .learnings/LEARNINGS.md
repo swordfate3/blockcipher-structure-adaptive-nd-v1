@@ -9190,3 +9190,59 @@ summary as a locator, not as proof that omitted runs do not exist.
 - **Notes**: Corrected the user-facing statement and used the index-plus-gate check before continuing K1-AR.
 
 ---
+
+## [LRN-20260803-001] correction
+
+**Logged**: 2026-08-03T10:40:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Before reporting that uKNIT lacks medium or 262144/class evidence, distinguish
+the paper-selected r5 architecture route from completed K1-U and K1-BR runs.
+
+### Details
+
+A status summary incorrectly collapsed all uKNIT scale evidence into the
+protocol-invalid K1-BT r5 architecture comparison. The result index and gates
+show two additional facts. K1-U completed a protocol-valid two-seed
+`65536/class` r5 run: the exact and invariant branches both had AUC near 0.97,
+both beat the wrong-S-box control near 0.50, but the exact branch did not beat
+the simpler invariant branch, so its research gate is `hold`. K1-BR also
+completed a single-seed `262144/class` r6 run, but its strict local gate is
+`protocol-invalid`; all three AUCs were near 0.50 and the intended candidate
+did not reach the preregistered weak floor.
+
+Neither run is the missing K1-BU `262144/class` confirmation of the paper's r5
+K1-BS/K1-BT architecture route. K1-BT's run-id collision and broken cache
+contract prevented that planned advancement.
+
+### Suggested Action
+
+For uKNIT scale-status questions, search the recent-result index by cipher and
+scale before narrowing to the current manuscript labels. Report K1-U as
+protocol-valid fallback-retrieved medium evidence with a research hold, K1-BR
+as completed but protocol-invalid r6 single-seed evidence, and the r5 K1-BU
+confirmation as not run. Do not describe these three states collectively as
+"no uKNIT medium result."
+
+### Metadata
+
+- Source: agent_correction, result_index_audit
+- Related Files: outputs/00_RECENT_RESULTS.md, outputs/remote_results_incomplete/i1_uknit_family_ctspn_position_residual_k1u_medium_65536_seed3_seed4_20260728/gate.json, outputs/remote_results_incomplete/i1_uknit_r6_last2_neural_scale_k1br_262144_seed3_20260730/gate.local.json, docs/experiments/innovation1-uknit-r5-neural-architecture-medium-k1bt-plan.md
+- Tags: innovation1, uknit, scale-status, medium-result, protocol-invalid, manuscript-evidence
+- See Also: LRN-20260729-001, ERR-20260728-004, ERR-20260801-001
+- Pattern-Key: reporting.uknit_scale_status_distinguishes_route_and_gate_state
+- Recurrence-Count: 1
+- First-Seen: 2026-08-03
+- Last-Seen: 2026-08-03
+
+### Resolution
+
+- **Resolved**: 2026-08-03T10:40:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Corrected the user-facing scale inventory against the result index and the K1-U, K1-BR and K1-BT gates.
+
+---
