@@ -1,0 +1,29 @@
+{
+  "checkpoints": [
+    {
+      "archive_path": "checkpoints/checkpoint_00.pt",
+      "bytes": 880266,
+      "path": "checkpoints/row0001_runtime_spn_ct_k1t_position_histogram_invariant_seed3.pt",
+      "sha256": "d26fe8a8c23bfd4288b7700319d0cfdd0c548d5ba4171fcc9c2753150754c35c"
+    },
+    {
+      "archive_path": "checkpoints/checkpoint_01.pt",
+      "bytes": 2602549,
+      "path": "checkpoints/row0002_autond_dbitnet2023_seed3.pt",
+      "sha256": "bd7b9d6d9b094d468243d64a80a137b9f940ca19d918f197aeba89de18b00d8e"
+    },
+    {
+      "archive_path": "checkpoints/checkpoint_02.pt",
+      "bytes": 880266,
+      "path": "checkpoints/row0003_runtime_spn_ct_k1t_position_histogram_invariant_seed4.pt",
+      "sha256": "3d7f9714b6dbb3c62556b5df43977ee50c9c920505feb38f3e006f4324ab822e"
+    },
+    {
+      "archive_path": "checkpoints/checkpoint_03.pt",
+      "bytes": 2602549,
+      "path": "checkpoints/row0004_autond_dbitnet2023_seed4.pt",
+      "sha256": "a53a79a81076acc53ad8b3a2e7f6b84da54ede1e1405a47fa3a18fda708acd87"
+    }
+  ],
+  "count": 4
+}

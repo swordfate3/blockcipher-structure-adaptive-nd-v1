@@ -1,0 +1,61 @@
+{
+  "blocked_actions": [
+    "more than four model-seed rows",
+    "wrong-S-box, MCND, Liu Conv2D, or another model family",
+    "additional seeds, rounds, pairs, epochs, differences, or keys",
+    "final-test repeats or final-test caches",
+    "million-scale or later mechanical scale-up"
+  ],
+  "claim_scope": "two-seed remote 262144/class uKNIT-BC r5 project-protocol paper closeout; not an exact AutoND public-code reproduction, formal million-scale benchmark, full-round result, attack breakthrough, SOTA claim, or universal-SPN network claim",
+  "decision": "innovation1_uknit_k1ca_invariant_advantage_supported",
+  "experiment_stage_after_valid_result": "closed",
+  "failed_protocol_checks": [],
+  "failed_research_checks": [],
+  "next_action": "close the paper experiment stage and integrate the two-seed K1-CA metrics, provenance boundary, table, and visually checked figure",
+  "parameter_counts": {
+    "autond_dbitnet": 636513,
+    "invariant_structure_expert": 214316
+  },
+  "protocol_checks": {
+    "all_cache_paths_under_unique_run_root": true,
+    "cache_chunks_and_workers_frozen": true,
+    "four_autond_cache_reuses_exact": true,
+    "four_frozen_tasks_exact": true,
+    "four_nonempty_checkpoints_present": true,
+    "four_result_rows_exact": true,
+    "four_train_validation_cache_completions_exact": true,
+    "four_train_validation_cache_creations_exact": true,
+    "result_protocol_frozen": true,
+    "run_done_present": true,
+    "source_revision_matches_launch_pin": true,
+    "zero_final_test_cache_events": true
+  },
+  "research_checks": {
+    "seed3_candidate_auc_floor": true,
+    "seed3_candidate_autond_margin": true,
+    "seed4_candidate_auc_floor": true,
+    "seed4_candidate_autond_margin": true
+  },
+  "run_id": "i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803",
+  "seed_results": {
+    "3": {
+      "auc_by_architecture": {
+        "autond_dbitnet": 0.50046139548067,
+        "invariant_structure_expert": 0.9788284911774099
+      },
+      "candidate_minus_autond": 0.47836709569673985
+    },
+    "4": {
+      "auc_by_architecture": {
+        "autond_dbitnet": 0.5011997304391116,
+        "invariant_structure_expert": 0.980237825657241
+      },
+      "candidate_minus_autond": 0.47903809521812946
+    }
+  },
+  "status": "pass",
+  "thresholds": {
+    "candidate_auc": 0.9,
+    "candidate_minus_autond": 0.1
+  }
+}

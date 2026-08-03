@@ -1,0 +1,27 @@
+{
+  "claim_scope": "two-seed remote 262144/class uKNIT-BC r5 project-protocol paper closeout; not an exact AutoND public-code reproduction, formal million-scale benchmark, full-round result, attack breakthrough, SOTA claim, or universal-SPN network claim",
+  "decision": "innovation1_uknit_k1ca_invariant_advantage_supported",
+  "next_action": "close the paper experiment stage and integrate the two-seed K1-CA metrics, provenance boundary, table, and visually checked figure",
+  "run_id": "i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803",
+  "seed_results": {
+    "3": {
+      "auc_by_architecture": {
+        "autond_dbitnet": 0.50046139548067,
+        "invariant_structure_expert": 0.9788284911774099
+      },
+      "candidate_minus_autond": 0.47836709569673985
+    },
+    "4": {
+      "auc_by_architecture": {
+        "autond_dbitnet": 0.5011997304391116,
+        "invariant_structure_expert": 0.980237825657241
+      },
+      "candidate_minus_autond": 0.47903809521812946
+    }
+  },
+  "status": "pass",
+  "thresholds": {
+    "candidate_auc": 0.9,
+    "candidate_minus_autond": 0.1
+  }
+}

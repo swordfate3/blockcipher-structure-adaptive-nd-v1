@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "all_cache_paths_under_unique_run_root": true,
+    "cache_chunks_and_workers_frozen": true,
+    "four_autond_cache_reuses_exact": true,
+    "four_frozen_tasks_exact": true,
+    "four_nonempty_checkpoints_present": true,
+    "four_result_rows_exact": true,
+    "four_train_validation_cache_completions_exact": true,
+    "four_train_validation_cache_creations_exact": true,
+    "result_protocol_frozen": true,
+    "run_done_present": true,
+    "source_revision_matches_launch_pin": true,
+    "zero_final_test_cache_events": true
+  },
+  "errors": [],
+  "expected_result_rows": 4,
+  "expected_source_commit": "ad8581a7b790d138de5f270725a872441e4f29e3",
+  "result_rows": 4,
+  "run_id": "i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803",
+  "source_commit": "ad8581a7b790d138de5f270725a872441e4f29e3",
+  "status": "pass"
+}

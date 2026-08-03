@@ -1,0 +1,5 @@
+[1/4] uKNIT-BC r=5 model=runtime_spn_ct_k1t_position_histogram_invariant seed=3 pairs=4
+[2/4] uKNIT-BC r=5 model=autond_dbitnet2023 seed=3 pairs=4
+[3/4] uKNIT-BC r=5 model=runtime_spn_ct_k1t_position_histogram_invariant seed=4 pairs=4
+[4/4] uKNIT-BC r=5 model=autond_dbitnet2023 seed=4 pairs=4
+wrote 4 rows to G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803\results\results.jsonl
