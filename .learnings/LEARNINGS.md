@@ -9270,6 +9270,16 @@ the runtime structure description and counterfactual attribution, for which
 the completed two-seed DMC2 result at `262144/class`, together with D1/D2 and
 the uKNIT K1-U semantic control, is the chosen evidence ceiling.
 
+The correction is broader than cancelling one run. Two seeds are sufficient
+for this paper when both directions agree and large direct counterfactual
+margins support the mechanism. Baseline screening, ablations and scale
+confirmation must share generated datasets instead of multiplying dataset
+generation by model. DFC1 exposed the resource failure clearly: seed 0 alone
+created seven caches and 7,500,000 unique rows, including five 1,000,000-row
+final-test caches, before the second matrix row reached epoch 6. Although its
+train/validation cache reuse worked, the million-scale tier and five fresh-test
+repeats were unnecessary for the paper claim.
+
 DFC1 was therefore stopped after one of six rows. A completed candidate row
 without the corrupted-topology and AutoND controls or the second seed cannot be
 reported, even descriptively, as evidence for the matrix.
@@ -9277,21 +9287,23 @@ reported, even descriptively, as evidence for the matrix.
 ### Suggested Action
 
 Separate an experiment gate's permission to scale from the author's paper
-scope. Before starting a costly optional scale tier, confirm whether the paper
-needs a formal benchmark claim or a bounded mechanism claim. For this paper,
-use DMC2 as the highest-scale project evidence, retain its raw-fallback and
-no-independent-final-test limitations, exclude partial DFC1 metrics, and do not
-resume or replace the million-scale run unless the author explicitly changes
-scope.
+scope. Freeze the paper claim and resource budget before launching its final
+matrix. For this paper, use two seeds and at most `262144/class`; generate one
+train/validation dataset per seed and reuse it across the candidate, baseline
+and ablation models. Dialga needs no further training. If uKNIT receives one
+scale-aligned confirmation, limit it to the selected invariant candidate versus
+AutoND at seed 3/4, reuse all caches, omit repeated final tests, and close the
+experiment stage afterward. Do not turn literature-specific million-row
+protocols, additional seeds or more baselines into default publication gates.
 
 ### Metadata
 
 - Source: user_feedback, author_scope_decision
 - Related Files: paper/chinese-core-innovation1/codex_manuscript.md, docs/experiments/innovation1-dialga128-runtime-e4-dfc1-r4-formal-plan.md, docs/experiments/innovation1-dialga128-runtime-e4-dmc2-r4-262144-plan.md
-- Tags: innovation1, paper-scope, experiment-scale, dmc2, dfc1, cancellation, claim-strength
+- Tags: innovation1, paper-scope, experiment-scale, dmc2, dfc1, cancellation, claim-strength, evidence-budget, dataset-reuse
 - See Also: LRN-20260803-001
 - Pattern-Key: paper.scope.bounded_mechanism_claim_does_not_require_million_scale
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-08-03
 - Last-Seen: 2026-08-03
 
