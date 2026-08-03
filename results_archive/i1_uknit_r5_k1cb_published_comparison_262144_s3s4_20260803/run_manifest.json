@@ -1,0 +1,11 @@
+{
+  "checkpoint_count": 6,
+  "claim_scope": "same-data two-seed 262144/class uKNIT r5 project-protocol paper comparison; published architecture adaptations, not exact reproduction or formal million-scale evidence",
+  "new_cache_count": 0,
+  "result_rows": 6,
+  "result_sync": "verified_result_branch_with_local_raw_fallback",
+  "run_id": "i1_uknit_r5_k1cb_published_comparison_262144_s3s4_20260803",
+  "source_cache_reuses": 12,
+  "source_commit": "24439cf0c1c59ae53e80e4daaa26c24808b0993a",
+  "source_run_id": "i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803"
+}

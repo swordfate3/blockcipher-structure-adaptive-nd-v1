@@ -1,0 +1,25 @@
+{
+  "checks": {
+    "all_cache_reuses_under_k1ca_root": true,
+    "cache_chunks_and_workers_frozen": true,
+    "result_protocol_frozen": true,
+    "run_done_present": true,
+    "six_frozen_tasks_exact": true,
+    "six_nonempty_checkpoints_present": true,
+    "six_result_rows_exact": true,
+    "source_cache_audit_pass": true,
+    "source_k1ca_gate_protocol_valid": true,
+    "source_k1ca_results_protocol_frozen": true,
+    "source_revision_matches_launch_pin": true,
+    "twelve_source_cache_reuses_exact": true,
+    "zero_cache_generation_events": true,
+    "zero_final_test_cache_events": true
+  },
+  "errors": [],
+  "expected_result_rows": 6,
+  "expected_source_commit": "24439cf0c1c59ae53e80e4daaa26c24808b0993a",
+  "result_rows": 6,
+  "run_id": "i1_uknit_r5_k1cb_published_comparison_262144_s3s4_20260803",
+  "source_commit": "24439cf0c1c59ae53e80e4daaa26c24808b0993a",
+  "status": "pass"
+}

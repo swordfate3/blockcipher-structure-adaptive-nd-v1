@@ -1,0 +1,64 @@
+{
+  "cache_generation_authorized": false,
+  "checks": {
+    "cache_array_shapes_and_dtypes_match": true,
+    "cache_generation_contract_matches": true,
+    "cache_metadata_matches_k1cb_protocol": true,
+    "four_cache_payloads_complete": true,
+    "four_expected_cache_paths_exact": true,
+    "no_extra_source_cache_metadata": true,
+    "six_row_plan_frozen": true,
+    "source_cache_root_exists": true
+  },
+  "entries": [
+    {
+      "arrays_match": true,
+      "cache_path": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803\\cache\\uknit64\\r5\\train\\seed-3_d091c4828d20f95d",
+      "generation_contract_match": true,
+      "input_bits": 512,
+      "metadata_match": true,
+      "payload_complete": true,
+      "rows": 524288,
+      "seed": 3,
+      "split": "train"
+    },
+    {
+      "arrays_match": true,
+      "cache_path": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803\\cache\\uknit64\\r5\\validation\\seed-10003_a066a9d3ea2449f8",
+      "generation_contract_match": true,
+      "input_bits": 512,
+      "metadata_match": true,
+      "payload_complete": true,
+      "rows": 131072,
+      "seed": 3,
+      "split": "validation"
+    },
+    {
+      "arrays_match": true,
+      "cache_path": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803\\cache\\uknit64\\r5\\train\\seed-4_2f1fb1ba1fecfd43",
+      "generation_contract_match": true,
+      "input_bits": 512,
+      "metadata_match": true,
+      "payload_complete": true,
+      "rows": 524288,
+      "seed": 4,
+      "split": "train"
+    },
+    {
+      "arrays_match": true,
+      "cache_path": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803\\cache\\uknit64\\r5\\validation\\seed-10004_46af05ec3c45777b",
+      "generation_contract_match": true,
+      "input_bits": 512,
+      "metadata_match": true,
+      "payload_complete": true,
+      "rows": 131072,
+      "seed": 4,
+      "split": "validation"
+    }
+  ],
+  "failed_checks": [],
+  "run_id": "i1_uknit_r5_k1cb_published_comparison_262144_s3s4_20260803",
+  "source_run_id": "i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803",
+  "status": "pass",
+  "training_authorized": true
+}

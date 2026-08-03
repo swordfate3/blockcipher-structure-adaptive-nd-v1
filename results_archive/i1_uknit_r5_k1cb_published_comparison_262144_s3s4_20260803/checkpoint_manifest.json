@@ -1,0 +1,41 @@
+{
+  "checkpoints": [
+    {
+      "archive_path": "checkpoints/checkpoint_00.pt",
+      "bytes": 2641515,
+      "sha256": "9eac61de5b7ac974286637e5d7072f24eb7f518d63e641e9dd48093f6d78b5b5",
+      "source_path": "checkpoints/row0001_spn_zhang_wang_mcnd_adapter_seed3.pt"
+    },
+    {
+      "archive_path": "checkpoints/checkpoint_01.pt",
+      "bytes": 548802,
+      "sha256": "2bc1a20606b7a7c122a9cbca2a531805331afc3494b85ffe6897c2d33417bb69",
+      "source_path": "checkpoints/row0002_spn_liu_case3_conv2d_adapter_seed3.pt"
+    },
+    {
+      "archive_path": "checkpoints/checkpoint_02.pt",
+      "bytes": 818136,
+      "sha256": "5123c960189e59f41b73514cc30a3c58c129493c80e3a83b73331fd5d54f4885",
+      "source_path": "checkpoints/row0003_spn_gohr_style_resnet_pairset_adapter_seed3.pt"
+    },
+    {
+      "archive_path": "checkpoints/checkpoint_03.pt",
+      "bytes": 2641515,
+      "sha256": "ac300a383fb3a6ff15f62e11b0bb3ce2c06f6382ff3b72e7dc1921ee120a2cc1",
+      "source_path": "checkpoints/row0004_spn_zhang_wang_mcnd_adapter_seed4.pt"
+    },
+    {
+      "archive_path": "checkpoints/checkpoint_04.pt",
+      "bytes": 548802,
+      "sha256": "ff53316d41f6141b556ed2e972b5ff767fbe3465091820163801c89c5fc18cb4",
+      "source_path": "checkpoints/row0005_spn_liu_case3_conv2d_adapter_seed4.pt"
+    },
+    {
+      "archive_path": "checkpoints/checkpoint_05.pt",
+      "bytes": 818136,
+      "sha256": "c6e8981d846daf707816e07d97cc162f2e70b1d75562177147107b711219356d",
+      "source_path": "checkpoints/row0006_spn_gohr_style_resnet_pairset_adapter_seed4.pt"
+    }
+  ],
+  "count": 6
+}

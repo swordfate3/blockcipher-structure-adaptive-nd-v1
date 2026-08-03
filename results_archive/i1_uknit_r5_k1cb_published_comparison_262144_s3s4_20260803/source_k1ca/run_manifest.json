@@ -1,0 +1,9 @@
+{
+  "cache_count": 4,
+  "checkpoint_count": 4,
+  "claim_scope": "remote two-seed 262144/class uKNIT r5 project-protocol paper closeout; not exact AutoND reproduction or formal million-scale evidence",
+  "result_rows": 4,
+  "result_sync": "verified_result_branch_with_local_raw_fallback",
+  "run_id": "i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803",
+  "source_commit": "ad8581a7b790d138de5f270725a872441e4f29e3"
+}

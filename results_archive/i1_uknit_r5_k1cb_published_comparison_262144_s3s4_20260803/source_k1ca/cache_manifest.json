@@ -1,0 +1,53 @@
+{
+  "caches": [
+    {
+      "cache_path": "cache/uknit64/r5/train/seed-3_d091c4828d20f95d",
+      "features_bytes": 268435584,
+      "features_sha256": "5b949822534e1ef2fda36f408db25b15ab09227efaed0f6fea446a42860d6ca1",
+      "index": 0,
+      "input_bits": 512,
+      "labels_bytes": 524416,
+      "labels_sha256": "21a195a98b3801141c6cb1b01a00e572dc8ce3fbe9c4f5d871e0902a00ec598a",
+      "metadata_sha256": "aef6131a5062c86cefb5e4e4af4454589de0e74b5c0d2343363309f9647180ad",
+      "split": "train",
+      "total_rows": 524288
+    },
+    {
+      "cache_path": "cache/uknit64/r5/train/seed-4_2f1fb1ba1fecfd43",
+      "features_bytes": 268435584,
+      "features_sha256": "f5e8b6a700c73c9351d999115ac759058d5d007681814c2189f68796110a5f9c",
+      "index": 1,
+      "input_bits": 512,
+      "labels_bytes": 524416,
+      "labels_sha256": "21a195a98b3801141c6cb1b01a00e572dc8ce3fbe9c4f5d871e0902a00ec598a",
+      "metadata_sha256": "bab8c61e714edcaaa319ef4d8fed6ab97d248d5be4cc0d3e71540581252c901e",
+      "split": "train",
+      "total_rows": 524288
+    },
+    {
+      "cache_path": "cache/uknit64/r5/validation/seed-10003_a066a9d3ea2449f8",
+      "features_bytes": 67108992,
+      "features_sha256": "8e954013dc3759602a218e73a1162c2ffc0eb8003c4dc4732829f34c26a98575",
+      "index": 2,
+      "input_bits": 512,
+      "labels_bytes": 131200,
+      "labels_sha256": "071db3af09eb83cfdb053d35591d7c5faa97eadcd76fe6c109946bc77fda800c",
+      "metadata_sha256": "6ab84255ce18ea4b628612501446e64e60f48a9a5a001b65dfd500d45c56b499",
+      "split": "validation",
+      "total_rows": 131072
+    },
+    {
+      "cache_path": "cache/uknit64/r5/validation/seed-10004_46af05ec3c45777b",
+      "features_bytes": 67108992,
+      "features_sha256": "f09df3ff63fc29bda887300a7581c38fec69b609d0c76819124d2b1a4dd1ef7f",
+      "index": 3,
+      "input_bits": 512,
+      "labels_bytes": 131200,
+      "labels_sha256": "071db3af09eb83cfdb053d35591d7c5faa97eadcd76fe6c109946bc77fda800c",
+      "metadata_sha256": "b4d28cd6042b2c8cd844386af2551f84b681b319313818d5d046ff2e43dd9361",
+      "split": "validation",
+      "total_rows": 131072
+    }
+  ],
+  "count": 4
+}

@@ -1,0 +1,71 @@
+{
+  "blocked_actions": [
+    "generating or replacing any K1-CA source cache",
+    "dropping an unfavorable architecture or seed",
+    "post-hoc tuning after seeing K1-CB results",
+    "adding seeds, data, epochs, pairs, rounds or final tests",
+    "million-scale or later mechanical scale-up"
+  ],
+  "claim_scope": "same-data two-seed 262144/class uKNIT-BC r5 project-protocol comparison against AutoND, MCND, Liu Conv2D and Gohr-style ResNet; architecture adaptations rather than exact reproductions or exhaustive hyperparameter searches; not formal million-scale, full-round, SOTA, attack-breakthrough or universal-SPN evidence",
+  "comparison_status": "complete",
+  "decision": "innovation1_uknit_k1cb_published_comparison_complete",
+  "failed_protocol_checks": [],
+  "next_action": "integrate all five architectures and both seeds into the paper main comparison table and visually checked figure, then close training",
+  "parameter_counts": {
+    "gohr_style_resnet": 191937,
+    "liu_case3_conv2d": 130945,
+    "zhang_wang_mcnd": 650177
+  },
+  "performance_gate": "none; all protocol-valid observations are reported",
+  "protocol_checks": {
+    "all_cache_reuses_under_k1ca_root": true,
+    "cache_chunks_and_workers_frozen": true,
+    "result_protocol_frozen": true,
+    "run_done_present": true,
+    "six_frozen_tasks_exact": true,
+    "six_nonempty_checkpoints_present": true,
+    "six_result_rows_exact": true,
+    "source_cache_audit_pass": true,
+    "source_k1ca_gate_protocol_valid": true,
+    "source_k1ca_results_protocol_frozen": true,
+    "source_revision_matches_launch_pin": true,
+    "twelve_source_cache_reuses_exact": true,
+    "zero_cache_generation_events": true,
+    "zero_final_test_cache_events": true
+  },
+  "run_id": "i1_uknit_r5_k1cb_published_comparison_262144_s3s4_20260803",
+  "seed_results": {
+    "3": {
+      "auc_by_architecture": {
+        "autond_dbitnet": 0.50046139548067,
+        "gohr_style_resnet": 0.502705259481445,
+        "invariant_structure_expert": 0.9788284911774099,
+        "liu_case3_conv2d": 0.5025764384772629,
+        "zhang_wang_mcnd": 0.5025974800810218
+      },
+      "candidate_minus_baseline": {
+        "autond_dbitnet": 0.47836709569673985,
+        "gohr_style_resnet": 0.47612323169596493,
+        "liu_case3_conv2d": 0.47625205270014703,
+        "zhang_wang_mcnd": 0.4762310110963881
+      }
+    },
+    "4": {
+      "auc_by_architecture": {
+        "autond_dbitnet": 0.5011997304391116,
+        "gohr_style_resnet": 0.5015553941484541,
+        "invariant_structure_expert": 0.980237825657241,
+        "liu_case3_conv2d": 0.5025960284983739,
+        "zhang_wang_mcnd": 0.5029437394114211
+      },
+      "candidate_minus_baseline": {
+        "autond_dbitnet": 0.47903809521812946,
+        "gohr_style_resnet": 0.478682431508787,
+        "liu_case3_conv2d": 0.4776417971588671,
+        "zhang_wang_mcnd": 0.4772940862458199
+      }
+    }
+  },
+  "source_run_id": "i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803",
+  "status": "pass"
+}
