@@ -105,6 +105,66 @@ without calling them exact reproductions.
 
 ---
 
+## [LRN-20260803-004] correction
+
+**Logged**: 2026-08-03T16:35:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Define a paper's minimum experiment matrix from reviewable research questions,
+claims and external field standards before launching additional experiments.
+
+### Details
+
+The project repeatedly treated the next research-scale experiment as the path
+to a complete paper. That reversed the required order. A publication is not a
+catalogue of every promising experiment and it is not made complete by adding
+more data, seeds, models or routes without a claim-specific purpose. The paper
+must first state what it claims, how it differs from prior work, which main
+comparison answers the performance question, which counterfactual controls
+support attribution, which negative result bounds the claim and which artifacts
+make the evidence reproducible.
+
+For the current uKNIT/Dialga paper, the minimum matrix is already bounded:
+K1-CA/K1-CB provide the uKNIT same-data five-model main comparison; K1-U and
+Dialga D1/D2 provide mechanism attribution; K1-BV and Dialga D3 provide the
+adjacent-round boundary; Dialga DMC2 provides the completed large comparison.
+Million-scale training, a third seed, additional network families, new
+difference types and new attack routes do not fill a missing paper claim and
+must not be opened by default.
+
+### Suggested Action
+
+Before authorizing a paper experiment, map it to exactly one unresolved slot:
+main result, mechanism attribution, statistical credibility, boundary evidence
+or reproducibility. Calibrate that slot against primary literature and the
+target venue's author guidance. If no manuscript claim or reviewer objection
+would change after the result, do not run the experiment. Once every required
+slot is filled, stop experimentation and move to citation verification, figure
+traceability, reviewer simulation and formatting.
+
+### Metadata
+
+- Source: user_feedback, publication_workflow_correction
+- Related Files: paper/chinese-core-innovation1/codex_manuscript.md, paper/chinese-core-innovation1/claim_evidence_matrix.md, docs/experiments/innovation1-uknit-r5-k1cb-published-network-paper-comparison-plan.md
+- Tags: paper-workflow, experiment-matrix, publication-readiness, claim-first, external-calibration, stopping-rule
+- See Also: LRN-20260803-002, LRN-20260803-003
+- Pattern-Key: paper.workflow.publication_claims_drive_experiment_matrix
+- Recurrence-Count: 1
+- First-Seen: 2026-08-03
+- Last-Seen: 2026-08-03
+
+### Resolution
+
+- **Resolved**: 2026-08-03T16:45:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Reframed the manuscript around RQ1-RQ4, froze the minimum four-slot evidence matrix, audited it against primary literature and a Chinese core venue guide, limited remaining training to the same-data uKNIT five-model comparison, and added explicit submission gates, figure QA and a stop rule.
+
+---
+
 ## [LRN-20260731-002] correction
 
 **Logged**: 2026-07-31T23:19:38+08:00

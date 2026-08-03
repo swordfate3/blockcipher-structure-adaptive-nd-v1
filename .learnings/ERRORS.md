@@ -1,3 +1,52 @@
+## [ERR-20260803-001] web_search_plus_sandbox_cache_failure
+
+**Logged**: 2026-08-03T16:30:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### Summary
+
+The Web Search Plus plugin could neither reach its provider inside the sandbox
+nor record provider health because its installation cache is read-only.
+
+### Error
+
+```text
+ProviderRequestError: Network error: [Errno 1] Operation not permitted.
+OSError: [Errno 30] Read-only file system: .../web-search-plus/.cache/provider_health.json
+Automatic permission approval review did not finish before its deadline.
+```
+
+### Context
+
+- The failure occurred while searching official journal guidance and
+  bibliographic metadata; no manuscript text or private corpus was uploaded.
+- A direct `curl` request to the official Journal of Software author guide
+  remained available, and local publisher/Crossref artifacts covered the core
+  literature audit.
+- The search script path in an earlier handoff pointed to a removed
+  `.agents/skills` installation; the active plugin path is under
+  `.codex/plugins/cache/codex-local/web-research/...`.
+
+### Suggested Fix
+
+Make the provider-health cache location configurable to a writable project or
+temporary directory and expose a no-health-write option for sandboxed runs.
+Keep the active plugin script path discoverable from the installed skill root.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: sources/, paper/chinese-core-innovation1/references_seed.md
+- See Also: ERR-20260710-001
+- Pattern-Key: tooling.web_search.sandbox_cache_path_must_be_writable
+- Recurrence-Count: 1
+- First-Seen: 2026-08-03
+- Last-Seen: 2026-08-03
+
+---
+
 ## [ERR-20260801-001] remote_archive_long_path_and_run_id_collision
 
 **Logged**: 2026-08-01T22:58:40+08:00

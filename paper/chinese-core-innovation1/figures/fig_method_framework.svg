@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4b5563"/>
+    </marker>
+    <style>
+      text { font-family: "Noto Sans CJK SC", "Microsoft YaHei", sans-serif; fill: #1f2937; letter-spacing: 0; }
+      .title { font-size: 34px; font-weight: 700; }
+      .step { font-size: 18px; font-weight: 700; fill: #ffffff; }
+      .head { font-size: 25px; font-weight: 700; }
+      .body { font-size: 21px; }
+      .small { font-size: 18px; }
+      .label { font-size: 19px; font-weight: 700; }
+      .box { stroke-width: 2; rx: 5; }
+      .arrow { fill: none; stroke: #4b5563; stroke-width: 3; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="760" fill="#ffffff"/>
+  <text x="800" y="55" text-anchor="middle" class="title">运行时结构说明书驱动的异构 SPN 神经区分框架</text>
+
+  <rect x="50" y="112" width="260" height="458" fill="#f3f4f6" stroke="#6b7280" class="box"/>
+  <rect x="50" y="112" width="260" height="42" fill="#374151" rx="5"/>
+  <text x="72" y="140" class="step">1  公开算法规范</text>
+  <text x="75" y="195" class="head">可核验结构输入</text>
+  <line x1="75" y1="214" x2="285" y2="214" stroke="#9ca3af" stroke-width="2"/>
+  <text x="75" y="258" class="body">状态宽度与原生 cell</text>
+  <text x="75" y="301" class="body">cell 内比特角色</text>
+  <text x="75" y="344" class="body">逐阶段 S 盒真值表</text>
+  <text x="75" y="387" class="body">GF(2) 源—目标接线</text>
+  <text x="75" y="430" class="body">轮次与观察窗口</text>
+  <rect x="75" y="474" width="210" height="62" fill="#ffffff" stroke="#9ca3af" rx="4"/>
+  <text x="180" y="500" text-anchor="middle" class="small">只使用公开结构</text>
+  <text x="180" y="525" text-anchor="middle" class="small">不输入密码名称标签</text>
+
+  <rect x="350" y="112" width="310" height="458" fill="#edf6f4" stroke="#24766a" class="box"/>
+  <rect x="350" y="112" width="310" height="42" fill="#24766a" rx="5"/>
+  <text x="372" y="140" class="step">2  运行时结构说明书</text>
+  <text x="375" y="195" class="head">统一描述与消费接口</text>
+  <line x1="375" y1="214" x2="635" y2="214" stroke="#83b8af" stroke-width="2"/>
+  <text x="375" y="258" class="body">结构完整性校验</text>
+  <text x="375" y="301" class="body">物理比特重组为 cell</text>
+  <text x="375" y="344" class="body">逐轮算子按需暴露</text>
+  <text x="375" y="387" class="body">正确/扰动/无结构切换</text>
+  <rect x="375" y="430" width="260" height="106" fill="#ffffff" stroke="#83b8af" rx="4"/>
+  <text x="505" y="461" text-anchor="middle" class="label">统一结构描述与消费接口</text>
+  <text x="505" y="495" text-anchor="middle" class="small">按结构机制选择差异化专家</text>
+  <text x="505" y="521" text-anchor="middle" class="small">不绑定固定密码名称</text>
+
+  <rect x="710" y="112" width="360" height="210" fill="#fff7e6" stroke="#b7791f" class="box"/>
+  <rect x="710" y="112" width="360" height="42" fill="#b7791f" rx="5"/>
+  <text x="732" y="140" class="step">3A  uKNIT 非线性语义专家</text>
+  <text x="735" y="195" class="body">五阶段算子组合视图</text>
+  <text x="735" y="235" class="body">cell × 16 值位置不变直方图</text>
+  <text x="735" y="275" class="body">正确 S 盒 / 错误 S 盒控制</text>
+
+  <rect x="710" y="360" width="360" height="210" fill="#edf3ff" stroke="#3567a8" class="box"/>
+  <rect x="710" y="360" width="360" height="42" fill="#3567a8" rx="5"/>
+  <text x="732" y="388" class="step">3B  Dialga 拓扑专家</text>
+  <text x="735" y="443" class="body">非连续 cell 重组</text>
+  <text x="735" y="483" class="body">多轮 GF(2) 拓扑融合</text>
+  <text x="735" y="523" class="body">同检查点反事实说明书替换</text>
+
+  <rect x="1120" y="112" width="430" height="458" fill="#f9f2f4" stroke="#96566a" class="box"/>
+  <rect x="1120" y="112" width="430" height="42" fill="#7c4255" rx="5"/>
+  <text x="1142" y="140" class="step">4  同协议对照与评估</text>
+  <text x="1145" y="195" class="head">冻结数据、优化预算与负样本</text>
+  <line x1="1145" y1="214" x2="1525" y2="214" stroke="#c99bab" stroke-width="2"/>
+  <text x="1145" y="258" class="body">主结果：公开网络同数据比较</text>
+  <text x="1145" y="301" class="body">机制：正确 / 错误 / 无结构</text>
+  <text x="1145" y="344" class="body">功能：同一检查点只换说明书</text>
+  <text x="1145" y="387" class="body">边界：相邻轮数失败完整报告</text>
+  <rect x="1145" y="430" width="380" height="106" fill="#ffffff" stroke="#c99bab" rx="4"/>
+  <text x="1335" y="461" text-anchor="middle" class="label">输出：逐 seed AUC + 参数量</text>
+  <text x="1335" y="495" text-anchor="middle" class="small">结构对照与同检查点替换</text>
+  <text x="1335" y="521" text-anchor="middle" class="small">和相邻轮数边界共同报告</text>
+
+  <path d="M 310 341 L 350 341" class="arrow"/>
+  <path d="M 660 341 L 685 341 L 685 217 L 710 217" class="arrow"/>
+  <path d="M 660 341 L 685 341 L 685 465 L 710 465" class="arrow"/>
+  <path d="M 1070 217 L 1094 217 L 1094 300 L 1120 300" class="arrow"/>
+  <path d="M 1070 465 L 1094 465 L 1094 382 L 1120 382" class="arrow"/>
+
+  <rect x="50" y="620" width="1500" height="100" fill="#fafafa" stroke="#9ca3af" stroke-width="2" rx="4"/>
+  <rect x="70" y="643" width="100" height="54" fill="#2f766d" rx="4"/>
+  <text x="120" y="677" text-anchor="middle" class="step">评价范围</text>
+  <text x="195" y="658" class="small">任务：指定约化轮、冻结差分与跨密钥验证协议下的离线神经区分</text>
+  <text x="195" y="691" class="small">结论：协议内性能比较、非线性/拓扑结构归因及相邻轮数失败边界</text>
+</svg>

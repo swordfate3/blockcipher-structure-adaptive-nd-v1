@@ -1,6 +1,6 @@
 # 面向异构 SPN 的运行时结构先验神经区分方法：Dialga 拓扑归因与 uKNIT 非线性语义验证
 
-> 稿件状态说明：本文为中文核心期刊投稿风格初稿，实验数据截至 2026 年 8 月 3 日。正文区分本地完整闭环、原始回收并重裁决以及远程 gate 完成但归档待闭环三类有效证据状态。本文把 `262144/class` 和两个随机种子设为主实验的最高证据规模，只纳入完成必要对照的实验矩阵。投稿定稿时仍需逐条核验参考文献和作者信息，并按目标期刊体例调整篇幅。
+> 稿件状态说明：本文为中文核心期刊投稿风格初稿，实验数据截至 2026 年 8 月 3 日。正文区分本地完整闭环、原始回收并重裁决、远程 gate 完成但归档待闭环以及远程运行中四类证据状态。本文把 `262144/class` 和两个随机种子设为当前论文主实验的最高预算，只纳入回答既定研究问题所需的对照。核心参考文献元数据已经核验；投稿仍被 uKNIT K1-CA/K1-CB 五模型主表、目标期刊格式及最终完整性审计阻断。
 
 ## 摘要
 
@@ -16,11 +16,12 @@
 
 本文选择 uKNIT-BC 与 Dialga-128 作为两个互补案例。uKNIT 的非轮对齐设计使阶段身份、原生 cell 位置和非线性语义成为主要建模对象；Dialga 使用多个线性层，其非连续 cell 与 GF(2) 源—目标连接更适合检验拓扑信息。本文并不假设二者共享同一种充分统计量，而是统一结构说明书、运行时消费接口和控制实验原则，再针对不同结构机制配置差异化专家。
 
-围绕上述目标，本文研究三个问题：
+围绕上述目标，本文研究四个问题：
 
-1. 在数据、优化器、训练轮数和负样本定义保持一致的条件下，结构专家能否优于通用 AutoND/DBitNet 及其他公开网络架构适配器？
-2. 观察到的优势是否依赖正确的 S 盒或 GF(2) 拓扑，而不是参数量、训练随机性或简单的多密文对聚合？
-3. 结构信号在增加一轮后能否保持，其可重复边界在哪里？
+1. **RQ1：** 在数据、优化器、训练轮数和负样本定义保持一致的条件下，结构专家相对 AutoND/DBitNet、MCND、Liu Conv2D 和 Gohr-style ResNet 的表现如何？
+2. **RQ2：** 观察到的优势是否依赖正确的 S 盒或 GF(2) 拓扑，而不是训练随机性或简单的多密文对聚合？
+3. **RQ3：** 在冻结权重和检查点后，替换运行时说明书是否仍会改变模型输出？
+4. **RQ4：** 结构信号在增加一轮后能否保持，其失败边界在哪里？
 
 本文的主要工作如下。
 
@@ -34,15 +35,17 @@
 
 ### 2.1 神经差分区分器
 
-Gohr 将深度残差网络用于 SPECK 的约化轮差分区分，推动了神经网络与传统差分分析的结合[1]。后续研究从可解释性、数据复杂度、训练稳定性和泛化等角度重新评估神经区分器，指出高精度结果必须与输入差分、负样本构造、密钥抽样和测试协议共同解释[2-3]。因此，仅比较来自不同数据协议的单个 accuracy 或 AUC 并不足以支持方法优越性。本文采用同协议控制，并把 train、validation、seed、pairs/sample 和 samples/class 分开记录。
+Gohr 将深度残差网络用于 SPECK 的约化轮差分区分，推动了神经网络与传统差分分析的结合[1]。后续评估和系统综述从数据复杂度、训练稳定性、泛化及可复现性等角度审视神经区分器，指出高精度结果必须与输入差分、负样本构造、密钥抽样和测试协议共同解释[2-3]。特别是，训练集、用于模型选择的验证集和独立 fresh test 承担不同作用，模型参数量也不能替代 FLOPs、训练时间和硬件报告[3]。因此，仅比较来自不同协议的单个 accuracy 或 AUC 并不足以支持方法优越性。本文采用同协议控制，并把 train、validation、seed、pairs/sample 和 samples/class 分开记录，同时把缺少独立 fresh test 列为限制。
 
 ### 2.2 通用模型与自动化建模
 
-AutoND/DBitNet 一类方法试图通过统一输入编码和自动化网络构造降低手工设计成本[4]。本文将其作为不显式消费目标密码运行时结构的通用基线，并让结构专家与 AutoND/DBitNet 使用相同数据、训练轮数和优化预算。该设置把模型间差值直接对应到当前协议下的结构归纳偏置，同时避免由不同数据规模造成的比较偏差。
+AutoND/DBitNet 一类方法试图通过统一输入编码和自动化网络构造降低手工设计成本[4]。本文将其作为不显式消费目标密码运行时结构的通用基线，并让结构专家与 AutoND/DBitNet 使用相同数据、训练轮数和优化预算。该设置避免由不同数据规模造成的比较偏差，但不能保证每个基线都达到其最优超参数；本文据此把比较限定为“统一冻结协议下的架构适配表现”，不称为各原论文的精确复现。
 
 ### 2.3 SPN 专用架构、表示与多密文对聚合
 
-SPN 神经区分研究主要从输入组织和网络几何两方面引入结构。Zhang 和 Wang 面向 DES、Chaskey 与 PRESENT 构造多密文对网络，以核宽为 1、2、4 的多分支一维卷积提取不同尺度特征，再通过递增奇数核残差块和全局平均池化完成预测[6]。Liu 等面向 SKINNY 与 MIDORI 将状态写成三通道二维矩阵，并采用二维卷积残差网络；其 Case-3 表示还包含逆轮处理后的状态与差分[7]。这些工作说明，多尺度卷积、状态矩阵和逆轮表示均是重要的公开先例，但其密码、差分、负样本、训练规模和评价指标与本文 uKNIT 协议并不一致。
+国内研究已采用卷积残差网络构造 SM4 约化轮差分区分器，说明密码专用卷积表示在国内也已有公开实践[5]。该工作面向 Feistel 类 SM4，其状态组织、差分和评价协议不能直接作为 uKNIT/Dialga 数值基线，但可作为密码结构与卷积网络结合的国内相关工作。
+
+SPN 神经区分研究主要从输入组织和网络几何两方面引入结构。Zhang 和 Wang 面向 DES、Chaskey 与 PRESENT 构造多密文对网络，以核宽为 1、2、4 的多分支一维卷积提取不同尺度特征，再通过递增奇数核残差块和全局平均池化完成预测[6]。Liu 等面向 SKINNY 与 MIDORI 将状态写成三通道二维矩阵，并采用二维卷积残差网络；其 Case-3 表示还包含逆轮处理后的状态与差分[7]。这些工作说明，多尺度卷积、状态矩阵和逆轮表示均是重要的公开先例，但其密码、差分、负样本、训练规模和评价指标与本文 uKNIT 协议并不一致。本文还纳入 Gohr-style ResNet[1]，以覆盖基础残差卷积网络族。
 
 为避免只与 AutoND/DBitNet 比较，本文把上述两类骨干迁移到冻结的 uKNIT K1-BS 协议：MCND 适配器保留多分支一维卷积、递增核残差块与全局平均池化；Case-3 Conv2D 适配器使用 \(C\)、\(C'\) 和原始 \(C\oplus C'\) 三通道状态矩阵。后者有意不使用 Liu 等的逆轮表示，以单独考察 Conv2D 骨干，而不把架构收益与特征工程混为一谈。因此，这两行是统一协议下的架构适配，不是原论文复现。
 
@@ -101,6 +104,10 @@ P_i'=P_i\oplus \Delta P,\qquad
 
 统一接口完成三项工作：校验状态宽度与 cell 完整性；把任意物理比特位置重组为有序原生 cell；向结构专家提供逐轮算子而不在网络中硬编码密码名称。本文所谓“统一”限于该说明书和消费协议。uKNIT 与 Dialga 的特征提取器及已训练权重并不共享。
 
+![图 1 运行时结构说明书驱动的异构 SPN 神经区分框架](figures/fig_method_framework.svg)
+
+**图 1  运行时结构说明书驱动的异构 SPN 神经区分框架。公开算法结构经统一说明书接口进入机制相关的差异化专家；在冻结数据、负样本和优化预算下，通过公开网络比较、结构反事实、同检查点替换及相邻轮数边界共同评价模型。**
+
 ### 4.2 uKNIT 五阶段原生单元位置直方图专家
 
 uKNIT 专家消费两轮运行时结构窗口。对每个密文对，程序按公开算子精确组合生成 `COMPOSITION_STAGE_NAMES` 对应的五个阶段视图。每个阶段中的比特依据 \(\pi_{\mathrm{cell}}\) 和 \(\pi_{\mathrm{role}}\) 重组为有序 4 bit 原生单元，得到取值 \(v_{t,c,i}\in\{0,\ldots,15\}\)。对一个样本的 \(q\) 个密文对，计算
@@ -129,6 +136,8 @@ Dialga 说明书给出非连续 `cell_membership`、cell 内 `bit_role`、S 盒�
 ### 5.1 公共设置
 
 全部实验均针对公开算法的离线约化轮区分。优化器为 Adam，损失函数为均方误差，训练 10 个 epoch；每项比较冻结设备、数据协议、负样本定义与优化预算，不在同预算比较中途切换设备。表中 `samples/class` 表示每类样本数，总训练行数为其两倍。K1-BS/K1-BZ 的 2048/class 用于先导架构比较，K1-U 和 DMC1 的 65536/class 用于机制确认，DMC2 的 262144/class 是当前已完成的最高规模双 seed 主结果；uKNIT K1-CA/K1-CB 以相同 `262144/class` 预算补齐候选、AutoND、MCND、Liu Conv2D 和 Gohr-style ResNet 的论文主表。实验规模由本文的结构归因问题和必要控制共同确定。除报告 accuracy 外，裁决优先使用不依赖固定阈值的 AUC。
+
+各表 AUC 来自冻结的跨密钥验证集，该验证集同时承担训练监控或检查点选择，因而不是独立 fresh final test。本文只有两个预先冻结的随机种子，不进行依赖大样本重复的显著性检验；结果按 seed 分列，主表补充算术均值与范围，并以方向一致性解释稳定性。中等及更大规模训练在远程 NVIDIA A6000 上完成，小样本 K1-BZ 是本地 CPU 先导诊断。公开网络统一使用项目冻结预算，但没有对每个适配器进行充分的独立超参数搜索，所以 RQ1 只评价当前协议下的架构适配，不评价其原论文最优能力。
 
 ### 5.2 uKNIT 协议
 
@@ -160,9 +169,11 @@ D1 使用 Dialga-128 prefix-r4，4 pairs/sample，训练 2048/class，验证 102
 
 ## 6 实验结果与分析
 
-### 6.1 uKNIT K1-BS/K1-BZ：公开架构补充对比
+本节按研究问题组织证据：RQ1 由 K1-CA/K1-CB 的 uKNIT 五模型主表回答，当前尚待远程闭环；6.1 仅给出其先导诊断，不能代替主表。RQ2 由 K1-U、D1 和 DMC2 回答，RQ3 由 D2 同检查点替换回答，RQ4 由 K1-BV 和 D3 的失败边界回答。
 
-表 3 汇总冻结的 K1-BS 锚点与 K1-BZ 新增架构。结构专家在 seed 3/4 的 AUC 为 0.902802/0.932539；AutoND/DBitNet 为 0.511321/0.526423。新增的 Zhang/Wang MCND 适配器为 0.493508/0.493233，Liu raw Case-3 Conv2D 适配器为 0.526742/0.505930。图 1 左侧给出统一协议下的四模型 AUC，右侧给出新增适配器相对 AutoND/DBitNet 的逐 seed 差值。
+### 6.1 RQ1 先导诊断：uKNIT K1-BS/K1-BZ 公开架构补充对比
+
+表 3 汇总冻结的 K1-BS 锚点与 K1-BZ 新增架构。结构专家在 seed 3/4 的 AUC 为 0.902802/0.932539；AutoND/DBitNet 为 0.511321/0.526423。新增的 Zhang/Wang MCND 适配器为 0.493508/0.493233，Liu raw Case-3 Conv2D 适配器为 0.526742/0.505930。图 2 左侧给出统一协议下的四模型 AUC，右侧给出新增适配器相对 AutoND/DBitNet 的逐 seed 差值。
 
 **表 3  uKNIT-BC r5 统一小样本协议下的公开架构补充对比**
 
@@ -173,9 +184,9 @@ D1 使用 Dialga-128 prefix-r4，4 pairs/sample，训练 2048/class，验证 102
 | Zhang/Wang MCND 适配（K1-BZ） | 650177 | 0.493507862 | 0.493232727 | −0.017813206/−0.033190727 |
 | Liu raw Case-3 Conv2D 适配（K1-BZ） | 130945 | 0.526742458 | 0.505930424 | +0.015421390/−0.020493030 |
 
-![图 1 uKNIT K1-BZ 公开论文架构补充对比](figures/fig_uknit_k1bz_published_architecture_comparison.svg)
+![图 2 uKNIT K1-BZ 公开论文架构补充对比](figures/fig_uknit_k1bz_published_architecture_comparison.svg)
 
-**图 1  uKNIT K1-BZ 公开论文架构补充对比。固定 r5、cell11 差分、16 pairs/sample、2048/class、跨密钥验证、seed 3/4 和 10 个 epoch；图中结果是架构适配诊断，不是三篇基线论文的原协议复现。**
+**图 2  uKNIT K1-BZ 公开论文架构补充对比。固定 r5、cell11 差分、16 pairs/sample、2048/class、跨密钥验证、seed 3/4 和 10 个 epoch；图中结果是架构适配诊断，不是三篇基线论文的原协议复现。**
 
 MCND 在两个 seed 上均低于 AutoND。Liu Conv2D 在 seed 3 高 0.015421，但 seed 4 低 0.020493，且两颗 seed 的 AUC 都未达到 0.550。预注册门要求同一适配器在两颗 seed 上同时达到 AUC 0.550，并相对 AutoND 至少提高 0.010，因此 gate 状态为 `hold`，决策为 `innovation1_uknit_k1bz_no_published_adapter_local_promotion`，不进入远程扩样。
 
@@ -195,9 +206,9 @@ K1-U 把 uKNIT r5 结构语义验证扩展到 65536/class。表 4 显示，正�
 | 正确位置分支 − 错误 S 盒 | +0.470639800 | +0.462040009 |
 | 正确位置分支 − 位置不变 | −0.002660018 | −0.006815012 |
 
-![图 2 uKNIT K1-U 的中等规模 S 盒语义与位置控制](figures/fig_uknit_k1u_semantic_position.svg)
+![图 3 uKNIT K1-U 的中等规模 S 盒语义与位置控制](figures/fig_uknit_k1u_semantic_position.svg)
 
-**图 2  uKNIT K1-U 的跨密钥 AUC 与归因差值。正确 S 盒相对错误 S 盒的优势在两个 seed 上稳定，而原生位置分支没有优于位置不变控制。**
+**图 3  uKNIT K1-U 的跨密钥 AUC 与归因差值。正确 S 盒相对错误 S 盒的优势在两个 seed 上稳定，而原生位置分支没有优于位置不变控制。**
 
 位置不变控制在两个 seed 上又分别提高 0.002660 和 0.006815 AUC。这一结果把方法结论进一步收紧为更有用的设计选择：uKNIT 的主要增益来自正确 S 盒语义，而不是对固定原生位置的记忆，因此后续模型可以采用更简洁的位置不变单元统计。K1-U 的六行结果、四次数据缓存创建、八次跨模型复用、检查点重算和协议校验均通过；原始回收来源记录在附录 A 中。
 
@@ -215,11 +226,11 @@ K1-BV 的主要裁决依据是 AUC，而非阈值相关的 accuracy。由表 5 �
 | pair gain：exact16 − exact4 | +0.028973103 | +0.001618862 |
 | semantic gap：exact16 − wrong16 | −0.001780033 | −0.006320000 |
 
-作为补充，三种条件的 accuracy 分别为：seed 3 下 0.498535、0.508789、0.500000；seed 4 下 0.500977、0.500977、0.501953。图 3 直接展示 AUC、pair 增益和正确 S 盒相对错误 S 盒的差值，与表 5 的 gate 量一致。
+作为补充，三种条件的 accuracy 分别为：seed 3 下 0.498535、0.508789、0.500000；seed 4 下 0.500977、0.500977、0.501953。图 4 直接展示 AUC、pair 增益和正确 S 盒相对错误 S 盒的差值，与表 5 的 gate 量一致。
 
-![图 3 uKNIT K1-BV 的 AUC、pair 增益与 S 盒语义差值](figures/fig_uknit_k1bv_boundary.svg)
+![图 4 uKNIT K1-BV 的 AUC、pair 增益与 S 盒语义差值](figures/fig_uknit_k1bv_boundary.svg)
 
-**图 3  uKNIT K1-BV 的 AUC、pair 增益与 S 盒语义差值。两个 seed 均未形成“增加 pair 且正确 S 盒稳定占优”的组合。**
+**图 4  uKNIT K1-BV 的 AUC、pair 增益与 S 盒语义差值。两个 seed 均未形成“增加 pair 且正确 S 盒稳定占优”的组合。**
 
 远程 gate 状态为 `hold`，决策为 `innovation1_uknit_k1bv_pair_amplification_not_supported`，等级为 `unsupported`；最终结果打包失败。因此准确结论是：在该固定差分、固定结构专家和 2048/class 诊断预算下，没有证据支持通过 4-pair 到 16-pair 的机械放大获得 r6 结构优势。该结果不能外推为 uKNIT r6 不存在神经区分信号，更不能视为方法在所有更大规模上的上限。
 
@@ -245,9 +256,9 @@ D2 不重新训练模型，只在 D1 正确拓扑检查点上更换推理时结�
 | 0 | 0.958416939 | 0.925255775 | 0.517402649 | +0.033161163 | +0.441014290 |
 | 1 | 0.958679199 | 0.918379784 | 0.526350975 | +0.040299416 | +0.432328224 |
 
-![图 4 Dialga D2 同一检查点下的结构说明书替换结果](figures/fig_dialga_d2_same_checkpoint.svg)
+![图 5 Dialga D2 同一检查点下的结构说明书替换结果](figures/fig_dialga_d2_same_checkpoint.svg)
 
-**图 4  Dialga D2 同一检查点下的结构说明书替换结果**
+**图 5  Dialga D2 同一检查点下的结构说明书替换结果**
 
 更换说明书还引起明显的逐样本预测变化：seed 0 的最大预测概率变化在扰动和无拓扑条件下分别为 0.912204、0.918676，seed 1 分别为 0.902221、0.869230。D2 因此提供了比“分别训练三个模型”更直接的功能依赖证据：在权重和检查点不变时，模型输出随运行时拓扑发生大幅变化，确认 Runtime-E4 在推理阶段实际消费了结构说明书。
 
@@ -268,9 +279,9 @@ DMC1 将训练规模提高到 65536/class，DMC2 进一步提高到 262144/class
 | DMC2 AutoND/DBitNet | 0.502369641 | 0.501357568 |
 | DMC2 正确−扰动 | +0.017433548 | +0.017124103 |
 
-![图 5 Dialga DMC2 两个随机种子下的 AUC 与拓扑归因结果](figures/fig_dialga_dmc2_auc.svg)
+![图 6 Dialga DMC2 两个随机种子下的 AUC 与拓扑归因结果](figures/fig_dialga_dmc2_auc.svg)
 
-**图 5  Dialga DMC2 两个随机种子下的 AUC 与正确—扰动拓扑差值。训练规模为 262144/class；该图已经过渲染像素检查。**
+**图 6  Dialga DMC2 两个随机种子下的 AUC 与正确—扰动拓扑差值。训练规模为 262144/class；该图已经过渲染像素检查。**
 
 DMC2 的六行结果、四次缓存创建、八次参数匹配复用和六个检查点均通过本地重裁决，研究 gate 为 `pass`。在完全共享的数据与优化预算下，正确拓扑在两个 seed 上均优于扰动拓扑，并较 AutoND/DBitNet 提高 0.482595/0.482854 AUC。D1、D2、DMC1 和 DMC2 由此形成“独立训练对照、同检查点反事实、规模确认”三层拓扑证据链。归档来源、参数量差异和独立测试设置集中列入第 8 节。
 
@@ -311,57 +322,55 @@ K1-BS 在 r5 uKNIT 的小样本协议中显示可学习信号，K1-U 则在 6553
 
 第一，各实验的归档形态尚未完全统一。K1-BS、K1-BZ、D1、D2、D3 已在本地完成规范验证与 gate；K1-U 和 DMC2 从远程运行根回收后完成了清单校验、协议验证和本地重裁决；K1-BV 和 DMC1 仍需整理为统一归档格式。该差异不改变正文所列数值，但会增加材料复核成本。
 
-第二，本文采用两个随机种子，最高训练规模为 262144/class。uKNIT 的语义差值达到 0.46 以上，Dialga 的拓扑差值在两个 seed 上方向一致，并有同检查点反事实作为独立支撑，因此该预算能够回答本文的结构归因问题。更多随机种子、独立最终测试和置信区间可用于进一步估计方差，但不作为当前方法结论的前置条件。
+第二，本文采用两个随机种子，最高训练规模为 262144/class。现有 AUC 来自用于训练监控或检查点选择的冻结跨密钥验证集，没有独立 fresh final test。两个 seed 不足以支撑可靠的显著性检验或方差估计，因此本文只报告逐 seed、均值/范围及方向一致性。uKNIT 的语义差值达到 0.46 以上，Dialga 的拓扑差值在两个 seed 上同向，并有同检查点反事实作为独立支撑；这些证据支持当前结构归因，但不能替代更多重复下的不确定性估计。
 
-第三，比较并非完全容量匹配。K1-CA/K1-CB 中结构专家、AutoND/DBitNet、MCND、Liu Conv2D 和 Gohr-style ResNet 的参数量分别为 214316、636513、650177、130945 和 191937；Dialga Runtime-E4 与 AutoND/DBitNet 分别为 442466 和 797633。公开架构适配器采用统一冻结数据和优化预算，而非逐篇复现其原始数据构造和完整超参数搜索空间。本文通过同预算比较和结构反事实突出归纳偏置的作用，参数量匹配及逐模型预算匹配仍可作为后续补充。
+第三，比较并非完全容量或调参匹配。K1-CA/K1-CB 中结构专家、AutoND/DBitNet、MCND、Liu Conv2D 和 Gohr-style ResNet 的参数量分别为 214316、636513、650177、130945 和 191937；Dialga Runtime-E4 与 AutoND/DBitNet 分别为 442466 和 797633。公开架构适配器采用统一冻结数据和优化预算，没有逐篇复现其原始数据构造，也没有为每个适配器充分搜索学习率、L2 正则和卷积核等超参数。因此，比较只说明当前 uKNIT/Dialga 协议下的适配表现；参数量匹配和逐模型预算匹配可作为后续补充。
 
-第四，当前结论对应 uKNIT r5、Dialga prefix-r4 及其冻结差分协议。把说明书接口扩展到其他 SPN 仍需为目标结构配置相应专家和控制；训练时间、推理吞吐、显存占用及校准误差也有待在统一硬件条件下补充。
+第四，当前结论对应 uKNIT r5、Dialga prefix-r4 及其冻结差分协议。把说明书接口扩展到其他 SPN 仍需为目标结构配置相应专家和控制。本文已经报告参数量，但统一 FLOPs、每 epoch 训练时间、推理吞吐、显存占用及校准误差仍有待在相同硬件条件下补充。
 
 ## 9 结论
 
 本文提出一种面向异构 SPN 的运行时结构先验神经区分方法，把公开算法中的 cell、比特角色、S 盒语义和 GF(2) 拓扑编码为可执行说明书，再由与结构机制相匹配的专家消费。uKNIT K1-U 在 65536/class 下取得超过 0.96 的双 seed AUC，正确 S 盒相对错误语义提高 0.46 以上；位置不变控制进一步提升结果，给出了更简洁的非线性语义表示。Dialga D2 表明正确拓扑在同一冻结检查点下直接影响预测，DMC2 则在 262144/class、两个 seed 下保持正确拓扑相对扰动拓扑和 AutoND/DBitNet 的稳定优势。
 
-两个案例共同说明，结构信息的价值不仅体现为更高 AUC，还能通过错误语义、扰动拓扑和同检查点替换被直接归因。由此形成的“统一结构说明书与控制协议、针对机制采用差异化专家”路线，在非轮对齐非线性结构和多线性层拓扑上均获得了可重复证据。后续工作将围绕更多结构类型、参数量匹配和统一运行效率评估展开。
+两个案例共同说明，结构信息的价值不仅体现为更高 AUC，还能通过错误语义、扰动拓扑和同检查点替换被直接归因。由此形成的“统一结构说明书与控制协议、针对机制采用差异化专家”路线，在非轮对齐非线性结构和多线性层拓扑上均获得了可复核证据。后续工作将围绕独立 fresh test、更多结构类型、参数量匹配和统一运行效率评估展开。
 
-## 数据与材料可得性声明（占位）
+## 数据与材料可得性声明
 
 本文实验配置、模型实现、结果文件、验证记录和 gate 产物拟在论文录用或审稿政策允许的阶段公开。投稿前需根据匿名审稿要求替换为匿名仓库或补充材料链接。
 
-## 伦理与利益冲突声明（占位）
+## 伦理与利益冲突声明
 
 本文仅研究公开分组密码的离线约化轮安全评估，不涉及真实网络系统、用户数据或未授权密钥材料。作者声明不存在需要披露的利益冲突（待全体作者确认）。
 
-## 作者贡献与经费声明（占位）
+## 作者贡献与经费声明
 
 作者贡献、基金项目名称及编号待作者团队确认后按目标期刊格式填写。
 
-## 人工智能辅助写作声明（占位）
+## 人工智能辅助写作声明
 
 本文初稿使用生成式人工智能辅助整理结构、润色中文和核对实验表格；算法判断、实验设计、数据真实性、引用准确性及最终文本由作者负责。正式投稿时按目标期刊政策决定是否保留及如何表述本声明。
 
-## 参考文献（占位，投稿前逐条核验）
+## 参考文献
 
-[1] GOHR A. Improving attacks on round-reduced Speck32/64 using deep learning[C]//Advances in Cryptology—CRYPTO 2019. 2019.（卷号、页码待核验）
+[1] GOHR A. Improving attacks on round-reduced Speck32/64 using deep learning[C]//Advances in Cryptology—CRYPTO 2019. Cham: Springer International Publishing, 2019: 150-179. DOI: 10.1007/978-3-030-26951-7_6.
 
-[2] BENAMIRA A, GERARD B, PEYRIN T, et al. A deeper look at machine learning-based cryptanalysis[C]. 2021.（正式题名、会议、页码待核验）
+[2] GOHR A, LEANDER G, NEUMANN P. An assessment of differential-neural distinguishers[EB/OL]. Cryptology ePrint Archive, Report 2022/1521, 2022[2026-08-03]. https://eprint.iacr.org/2022/1521.
 
-[3] GOHR A, LEANDER G, NEUMANN P. An assessment of differential-neural distinguishers[C]. 2022.（正式出版信息待核验）
+[3] GERAULT D, HAMBITZER A, HUPPERT M, PICEK S. Survey: Six years of neural differential cryptanalysis[EB/OL]. Cryptology ePrint Archive, Report 2024/1300, 2024[2026-08-03]. https://eprint.iacr.org/2024/1300.
 
-[4] AutoND/DBitNet cipher-agnostic neural distinguisher pipeline[EB/OL]. 2023.（作者、正式题名、版本与公开代码地址待核验）
+[4] BELLINI E, GERAULT D, HAMBITZER A, ROSSI M. A cipher-agnostic neural training pipeline with automated finding of good input differences[J]. IACR Transactions on Symmetric Cryptology, 2023(3): 184-212. DOI: 10.46586/tosc.v2023.i3.184-212.
 
-[5] 神经差分密码分析系统化综述（SoK）[C]. 2024.（作者、题名与出版信息待核验）
+[5] 余玥琳, 武小年, 张润莲. 基于卷积残差网络的 SM4 算法分析[J]. 桂林电子科技大学学报, 2023, 43(1): 75-79.
 
-[6] ZHANG L, WANG Z. Improving Differential-Neural Distinguisher Model for DES, Chaskey and PRESENT[EB/OL]. arXiv:2204.06341, 2022.（正式出版版本与页码待核验）
+[6] ZHANG L, WANG Z. Improving differential-neural distinguisher model for DES, Chaskey, and PRESENT[EB/OL]. arXiv:2204.06341, 2022[2026-08-03]. https://arxiv.org/abs/2204.06341.
 
-[7] LIU J S, LI M M, REN J J, CHEN S Z. A Highly Efficient Neural Distinguisher Framework for IoT-Friendly Lightweight SPN Block Ciphers[J]. IEICE Transactions on Information and Systems, 2026. DOI: 10.1587/transinf.2025EDP7070.（卷期页码待核验）
+[7] LIU J, LI M, REN J, CHEN S. A highly efficient neural distinguisher framework for IoT-friendly lightweight SPN block ciphers[J]. IEICE Transactions on Information and Systems, 2026, E109-D(2): 238-248. DOI: 10.1587/transinf.2025EDP7070.
 
-[8] 多密文对神经区分与聚合方法相关工作[C/J].（作者、题名与出版信息待核验）
+[8] CHEN Y, SHEN Y, YU H, YUAN S. A new neural distinguisher considering features derived from multiple ciphertext pairs[EB/OL]. Cryptology ePrint Archive, Report 2021/310, 2021[2026-08-03]. https://eprint.iacr.org/2021/310.
 
-[9] HU K, KHAIRALLAH M, PEYRIN T, TAN Q Q. uKNIT: Breaking Round-Alignment for Cipher Design[J]. IACR Transactions on Symmetric Cryptology, 2026(2). DOI: 10.46586/tosc.a0zo-4njsuvm.（页码待核验）
+[9] HU K, KHAIRALLAH M, PEYRIN T, TAN Q Q. uKNIT: Breaking round-alignment for cipher design[J]. IACR Transactions on Symmetric Cryptology, 2026(2). DOI: 10.46586/tosc.a0zo-4njsuvm.
 
-[10] BANIK S, et al. Dialga: A Family of Low-Latency Tweakable Block Ciphers Using Multiple Linear Layers[J]. IACR Transactions on Symmetric Cryptology, 2025(4): 70-124. DOI: 10.46586/tosc.v2025.i4.70-124.（完整作者列表待核验）
-
-[11] GPD 等通用密码区分模型相关工作[C/J]. 2025.（作者、题名与出版信息待核验）
+[10] BANIK S, ISHIKAWA T, ISOBE T, et al. Dialga: A family of low-latency tweakable block ciphers using multiple linear layers[J]. IACR Transactions on Symmetric Cryptology, 2025, 2025(4): 70-124. DOI: 10.46586/tosc.v2025.i4.70-124.
 
 ## 附录 A 证据路径与复核边界
 
