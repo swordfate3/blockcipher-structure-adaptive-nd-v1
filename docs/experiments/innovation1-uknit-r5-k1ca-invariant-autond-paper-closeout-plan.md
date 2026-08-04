@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT K1-CA Invariant/AutoND Paper Closeout Plan
 
 **Date:** 2026-08-03
-**Status:** running remotely; bounded start confirmed; tmux retrieval active; result pending; K1-CB published-network comparison authorized after valid completion
+**Status:** complete; fallback raw retrieval locally validated; protocol and research gates pass; K1-CA training closed
 **Run ID:** `i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803`
 
 ## 1. Research Question
@@ -175,3 +175,40 @@ outputs/remote_results_incomplete/
 主线程不再 SSH 轮询。下一动作是由 monitor 等待 verified result branch 或 raw
 fallback archive，随后自动校验清单、重裁决四行结果并刷新 recent-results 索引。
 在完整结果回收前不生成论文数值、图表或优势结论，也不启动任何额外实验。
+
+## 9. Completion Record (2026-08-04)
+
+K1-CA 已在远程 A6000 完成，并从远程运行根以 fallback raw retrieval 方式
+回收到本地。回收来源不是完整验证结果分支，因此证据状态必须写为“原始回收并
+本地重裁决”，不能简写为 verified result branch。source commit 为：
+
+```text
+ad8581a7b790d138de5f270725a872441e4f29e3
+```
+
+本地证据入口为：
+
+```text
+outputs/remote_results_incomplete/
+  i1_uknit_r5_k1ca_invariant_autond_262144_s3s4_20260803/
+```
+
+四个冻结行、四个非空检查点、每行完整 10 epoch history、`run_done`、计划一致性
+验证和本地 gate 全部通过。缓存合同实际值为四次创建、四次完成、四次 AutoND
+参数匹配复用和零 final-test cache，与预注册完全一致。逐 seed 结果如下：
+
+| seed | 位置不变结构专家 AUC | AutoND/DBitNet AUC | 差值 | 结构专家 accuracy | AutoND accuracy |
+|---:|---:|---:|---:|---:|---:|
+| 3 | 0.978828491 | 0.500461395 | +0.478367096 | 0.968933105 | 0.501846313 |
+| 4 | 0.980237826 | 0.501199730 | +0.479038095 | 0.964027405 | 0.500175476 |
+
+本地 gate 状态为 `pass`，决策为
+`innovation1_uknit_k1ca_invariant_advantage_supported`。可写范围限定为：在冻结
+uKNIT-BC r5、4 pairs/sample、`262144/class`、双 seed 项目协议下，位置不变
+结构专家稳定优于 AutoND/DBitNet 适配器。该结果不是 AutoND 公开代码的精确
+复现、百万级正式 benchmark、充分超参数搜索、完整轮攻击、SOTA、密钥恢复突破
+或统一网络通吃所有 SPN 的证据。
+
+K1-CA 的结果曾授权冻结的 K1-CB 只读复用四份缓存；K1-CB 现亦已完成。下一动作
+更新为：停止 K1-CA/K1-CB 及其任何机械扩样，把五模型结果、图表和证据边界写入
+论文后进入期刊格式适配与投稿前审计。

@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT K1-CB Published-Network Paper Comparison Plan
 
 **Date:** 2026-08-03
-**Status:** preregistered; waiting for protocol-valid K1-CA completion and exact cache reuse readiness
+**Status:** complete; fallback raw retrieval locally validated; six-row protocol gate pass; training closed
 **Run ID:** `i1_uknit_r5_k1cb_published_comparison_262144_s3s4_20260803`
 
 ## 1. Paper Question
@@ -129,3 +129,51 @@ K1-CB 只能在 K1-CA 完成、回收并确认缓存可复用后，从新的 Git
 
 K1-CB 协议有效完成后，不再增加网络、seed、数据、epoch、pair、轮数或最终测试，
 直接合并 K1-CA/K1-CB 结果并转入论文定稿。
+
+## 8. Completion Record (2026-08-04)
+
+远程训练于 `2026-08-04 00:41:42 CST` 完成；本地 watcher 于
+`2026-08-04 00:53:12 CST` 完成 fallback 原始回收、验证、重裁决和最近结果
+索引刷新。source commit 为：
+
+```text
+24439cf0c1c59ae53e80e4daaa26c24808b0993a
+```
+
+本地证据入口为：
+
+```text
+outputs/remote_results_incomplete/
+  i1_uknit_r5_k1cb_published_comparison_262144_s3s4_20260803/
+```
+
+六个冻结行、六个结果、六个非空检查点、每行完整 10 epoch history 和
+`run_done` 均存在。本地 validation 与 gate 均为 `pass`。source cache audit
+确认 K1-CA 四份缓存的数组形状、类型、元数据和生成合同全部匹配；K1-CB 实际
+记录恰好 12 次 `cache_reuse`、零 `cache_start`、零 `cache_done` 和零
+final-test cache，没有重复生成数据。
+
+与 K1-CA 合并后的五模型结果如下：
+
+| 模型 | 参数量 | seed 3 AUC | seed 4 AUC | 双 seed 均值 |
+|---|---:|---:|---:|---:|
+| 本文位置不变结构专家 | 214316 | 0.978828491 | 0.980237826 | 0.979533158 |
+| AutoND/DBitNet | 636513 | 0.500461395 | 0.501199730 | 0.500830563 |
+| Zhang/Wang MCND | 650177 | 0.502597480 | 0.502943739 | 0.502770610 |
+| Liu Case-3 Conv2D | 130945 | 0.502576438 | 0.502596028 | 0.502586233 |
+| Gohr-style ResNet | 191937 | 0.502705259 | 0.501555394 | 0.502130327 |
+
+seed 3 的最强公开适配基线为 Gohr-style ResNet，本文方法高
+`0.476123232` AUC；seed 4 的最强基线为 Zhang/Wang MCND，本文方法高
+`0.477294086` AUC。本地 gate 状态为 `pass`，决策为
+`innovation1_uknit_k1cb_published_comparison_complete`，且没有性能淘汰门。
+
+可写范围限定为：在本文冻结的 uKNIT r5 项目协议、双 seed、同四份缓存和
+`262144/class` 预算下，本文方法相对 AutoND、MCND、Liu Conv2D 与 Gohr-style
+ResNet 四种代表性公开架构适配器均保持优势。回收来源仍是 fallback 原始结果，
+不是完整验证结果分支；比较也不是原论文精确复现、逐模型充分超参数搜索、百万级
+正式 benchmark、完整轮攻击、SOTA、攻击突破或统一网络证据。
+
+推荐且已执行的下一动作是把全部五模型和双 seed 纳入论文主表及像素验收主图，
+随后停止训练并转入论文定稿。禁止再增加模型、seed、数据、epoch、pair、轮数、
+fresh test 或以百万规模机械扩样。
