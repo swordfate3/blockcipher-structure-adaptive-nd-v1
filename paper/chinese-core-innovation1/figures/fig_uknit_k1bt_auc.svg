@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520">
+<rect width="100%" height="100%" fill="white"/>
+<text x="490.0" y="35" text-anchor="middle" font-size="22" font-family="Arial, Noto Sans CJK SC">uKNIT-BC r5 K1-BT：结构专家 vs AutoND（65536/class，16 pairs）</text>
+<text x="25" y="245.0" transform="rotate(-90 25 245.0)" text-anchor="middle" font-size="15" font-family="Arial">AUC</text>
+<line x1="80" y1="420.0" x2="950" y2="420.0" stroke="#ddd"/>
+<text x="70" y="425.0" text-anchor="end" font-size="12" font-family="Arial">0.00</text>
+<line x1="80" y1="350.0" x2="950" y2="350.0" stroke="#ddd"/>
+<text x="70" y="355.0" text-anchor="end" font-size="12" font-family="Arial">0.21</text>
+<line x1="80" y1="280.0" x2="950" y2="280.0" stroke="#ddd"/>
+<text x="70" y="285.0" text-anchor="end" font-size="12" font-family="Arial">0.42</text>
+<line x1="80" y1="210.0" x2="950" y2="210.0" stroke="#ddd"/>
+<text x="70" y="215.0" text-anchor="end" font-size="12" font-family="Arial">0.63</text>
+<line x1="80" y1="140.0" x2="950" y2="140.0" stroke="#ddd"/>
+<text x="70" y="145.0" text-anchor="end" font-size="12" font-family="Arial">0.84</text>
+<line x1="80" y1="70.0" x2="950" y2="70.0" stroke="#ddd"/>
+<text x="70" y="75.0" text-anchor="end" font-size="12" font-family="Arial">1.05</text>
+<line x1="80" y1="420" x2="950" y2="420" stroke="#222"/>
+<line x1="80" y1="70" x2="80" y2="420" stroke="#222"/>
+<line x1="80" y1="253.3" x2="950" y2="253.3" stroke="#111" stroke-dasharray="6,5"/>
+<rect x="117.0" y="87.3" width="143.6" height="332.7" fill="#2c7fb8"/>
+<text x="188.8" y="79.3" text-anchor="middle" font-size="13" font-family="Arial">0.9981</text>
+<text x="188.8" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">Expert</text>
+<text x="188.8" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">seed3</text>
+<rect x="334.5" y="252.2" width="143.6" height="167.8" fill="#bdbdbd"/>
+<text x="406.2" y="244.2" text-anchor="middle" font-size="13" font-family="Arial">0.5035</text>
+<text x="406.2" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">AutoND</text>
+<text x="406.2" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">seed3</text>
+<rect x="552.0" y="88.3" width="143.6" height="331.7" fill="#2c7fb8"/>
+<text x="623.8" y="80.3" text-anchor="middle" font-size="13" font-family="Arial">0.9952</text>
+<text x="623.8" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">Expert</text>
+<text x="623.8" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">seed4</text>
+<rect x="769.5" y="252.3" width="143.6" height="167.7" fill="#bdbdbd"/>
+<text x="841.2" y="244.3" text-anchor="middle" font-size="13" font-family="Arial">0.5030</text>
+<text x="841.2" y="444" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">AutoND</text>
+<text x="841.2" y="460" text-anchor="middle" font-size="12" font-family="Arial, Noto Sans CJK SC">seed4</text>
+</svg>

@@ -51,6 +51,64 @@ variants even though they use the verified full-cipher round trace.
 
 ---
 
+## [LRN-20260804-001] correction
+
+**Logged**: 2026-08-04T14:10:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: docs
+
+### Summary
+
+Before treating a Chinese-core manuscript PDF as submission-ready, verify the
+target journal's current official template and author guidelines; a generic
+`ctexart` technical-report layout is not a journal submission template.
+
+### Details
+
+The manuscript content and figures had already been assembled, but the PDF was
+still presented in a generic Chinese technical-report layout. The author
+correctly noted that this did not look like a Chinese-core submission. Chinese
+core journals do not share one universal LaTeX class, so journal selection must
+precede final typesetting. For this computer-science manuscript, the current
+target was fixed to the *Chinese Journal of Computers*. Its official submission
+page, author guide, downloadable `LatexTemplet.zip`, and rendered sample were
+checked before rebuilding the paper.
+
+The official package uses a legacy GBK/CJK toolchain. The reproducible solution
+is a clearly labelled UTF-8/XeLaTeX compatibility class that preserves the
+official A4 type area, approximately 10.5 bp body text, 8 mm two-column gutter,
+single-column bilingual first page, headers, captions, and author-information
+structure. It must not be described as an official modernized class or reused
+as another journal's template without a fresh target-journal audit.
+
+### Suggested Action
+
+At the start of the final-submission formatting stage, record the target
+journal, official template URL, guide URL, retrieval date, package checksum,
+and any encoding/font incompatibility. Render the official sample and the
+candidate PDF, compare their first-page and body structures, and run the full
+pixel-level visual gate on the exact final PDF before delivery.
+
+### Metadata
+
+- Source: user_feedback, official_template_audit
+- Related Files: paper/chinese-core-innovation1/template_selection_audit.md, paper/chinese-core-innovation1/templates/cjc-utf8.cls, paper/chinese-core-innovation1/cjc_submission.tex
+- Tags: paper, chinese-core, journal-template, latex, cjc, visual-qa
+- See Also: none
+- Pattern-Key: paper.format.official_target_template_before_submission_pdf
+- Recurrence-Count: 1
+- First-Seen: 2026-08-04
+- Last-Seen: 2026-08-04
+
+### Resolution
+
+- **Resolved**: 2026-08-04T14:10:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Verified the current CJC official package and rebuilt the paper with a labelled UTF-8 compatibility class, followed by full-PDF visual QA.
+
+---
+
 ## [LRN-20260803-003] correction
 
 **Logged**: 2026-08-03T15:10:00+08:00
